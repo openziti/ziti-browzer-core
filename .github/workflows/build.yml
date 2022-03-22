@@ -1,0 +1,90 @@
+
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'package.json'
+      - 'CHANGELOG.md'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      tags:
+        required: false
+        description: 'Misc tags'
+
+jobs:
+  
+  build:
+    
+    name: 'Build'
+    
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+    
+    steps:
+    
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Bump semver
+        if: github.ref == 'refs/heads/main'
+        uses: TriPSs/conventional-changelog-action@v3
+        with:
+          github-token: ${{ secrets.GH_ACTION }}
+          git-message: 'chore(release): {version}'
+          preset: 'angular'
+          tag-prefix: 'v'
+          output-file: 'CHANGELOG.md'
+          skip-on-empty: false # alter semver even when we push 'chore: ...' commits
+          release-count: 0 # ensure changelog is generated to contain ALL updates
+
+      - name: Pull newly bumped semver
+        if: github.ref == 'refs/heads/main'
+        run: git pull
+
+      - name: Setup .npmrc
+        if: github.ref == 'refs/heads/main'
+        # Setup .npmrc file to prepare for possible publish to npm
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+
+      - name: Extract PR number
+        shell: bash
+        run: |
+          echo "##[set-output name=pr_number;]$(echo $(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH"))"
+        id: extract_pr_number
+
+      - name: Extract version number
+        shell: bash
+        run: |
+          echo "##[set-output name=version_number;]$(echo $(jq -r .version package.json))"
+        id: extract_version_number
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+      - name: Publish production release
+        if: (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') # do not publish if only doing a dep update initiated by dependabot 
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

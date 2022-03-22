@@ -1,0 +1,53 @@
+{
+  "name": "@openziti/ziti-browzer-core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
+  "scripts": {
+    "rollup": "rollup -c ./rollup.config.js",
+    "build": "yarn rollup",
+    "test": "karma start karma.conf.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openziti/ziti-browzer-runtime.git"
+  },
+  "keywords": [
+    "ziti",
+    "js",
+    "javascript",
+    "zero trust",
+    "zero-trust",
+    "browZer",
+    "browser"
+  ],
+  "author": "NetFoundry",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/openziti/ziti-browzer-runtime/issues"
+  },
+  "homepage": "https://github.com/openziti/ziti-browzer-runtime#readme",
+  "main": "./dist/ziti-browzer-runtime.js",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@open-wc/karma-esm": "^4.0.0",
+    "@rollup/plugin-commonjs": "^21.0.2",
+    "@rollup/plugin-json": "^4.1.0",
+    "chai": "^4.3.6",
+    "karma": "^6.3.17",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-mocha": "^2.0.1",
+    "mocha": "^9.2.2",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-esformatter": "^2.0.1",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "dependencies": {
+    "@openziti/libcrypto-js": "^0.6.13",
+    "@openziti/ziti-browzer-edge-client": "^0.1.7",
+    "util": "^0.12.4"
+  }
+}
