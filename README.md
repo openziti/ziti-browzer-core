@@ -7,7 +7,7 @@
     <a>@openziti/ziti-browzer-core</a>
     <br>
     <br>
-    <b>Core componentry for the Ziti browZer ecosystem.  This is used internally by <a href="https://ziti.dev/blog/zitification">ziti-browzer-runtime</a> and <a href="https://ziti.dev/blog/zitification">ziti-sdk-browzer</a>, both of which facilitate cretion of a <a href="https://ziti.dev/blog/zitification">Zitified</a> web app.</b>
+    <b>Core componentry for the Ziti browZer ecosystem.  This is used internally by <a href="https://github.com/openziti/ziti-browzer-runtime">ziti-browzer-runtime</a> and <a href="https://github.com/openziti/ziti-sdk-browzer">ziti-sdk-browzer</a>, both of which facilitate cretion of a <a href="https://ziti.dev/blog/zitification">Zitified</a> web app.</b>
     <br>
     <br>
     <b>Part of the <a href="https://ziti.devdev/about">OpenZiti</a> Zero Trust browZer stack</b>

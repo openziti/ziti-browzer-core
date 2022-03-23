@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openziti/ziti-browzer-runtime.git"
+    "url": "git+https://github.com/openziti/ziti-browzer-core.git"
   },
   "keywords": [
     "ziti",
@@ -24,10 +24,10 @@
   "author": "NetFoundry",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/openziti/ziti-browzer-runtime/issues"
+    "url": "https://github.com/openziti/ziti-browzer-core/issues"
   },
-  "homepage": "https://github.com/openziti/ziti-browzer-runtime#readme",
-  "main": "./dist/ziti-browzer-runtime.js",
+  "homepage": "https://github.com/openziti/ziti-browzer-core#readme",
+  "main": "./dist/esm/index.js",
   "files": [
     "dist"
   ],
