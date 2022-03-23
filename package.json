@@ -27,7 +27,7 @@
     "url": "https://github.com/openziti/ziti-browzer-runtime/issues"
   },
   "homepage": "https://github.com/openziti/ziti-browzer-runtime#readme",
-  "main": "./dist/ziti-browzer-runtime.js",
+  "main": "./dist/esm/index.js",
   "files": [
     "dist"
   ],
