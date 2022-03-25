@@ -15,22 +15,18 @@ limitations under the License.
 */
 
 
+import { LogLevel } from '../logLevels'
+
 /**
  * Default options.
  */
 const defaultOptions = {
   
     /**
-     * See {@link Options.logger}
+     * See {@link Options.logLevel}
      *
      */
-     logger: null,
-
-    /**
-     * See {@link Options.controllerApi}
-     *
-     */
-     controllerApi: 'https://local-controller:1280',
+    logLevel: LogLevel.Info,
 
 };
 

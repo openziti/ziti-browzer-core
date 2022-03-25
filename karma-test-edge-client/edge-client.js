@@ -7,7 +7,7 @@ describe("edge-client", function () {
   this.timeout(5000);
 
   beforeEach(async function () {
-    this.zitiBrowzerCore = new ZitiBrowzerCore({logLevel: 'debug'});
+    this.zitiBrowzerCore = new ZitiBrowzerCore();
   });
 
   it("get Controller version", async function () {

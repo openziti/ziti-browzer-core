@@ -39,7 +39,9 @@ class ZitiContext {
 
     this._initialized = false;
 
-    this._options = flatOptions(options, defaultOptions);
+    let _options = flatOptions(options, defaultOptions);
+
+    this.logger = _options.logger;
 
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
@@ -67,9 +69,13 @@ class ZitiContext {
 
     if (this._initialized) throw Error("Already initialized; Cannot call .initialize() twice on instance.");
 
+    this.logger.trace(`_libCrypto.initialize starting`);
+
     await this._libCrypto.initialize(); 
 
     this._initialized = true;    
+
+    this.logger.trace(`_libCrypto.initialize completed`);
   }
 
   /**
@@ -96,7 +102,6 @@ class ZitiContext {
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
     const privateKeyPEM = this._libCrypto.generateECKey({});
-    // console.log(`${privateKeyPEM}`);
 
     return privateKeyPEM;
   }
