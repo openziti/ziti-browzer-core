@@ -7,7 +7,8 @@
     "rollup": "rollup -c ./rollup.config.js",
     "build": "yarn rollup && yarn gulp",
     "gulp": "gulp clean build",
-    "test": "karma start karma.conf.cjs"
+    "test": "karma start karma.conf.cjs",
+    "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('You must use Yarn to install, not NPM')\""
   },
   "repository": {
     "type": "git",
@@ -51,7 +52,7 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.6.17",
+    "@openziti/libcrypto-js": "^0.6.18",
     "@openziti/ziti-browzer-edge-client": "^0.1.7",
     "util": "^0.12.4"
   }
