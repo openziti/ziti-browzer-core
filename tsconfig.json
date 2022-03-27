@@ -1,0 +1,15 @@
+{
+  "include": ["./dist/esm/index.js"], // produced by clientGenerator.js
+
+  "compilerOptions": {
+
+    "allowJs": true, // Tells TypeScript to read JS files, as normally they are ignored as source files.
+
+    "declaration": true,  // Generate d.ts file from the above index.js
+
+    "emitDeclarationOnly": true,  // TS compiler run should only output d.ts file.
+    // TS compiler will place the .d.ts file next to the above index.js file.
+
+    "declarationMap": true  // go to js file when using IDE functions like "Go to Definition" in VSCode
+  }
+}

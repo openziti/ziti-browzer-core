@@ -26,7 +26,6 @@ class ZitiBrowzerCore {
 
   /**
    * 
-   * @param {*} options 
    */
   constructor (options = {}) {
 
@@ -34,8 +33,6 @@ class ZitiBrowzerCore {
 
   /**
    * 
-   * @param {*} options 
-   * @returns ZitiContext
    */
   createZitiContext (options) {
 

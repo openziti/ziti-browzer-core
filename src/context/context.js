@@ -31,9 +31,7 @@ import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 class ZitiContext {
 
   /**
-   *  ctor
    * 
-   *  @param {Options} [options]
    */
   constructor(options) {
 
