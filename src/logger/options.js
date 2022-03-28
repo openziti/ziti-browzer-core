@@ -28,7 +28,12 @@ const defaultOptions = {
      */
     logLevel: LogLevel.Info,
 
-};
+    /**
+     * See {@link Options.suffix}
+     *
+     */
+     suffix: '??',
+    };
 
 export {
     defaultOptions

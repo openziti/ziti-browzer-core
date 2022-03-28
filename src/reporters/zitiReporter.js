@@ -48,6 +48,9 @@ export default class ZitiReporter {
   
       // Tag
       const tag = logObj.tag ? logObj.tag : ''
+
+      // Suffix
+      const suffix = this.options.suffix ? this.options.suffix : ''
   
       // Styles
       const color = this.typeColorMap[logObj.type] || this.levelColorMap[logObj.level] || this.defaultColor
@@ -68,7 +71,7 @@ export default class ZitiReporter {
 
       const style = logObj.type === 'success' ? successStyle : normalStyle
   
-      const badge = logObj.type === 'success' ? `%cZiti` : `%cZiti-${[tag, type].filter(Boolean).join(':')}`
+      const badge = logObj.type === 'success' ? `%cZiti` : `%cZiti${suffix}-${[tag, type].filter(Boolean).join(':')}`
 
       // Log to the console
       if (typeof logObj.args[0] === 'string') {
