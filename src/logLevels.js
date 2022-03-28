@@ -29,6 +29,7 @@ LogLevel[LogLevel.Verbose = Infinity] = 'Verbose'
 export function normalizeLogLevel (input, types = {}, defaultLevel = 3) {
   if (input == null) { return defaultLevel }
   if (typeof input === 'number') { return input }
+  input = input.toLowerCase();
   if (types[input] && types[input].level != null) { return types[input].level }
   return defaultLevel
 }

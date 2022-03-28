@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@openziti/libcrypto-js": "^0.6.18",
-    "@openziti/ziti-browzer-edge-client": "^0.1.7",
+    "@openziti/ziti-browzer-edge-client": "^0.1.8",
     "util": "^0.12.4"
   }
 }

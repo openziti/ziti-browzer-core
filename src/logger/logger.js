@@ -45,10 +45,11 @@ class ZitiLogger {
 
     let _options = flatOptions(options, defaultOptions);
 
-    this._reporters = _options.reporters || [new ZitiReporter()]
+    this._suffix = _options.suffix || ''
+    this._reporters = _options.reporters || [new ZitiReporter({suffix: this._suffix})]
     this._types = _options.types || Types
     this._logLevel = normalizeLogLevel(_options.logLevel, this._types)
-    this._defaults = _options.defaults || {}
+    this._defaults = _options.defaults || {_logLevel: 0}
     this._async = _options.async !== undefined ? _options.async : undefined
     this._stdout = _options.stdout
     this._stderr = _options.stderr
@@ -81,12 +82,12 @@ class ZitiLogger {
 
   }
 
-  get level () {
-    return this._level
+  get logLevel () {
+    return this._logLevel
   }
 
-  set level (level) {
-    this._level = normalizeLogLevel(level, this._types)
+  set logLevel (logLevel) {
+    this._logLevel = normalizeLogLevel(logLevel, this._types)
   }
 
   get stdout () {
@@ -98,7 +99,7 @@ class ZitiLogger {
   }
 
   create (options) {
-    return new ZitiBrowzerCore(Object.assign({
+    return new ZitiLogger(Object.assign({
       logLevel: this._logLevel,
       domain: this._domain,
       defaults: this._defaults,
@@ -247,7 +248,7 @@ class ZitiLogger {
   }
 
   _logFn (defaults, args, isRaw) {
-    if (defaults.level > this.level) {
+    if (defaults._logLevel > this._logLevel) {
       return this._async ? Promise.resolve(false) : false
     }
 
