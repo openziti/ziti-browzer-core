@@ -1010,9 +1010,9 @@
     "@wasmer/wasi" "^1.0.2"
 
 "@openziti/ziti-browzer-edge-client@^0.1.8":
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.8.tgz#2d8194d60eeffc219a45a0cf802eaf5a959be55d"
-  integrity sha512-jVGL46tUza7E5cov/2LRjF0SLmmLIYojCZIjoGaGvMX4ldrpsiOgYq80PhWd+UnNapa88dKMKYWVI3qwaZZEvA==
+  version "0.1.10"
+  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.10.tgz#21d3b1ce865765cf9666b900307f833d072124d9"
+  integrity sha512-M5rfJTWPxBHMtfJgR+MpFiOS2jT3z1FlvAyGSsRXMD7yHYOxSf3ue+mYM4gPN+R5gNP2Uwar8yXGpzwcAmYPuA==
   dependencies:
     q "^1.5.1"
     superagent "^7.1.1"
