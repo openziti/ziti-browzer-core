@@ -1002,9 +1002,9 @@
     request "^2.88.0"
 
 "@openziti/libcrypto-js@^0.6.18":
-  version "0.6.18"
-  resolved "https://registry.npmjs.org/@openziti/libcrypto-js/-/libcrypto-js-0.6.18.tgz"
-  integrity sha512-AGFghJ8iagsJphrZF0eT4fsrHUhftqYoYIrjfg/ByIF6j+NcBj+pBFQcLWLGgAACSD0UEVNbMi968To2Oz+jZQ==
+  version "0.6.20"
+  resolved "https://registry.yarnpkg.com/@openziti/libcrypto-js/-/libcrypto-js-0.6.20.tgz#0bcb8aab84835bb4ba643be07079c0252de42606"
+  integrity sha512-h0Eq+rLKjzXx3RqQZMMJpRzkEBj+x5+91tkpb2Ww4qof/MYy2PxL5oC11N+ZQ0U1P2cXlaUhsThi7+u56JeyQw==
   dependencies:
     "@types/emscripten" "^1.39.6"
     "@wasmer/wasi" "^1.0.2"
