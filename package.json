@@ -52,8 +52,10 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.6.18",
-    "@openziti/ziti-browzer-edge-client": "^0.1.8",
+    "@openziti/libcrypto-js": "^0.6.20",
+    "@openziti/ziti-browzer-edge-client": "^0.1.11",
+    "async-mutex": "^0.3.2",
+    "lodash-es": "^4.17.21",
     "util": "^0.12.4"
   }
 }
