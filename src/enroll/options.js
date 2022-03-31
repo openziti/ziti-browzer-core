@@ -18,43 +18,23 @@ limitations under the License.
 /**
  * Default options.
  */
-const defaultOptions = {
-  
-    /**
-     * See {@link Options.logger}
-     *
-     */
-    logger: null,
 
-    /**
-     * See {@link Options.controllerApi}
-     *
-     */
-    controllerApi: 'https://local-controller:1280',
+ const defaultOptions = {
 
-    /**
-     * See {@link Options.updbUser}
-     *
-     */
-    updbUser: null,
+  /**
+   * See {@link Options.zitiContext}
+   *
+   */
+    zitiContext: null,
 
-    /**
-     * See {@link Options.updbPswd}
-     *
-     */
-    updbPswd: null,
-
-    /**
-     * See {@link Options.sdkType}
-     *
-     */
-    sdkType:        'unknown',
-    sdkVersion:     'unknown',
-    sdkBranch:      'unknown',
-    sdkRevision:    'unknown',
+  /**
+   * See {@link Options.logger}
+   *
+   */
+  logger: null,
 
 };
 
 export {
-    defaultOptions
+  defaultOptions
 }

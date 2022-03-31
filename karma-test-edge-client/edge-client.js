@@ -3,35 +3,45 @@ import {ZitiBrowzerCore} from "../dist/esm/index.js";
 
 
 
-describe("edge-client", function () {
+describe("test-edge-client", function () {
   this.timeout(5000);
 
   beforeEach(async function () {
     this.zitiBrowzerCore = new ZitiBrowzerCore();
+    this.logger = this.zitiBrowzerCore.createZitiLogger({
+      logLevel: 'Trace',
+      suffix: 'test-edge-client'
+    });
+
   });
 
   it("get Controller version", async function () {
-    let zitiContext = this.zitiBrowzerCore.createZitiContext({});
+    let zitiContext = this.zitiBrowzerCore.createZitiContext({
+      logger: this.logger,
+      controllerApi: 'https://curt-controller:1280',
+      updbUser: 'admin',
+      updbPswd: 'admin',
+    });
     expect(zitiContext).to.not.equal(undefined);
+
+    await zitiContext.initialize();
 
     let zitiBrowzerEdgeClient = zitiContext.createZitiBrowzerEdgeClient({
         domain: 'https://curt-controller:1280',
-        logger: this.zitiBrowzerCore
+        logger: this.logger
     });
     expect(zitiBrowzerEdgeClient).to.not.equal(undefined);
 
     let res = await zitiBrowzerEdgeClient.listVersion();
     let controllerVersion = res.data.version;
+    console.log('controllerVersion is: ', controllerVersion);
     expect(controllerVersion).to.not.equal(undefined);
 
+    let token = await zitiContext.getFreshAPISession();
+    console.log('token is: ', token);
+    expect(token).to.not.equal(undefined);
 
-    // this.domain = domain ? domain : 'https://demo.ziti.dev/edge/client/v1';
 
-
-
-    // expect(privateKeyPEM).to.not.equal(undefined);
-    // expect(privateKeyPEM.startsWith('-----BEGIN PRIVATE KEY-----\n')).to.be.true;
-    // expect(privateKeyPEM.endsWith('-----END PRIVATE KEY-----\n')).to.be.true;
 
   });
 

@@ -1,4 +1,4 @@
-import {terser} from 'rollup-plugin-terser';
+// import {terser} from 'rollup-plugin-terser';
 // import replace from '@rollup/plugin-replace';
 // import resolve from '@rollup/plugin-node-resolve';
 // import typescript from '@rollup/plugin-typescript';
@@ -6,7 +6,7 @@ import babel from "rollup-plugin-babel";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import esformatter from 'rollup-plugin-esformatter';
 import json from '@rollup/plugin-json';
-import commonjs from '@rollup/plugin-commonjs';
+// import commonjs from '@rollup/plugin-commonjs';
 
 
 
@@ -23,7 +23,7 @@ let plugins = [
   babel({
     exclude: "node_modules/**"
   }),
-  // json(),
+  json(),
   // commonjs(),
   // typescript({
   //   typescript: require('typescript'),
@@ -36,45 +36,45 @@ export default [
   //
   // IIFE
   //
-  {
-    input,
-    output: [
-      {
-        dir: "dist/iife",
-        format: "iife",
-        esModule: false,
-        name: name,
-        exports: "named",
-      },
-    ],
-    external: [
-      ...Object.keys(pkg.dependencies || {}),
-      ...Object.keys(pkg.peerDependencies || {}),
-    ],
-    treeshake: true,
-    plugins: plugins,
-  },
+  // {
+  //   input,
+  //   output: [
+  //     {
+  //       dir: "dist/iife",
+  //       format: "iife",
+  //       esModule: false,
+  //       name: name,
+  //       exports: "named",
+  //     },
+  //   ],
+  //   external: [
+  //     ...Object.keys(pkg.dependencies || {}),
+  //     ...Object.keys(pkg.peerDependencies || {}),
+  //   ],
+  //   treeshake: true,
+  //   plugins: plugins,
+  // },
   //
   // UMD
   //
-  {
-    input,
-    output: [
-      {
-        dir: "dist/umd",
-        format: "umd",
-        esModule: false,
-        name: name,
-        exports: "named",
-      },
-    ],
-    external: [
-      ...Object.keys(pkg.dependencies || {}),
-      ...Object.keys(pkg.peerDependencies || {}),
-    ],
-    treeshake: true,
-    plugins: plugins,
-  },
+  // {
+  //   input,
+  //   output: [
+  //     {
+  //       dir: "dist/umd",
+  //       format: "umd",
+  //       esModule: false,
+  //       name: name,
+  //       exports: "named",
+  //     },
+  //   ],
+  //   external: [
+  //     ...Object.keys(pkg.dependencies || {}),
+  //     ...Object.keys(pkg.peerDependencies || {}),
+  //   ],
+  //   treeshake: true,
+  //   plugins: plugins,
+  // },
   //
   // ESM and CJS
   //
