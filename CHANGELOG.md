@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/openziti/ziti-browzer-core/compare/v0.2.5...v0.3.0) (2022-03-31)
+
+
+### Features
+
+* adds edgeClient, EC keypair gen, CSR gen, API-sess creation, ephemeral-Cert acquisition ([#14](https://github.com/openziti/ziti-browzer-core/issues/14)) ([f9c1598](https://github.com/openziti/ziti-browzer-core/commit/f9c1598dabc89d1cddb25b2e0f13c2e95619f180))
+
+
+
 ## [0.2.5](https://github.com/openziti/ziti-browzer-core/compare/v0.2.4...v0.2.5) (2022-03-28)
 
 
