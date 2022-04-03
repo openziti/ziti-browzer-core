@@ -54,6 +54,9 @@ class ZitiContext {
     this.sdkBranch = _options.sdkBranch;
     this.sdkRevision = _options.sdkRevision;
 
+    this.apiSessionHeartbeatTimeMin  = _options.apiSessionHeartbeatTimeMin;
+    this.apiSessionHeartbeatTimeMax = _options.apiSessionHeartbeatTimeMax;
+
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
 
@@ -308,6 +311,8 @@ class ZitiContext {
     // Set the token header on behalf of all subsequent Controller API calls
     this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
 
+    setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
+
     this.logger.trace('ZitiContext.getFreshAPISession() exiting; token is: ', this._apiSession.token);
 
     return this._apiSession.token ;
@@ -333,12 +338,67 @@ class ZitiContext {
   /**
    * 
    */
-   async enroll() {
+  async enroll() {
   
     await this._zitiEnroller.enroll();
   
   }
 
+
+  /**
+   *
+   */
+  async apiSessionHeartbeat(self) {
+
+    self.logger.trace('ZitiContext.apiSessionHeartbeat() entered');
+
+    let res = await self._zitiBrowzerEdgeClient.getCurrentAPISession({ }).catch((error) => {
+      throw error;
+    });
+
+    self.logger.trace('ZitiContext.apiSessionHeartbeat(): response:', res);
+
+    if (!isUndefined(res.error)) {
+      self.logger.error(res.error.message);
+      throw new Error(res.error.message);
+    }
+
+    self._apiSession = res.data;
+    if (isUndefined( self._apiSession )) {
+      throw new Error('response contains no data');
+    }
+
+    if (isUndefined( self._apiSession.token )) {
+      throw new Error('response contains no token');
+    }
+
+    // Set the token header on behalf of all subsequent Controller API calls
+    self._zitiBrowzerEdgeClient.setApiKey(self._apiSession.token, 'zt-session', false);
+
+    self.logger.trace('ZitiContext.apiSessionHeartbeat() exiting; token is: ', self._apiSession.token);
+
+    setTimeout(self.apiSessionHeartbeat, self.getApiSessionHeartbeatTime(), self );
+
+  }
+
+
+  /**
+   * 
+   */
+  getApiSessionHeartbeatTime() {
+    let time = this.getRandomInt(this.apiSessionHeartbeatTimeMin, this.apiSessionHeartbeatTimeMax);
+    this.logger.debug('mins before next heartbeat: ', time);
+    return (time * 1000 * 60);
+  }
+
+  /**
+   * Returns a random integer between min (inclusive) and max (inclusive).
+   */
+  getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
   
 }
 
