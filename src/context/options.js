@@ -53,6 +53,13 @@ const defaultOptions = {
     sdkBranch:      'unknown',
     sdkRevision:    'unknown',
 
+    /**
+     * See {@link Options.apiSessionHeartbeatTime}
+     * 
+     */
+    apiSessionHeartbeatTimeMin: (1),
+    apiSessionHeartbeatTimeMax: (5),
+
 };
 
 export {
