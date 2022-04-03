@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/openziti/ziti-browzer-core/compare/v0.3.0...v0.4.0) (2022-04-03)
+
+
+### Features
+
+* add Controller API-session heartbeat ([#15](https://github.com/openziti/ziti-browzer-core/issues/15)) ([5eb5308](https://github.com/openziti/ziti-browzer-core/commit/5eb53086657a9b8885fefb9e4fe37951ec4a6287))
+
+
+
 # [0.3.0](https://github.com/openziti/ziti-browzer-core/compare/v0.2.5...v0.3.0) (2022-03-31)
 
 
