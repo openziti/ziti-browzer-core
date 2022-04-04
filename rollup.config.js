@@ -13,7 +13,7 @@ import json from '@rollup/plugin-json';
 const SRC_DIR   = 'src';
 const BUILD_DIR = 'dist';
 
-import pkg from './package.json'
+// import pkg from './package.json'
 
 const input = [`${SRC_DIR}/index.js`];
 

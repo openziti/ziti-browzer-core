@@ -22,11 +22,12 @@ import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
 // import pjson from '../../package.json';
 import { ZitiEnroller } from '../enroll/enroller';
+// import edge_protocol from '../channel/protocol';
 
 import { LibCrypto } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout} from 'async-mutex';
-import { isUndefined, isNull } from 'lodash-es';
+import { isUndefined, isNull, result, find } from 'lodash-es';
 
  
 /**
@@ -400,6 +401,132 @@ class ZitiContext {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   
+
+  /**
+   * 
+   */
+  async fetchServices() {
+     
+    await this.ensureAPISession();
+
+    // Get list of active Services from Controller
+    let res = await this._zitiBrowzerEdgeClient.listServices({ 
+      limit: '100' //TODO add paging support
+    }).catch((error) => {
+      throw error;
+    });
+
+    // this.logger.trace('ZitiContext.fetchServices(): response:', res);
+
+    if (!isUndefined(res.error)) {
+      this.logger.error(res.error.message);
+      throw new Error(res.error.message);
+    }
+
+    this._services = res.data;
+    if (isUndefined( this._services )) {
+      throw new Error('response contains no data');
+    }
+
+    // this.logger.trace('List of available Services acquired: [%o]', this._services);
+    
+  }
+
+  get services () {
+    return this._services;
+  }
+
+
+  /**
+   * 
+   */
+  getServiceIdByName(name) {
+    let service_id = result(find(this._services, function(obj) {
+      return obj.name === name;
+    }), 'id');
+    this.logger.trace('service[%s] has id[%s]', name, service_id);
+    return service_id;
+  }
+ 
+
+  /**
+   * 
+   */
+  getServiceEncryptionRequiredByName (name) {
+    let encryptionRequired = result(find(this._services, function(obj) {
+      return obj.name === name;
+    }), 'encryptionRequired');
+    this.logger.trace('service[%s] has encryptionRequired[%o]', name, encryptionRequired);
+    return encryptionRequired;
+  }
+ 
+ 
+  /**
+   * 
+   */
+  async getNetworkSessionByServiceId(serviceID) {
+   
+    await this._mutex.runExclusive(async () => {
+
+      // if we do NOT have a NetworkSession for this serviceId, create it
+      if (!this._network_sessions.has(serviceID)) {
+
+        let network_session = await this.createNetworkSession(serviceID)
+        .catch((error) => {
+          this.logger.error(error);
+          throw error;
+        });
+  
+        if (!isUndefined( network_session )) {
+      
+          this.logger.debug('Created new network_session [%o] ', network_session);
+    
+        }
+  
+        this._network_sessions.set(serviceID, network_session);
+      }
+    
+    });
+
+    return ( this._network_sessions.get(serviceID) );
+  }
+
+
+  /**
+   * 
+   */
+  async createNetworkSession(id) {
+ 
+    let res = await this._zitiBrowzerEdgeClient.createSession({
+      session: { 
+        serviceId: id,
+        type: 'Dial'
+      }
+      //,
+      // headers: { 
+      //   'Content-Type': 'application/json'
+      // }
+    }).catch((error) => {
+      this.logger.error(error);
+      throw error;
+    });
+
+    this.logger.trace('ZitiContext.createSession(): response:', res);
+
+    if (!isUndefined(res.error)) {
+      this.logger.error(res.error.message);
+      throw new Error(res.error.message);
+    }
+
+    let network_session = res.data;
+    if (isUndefined( network_session )) {
+      throw new Error('response contains no data');
+    }
+
+    return( network_session );  
+  }
+  
+ 
 }
 
 // Export class
