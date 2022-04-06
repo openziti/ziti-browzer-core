@@ -1,3 +1,12 @@
+# [0.5.0](https://github.com/openziti/ziti-browzer-core/compare/v0.4.1...v0.5.0) (2022-04-06)
+
+
+### Features
+
+* phase4 ([#16](https://github.com/openziti/ziti-browzer-core/issues/16)) ([e4ff7c2](https://github.com/openziti/ziti-browzer-core/commit/e4ff7c25a5f73c2952f24085ead5f3db04497c25))
+
+
+
 ## [0.4.1](https://github.com/openziti/ziti-browzer-core/compare/v0.4.0...v0.4.1) (2022-04-05)
 
 
