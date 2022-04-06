@@ -56,8 +56,6 @@ import { isUndefined, isNull } from 'lodash-es';
    */
   async enroll() {
 
-    this.logger.trace('ZitiEnroller.enroll() entered');
-
     // Don't proceed until we have successfully logged in to Controller and have established an API session
     await this.zitiContext.ensureAPISession();
     
@@ -65,7 +63,6 @@ import { isUndefined, isNull } from 'lodash-es';
 
     await this.createEphemeralCert();
 
-    this.logger.trace('ZitiContext.enroll() exiting');
   }
 
 
@@ -74,13 +71,10 @@ import { isUndefined, isNull } from 'lodash-es';
    */
   generateCSR() {
 
-    this.logger.trace('ZitiEnroller.generateCSR() entered');
-
     this._csr = this.zitiContext.createCertificateSigningRequest({
       key: this.zitiContext.ecKey,
     })
     
-    this.logger.trace('ZitiEnroller.generateCSR() exiting');
   }
 
 
@@ -99,7 +93,7 @@ import { isUndefined, isNull } from 'lodash-es';
       throw error;
     });
 
-    this.logger.trace('ZitiEnroller.createEphemeralCert(): response:', res);
+    this.logger.trace('ZitiEnroller.createEphemeralCert(): res.data.certificate:', res.data.certificate);
 
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
@@ -116,10 +110,22 @@ import { isUndefined, isNull } from 'lodash-es';
   
     this._cert = res.data.certificate;
 
-    this.logger.trace('ZitiContext.createEphemeralCert() exiting');
+    this.logger.trace('ZitiContext.createEphemeralCert() exiting; this._cert [%o]', this._cert);
       
   }
   
+  /**
+   * 
+   */
+  get certPEM () {
+
+    if (isUndefined(this._cert)) {
+      throw new Error('enroller contains no certificate; Ephemeral Cert creation needed');
+    }
+
+    return this._cert;
+  }
+
 
 }
 

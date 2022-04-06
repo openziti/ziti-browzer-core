@@ -6,14 +6,14 @@ import babel from "rollup-plugin-babel";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import esformatter from 'rollup-plugin-esformatter';
 import json from '@rollup/plugin-json';
-// import commonjs from '@rollup/plugin-commonjs';
+import commonjs from '@rollup/plugin-commonjs';
 
 
 
 const SRC_DIR   = 'src';
 const BUILD_DIR = 'dist';
 
-import pkg from './package.json'
+// import pkg from './package.json'
 
 const input = [`${SRC_DIR}/index.js`];
 
@@ -24,7 +24,7 @@ let plugins = [
     exclude: "node_modules/**"
   }),
   json(),
-  // commonjs(),
+  commonjs(),
   // typescript({
   //   typescript: require('typescript'),
   //   tsconfig: "tsconfig.json",
@@ -80,7 +80,7 @@ export default [
   //
   {
     input,
-    plugins: plugins.concat(nodeResolve(), esformatter({indent: { value: '  '}})),
+    plugins: plugins.concat(nodeResolve({preferBuiltins: false, browser: true}), esformatter({indent: { value: '  '}})),
     output: [
       {
         dir: "dist/esm",
