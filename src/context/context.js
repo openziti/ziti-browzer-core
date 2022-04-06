@@ -20,14 +20,17 @@ limitations under the License.
 
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
-// import pjson from '../../package.json';
 import { ZitiEnroller } from '../enroll/enroller';
-// import edge_protocol from '../channel/protocol';
+import { ZitiConnection } from '../channel/connection'
+import { ZitiEdgeProtocol } from '../channel/protocol';
+import { ZitiChannel } from '../channel/channel'
+import throwIf from '../utils/throwif';
+import { ZITI_CONSTANTS } from '../constants';
 
 import { LibCrypto } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout} from 'async-mutex';
-import { isUndefined, isNull, result, find } from 'lodash-es';
+import { isUndefined, isEqual, isNull, result, find, filter, has } from 'lodash-es';
 
  
 /**
@@ -73,10 +76,18 @@ class ZitiContext {
     this._ecKey = null;
     this._privateKeyPEM = null;
     this._publicKeyPEM = null;
+    this._certPEM = null;
+
+    this._timeout = ZITI_CONSTANTS.ZITI_DEFAULT_TIMEOUT;
+
   }
 
   get libCrypto () {
     return this._libCrypto;
+  }
+
+  get timeout() {
+    return this._timeout;
   }
 
 
@@ -208,13 +219,10 @@ class ZitiContext {
    */
   get ecKey () {
 
-    this.logger.trace('ZitiContext.get ecKey() entered');
-
     if (isNull(this._ecKey)) {
+      this.logger.trace('ZitiContext.get ecKey() needs to genetrate a new key');
       this._ecKey = this.generateECKey({});      
     }
-
-    this.logger.trace('ZitiContext.get ecKey() completed');
 
     return this._ecKey;
   }
@@ -342,7 +350,24 @@ class ZitiContext {
   async enroll() {
   
     await this._zitiEnroller.enroll();
-  
+
+    this._certPEM = this._zitiEnroller.certPEM;
+
+  }
+
+  /**
+   * 
+   */
+  async getCertPEM () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = this.getPrivateKeyPEM(this._ecKey)
+    }
+    if (isNull(this._certPEM)) {
+      await this.enroll()
+    }
+
+    return this._certPEM;
   }
 
 
@@ -468,7 +493,7 @@ class ZitiContext {
    
     await this._mutex.runExclusive(async () => {
 
-      // if we do NOT have a NetworkSession for this serviceId, create it
+      // if we do NOT have a NetworkSession for this serviceId, then create it
       if (!this._network_sessions.has(serviceID)) {
 
         let network_session = await this.createNetworkSession(serviceID)
@@ -476,19 +501,19 @@ class ZitiContext {
           this.logger.error(error);
           throw error;
         });
-  
-        if (!isUndefined( network_session )) {
-      
-          this.logger.debug('Created new network_session [%o] ', network_session);
-    
-        }
+
+        this.logger.debug('getNetworkSessionByServiceId() Created new network_session [%o] ', network_session);
   
         this._network_sessions.set(serviceID, network_session);
       }
     
     });
 
-    return ( this._network_sessions.get(serviceID) );
+    let netSess = this._network_sessions.get(serviceID);
+
+    this.logger.debug('getNetworkSessionByServiceId() returning network_session [%o] ', netSess);
+
+    return netSess;
   }
 
 
@@ -502,10 +527,6 @@ class ZitiContext {
         serviceId: id,
         type: 'Dial'
       }
-      //,
-      // headers: { 
-      //   'Content-Type': 'application/json'
-      // }
     }).catch((error) => {
       this.logger.error(error);
       throw error;
@@ -526,7 +547,255 @@ class ZitiContext {
     return( network_session );  
   }
   
+
+  /**
+   * Allocate a new Connection.
+   *
+   * @param {*} data
+   * @return {ZitiConection}
+   */
+  newConnection(data) {
+
+    let conn = new ZitiConnection({ 
+      zitiContext: this,
+      data: data
+    });
+
+    this.logger.trace('newConnection: conn[%d]', conn.id);
+
+    return conn;
+  };
+
+
+  /**
+   * Dial the `service`.
+   *
+   * @param {ZitiConnection} conn
+   * @param {String} service
+   */
+  async dial( conn, service ) {
+
+    throwIf(isUndefined(conn), 'connection not specified');
+    throwIf(isUndefined(service), 'service not specified');
+    throwIf(!isEqual(this, conn.zitiContext), 'connection has different context');
+
+    this.logger.debug('dial: conn[%d] service[%s]', conn.id, service);
+
+    if (isEqual( this.services.size, 0 )) {
+      await this.fetchServices();
+    }
+
+    let service_id = this.getServiceIdByName(service);
+    
+    conn.encrypted = this.getServiceEncryptionRequiredByName(service);
+
+    let network_session = await this.getNetworkSessionByServiceId(service_id);
+
+    await this.connect(conn, network_session);
+
+    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.getEncrypted());
+
+  };
+
+
+ /**
+  * Connect specified ZitiConnection to the nearest Edge Router.
+  * 
+  * @param {Array} edgeRouters
+  */
+  async _getPendingChannelConnects(conn, edgeRouters) {
+
+    return new Promise( async (resolve) => {
+
+      this.logger.trace('_getPendingChannelConnects entered for edgeRouters [%o]', edgeRouters);
+
+      let pendingChannelConnects = new Array();
+
+      let self = this;
+      
+      // Get a channel connection to each of the Edge Routers that have a WS binding, initiating a connection if channel is not yet connected
+      edgeRouters.forEach(async function(edgeRouter, idx, array) {
+        self.logger.trace('calling getChannelByEdgeRouter for ER [%o]', edgeRouter);  
+        let ch = await self.getChannelByEdgeRouter(conn, edgeRouter).catch((err) => {
+          self.logger.error( err );  
+          throw new Error( err );
+        });
+        self.logger.debug('initiating Hello to [%s] for session[%s]', edgeRouter.urls.ws, conn.networkSessionToken);  
+        pendingChannelConnects.push( 
+          ch.hello() 
+        );
+
+        if (idx === array.length - 1) {
+          resolve(pendingChannelConnects);  // Return to caller only after we have processed all edge routers
+        }
+      });
+    });
+  }
+
+
+ /**
+  * Remain in lazy-sleepy loop until specified channel is connected.
+  * 
+  * @param {*} channel 
+  */
+  awaitChannelConnectComplete(ch) {
+    return new Promise((resolve) => {
+      (function waitForChannelConnectComplete() {
+        if (isEqual( ch.state, ZitiEdgeProtocol.conn_state.Initial ) || isEqual( ch.state, ZitiEdgeProtocol.conn_state.Connecting )) {
+          ch.zitiContext.logger.trace('awaitChannelConnectComplete() ch[%d] still not yet connected', ch.id);
+          setTimeout(waitForChannelConnectComplete, 100);  
+        } else {
+          ch.zitiContext.logger.trace('ch[%d] is connected', ch.id);
+          return resolve();
+        }
+      })();
+    });
+  }
+  
+  async getChannelByEdgeRouter(conn, edgeRouter) {
+
+    throwIf(isUndefined(conn), 'connection not specified');
+    throwIf(!isEqual(this, conn.zitiContext), 'connection has different context');
+    throwIf(isUndefined(conn.networkSessionToken), 'connection.networkSessionToken not specified');
+    throwIf(isUndefined(edgeRouter), 'edgeRouter not specified');
+
+  
+    this.logger.trace('getChannelByEdgeRouter entered for conn[%d] edgeRouter[%s]', conn, edgeRouter.hostname);
+
+    let key = edgeRouter.hostname + '-' + conn.networkSessionToken;
+
+    this.logger.trace('getChannelByEdgeRouter key[%s]', key);
+
+    let ch = this._channels.get( key );
+
+    this.logger.trace('getChannelByEdgeRouter ch[%o]', ch);
+
+    if (!isUndefined(ch)) {
+
+      this.logger.debug('ch[%d] state[%d] found for edgeRouter[%s]', ch.id, ch.state, edgeRouter.hostname);
+
+      await this.awaitChannelConnectComplete(ch);
+
+      if (!isEqual( ch.state, ZitiEdgeProtocol.conn_state.Connected )) {
+        this.logger.error('should not be here: ch[%d] has state[%d]', ch.id, ch.state);
+      }
+
+      return resolve(ch);
+    }
+  
+    // Create a Channel for this Edge Router
+    ch = new ZitiChannel({ 
+      zitiContext: this,
+      edgeRouter: edgeRouter,
+      session_token: this._apiSession.token,
+      network_session_token: conn.networkSessionToken
+    });
+
+    ch.state = ZitiEdgeProtocol.conn_state.Connecting;
+
+    this.logger.debug('Created ch[%o] ', ch);
+    this._channels.set(key, ch);
+    
+    this.logger.trace('getChannelByEdgeRouter returning ch[%o]', ch);
+
+    return ch;
+  }
  
+ 
+
+ /**
+  * Connect specified ZitiConnection to the nearest Edge Router.
+  * 
+  * @param {ZitiConnection} conn
+  * @param {*} networkSession
+  * @returns {bool}
+  */
+  async connect(conn, networkSession) {
+   
+    this.logger.debug('connect() entered for conn[%o] networkSession[%o]', conn.id, networkSession);  
+  
+    // If we were not given a networkSession, it most likely means something (an API token, Cert, etc) expired,
+    // so we need to purge them and re-acquire
+    // if (isNull(networkSession) || isUndefined( networkSession )) {
+  
+    //   this.logger.debug('ctx.connect invoked with undefined networkSession');  
+    
+    //   await this._awaitIdentityLoadComplete().catch((err) => {
+    //     self.logger.error( err );  
+    //     throw new Error( err );
+    //   });
+    // }
+  
+    conn.networkSessionToken = networkSession.token;
+  
+    // Get list of all Edge Router URLs where the Edge Router has a WS binding
+    let edgeRouters = filter(networkSession.edgeRouters, function(o) { return has(o, 'urls.ws'); });
+    this.logger.trace('edgeRouters [%o]', edgeRouters);  
+
+    // Something is wrong if we have no ws-enabled edge routers
+    if (isEqual(edgeRouters.length, 0)) {
+      throw new Error('No Edge Routers with ws: binding were found');
+    }
+  
+    //
+    this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
+  
+    await this._connectMutexWithTimeout.runExclusive(async () => {
+  
+      this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
+  
+      let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
+      this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
+  
+      let channelConnects = await Promise.all( pendingChannelConnects );
+      this.logger.trace('channelConnects [%o]', channelConnects);  
+  
+      // Select channel with nearest Edge Router. Heuristic: select one with earliest Hello-handshake completion timestamp
+      let channelConnectWithNearestEdgeRouter = minby(channelConnects, function(channelConnect) { 
+        return channelConnect.channel.helloCompletedTimestamp;
+      });
+      
+      let channelWithNearestEdgeRouter = channelConnectWithNearestEdgeRouter.channel;
+      this.logger.debug('Channel [%d] has nearest Edge Router for conn[%o]', channelWithNearestEdgeRouter.id, conn.id);
+      channelWithNearestEdgeRouter._connections._saveConnection(conn);
+      conn.channel = channelWithNearestEdgeRouter;
+  
+      // Initiate connection with Edge Router (creates Fabric session)
+      await channelWithNearestEdgeRouter.connect(conn);
+  
+      if (conn.state == edge_protocol.conn_state.Connected) {
+        if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
+          // Do not proceed until crypto handshake has completed
+          await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
+        }
+      }
+      this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
+    })
+    .catch(( err ) => {
+      this.logger.error(err);
+      throw new Error(err);
+    });  
+  }
+
+
+  /**
+   * 
+   */
+  getNextConnectionId() {
+    this._connSeq++;
+    return this._connSeq;
+  }
+
+  /**
+   * 
+   */
+  getNextChannelId() {
+    this._channelSeq++;
+    return this._channelSeq;
+  }
+ 
+ 
+
 }
 
 // Export class
