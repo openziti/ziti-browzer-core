@@ -552,7 +552,7 @@ class ZitiContext {
    * Allocate a new Connection.
    *
    * @param {*} data
-   * @return {ZitiConection}
+   * @return {ZitiConnection}
    */
   newConnection(data) {
 
@@ -708,7 +708,6 @@ class ZitiContext {
   * 
   * @param {ZitiConnection} conn
   * @param {*} networkSession
-  * @returns {bool}
   */
   async connect(conn, networkSession) {
    
