@@ -113,7 +113,7 @@ let type = str => str.split(/ *; */).shift();
  */
  let sumBy = (array, iteratee) => {
   return (array !== null && array.length)
-    ? exports.baseSum(array, iteratee)
+    ? baseSum(array, iteratee)
     : 0
 }
 

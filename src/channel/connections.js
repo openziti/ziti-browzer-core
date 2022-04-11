@@ -32,11 +32,11 @@ limitations under the License.
   }
 
   _saveConnection(conn) {
-    this._items.set(conn.getId(), conn);
+    this._items.set(conn.id, conn);
   }
 
   _deleteConnection(conn) {
-      this._items.delete(conn.getId());
+      this._items.delete(conn.id);
   }
 
   _getConnection(connId) {

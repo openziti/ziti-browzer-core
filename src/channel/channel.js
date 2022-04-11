@@ -26,10 +26,20 @@ import { Header } from './header';
 import { ZitiWebSocket } from '../websocket/websocket';
 import { Messages } from './messages';
 import { ZitiEdgeProtocol } from '../channel/protocol';
-
+import throwIf from '../utils/throwif';
+import {
+  type,
+  appendBuffer,
+  toUTF8Array,
+  baseSum,
+  sumBy,
+  parseURL,
+  concatTypedArrays
+} from '../utils/utils';
 
 import { isUndefined, isNull, isEqual, forEach } from 'lodash-es';
 import { Mutex } from 'async-mutex';
+import { Buffer } from 'buffer';
 
 //TODO: this breaks the build at the moment... figure out why!
 // import sodium  from 'libsodium-wrappers';
@@ -73,7 +83,7 @@ class ZitiChannel {
     this._connections = new ZitiConnections();
 
     this._zws = new ZitiWebSocket( this._edgeRouter.urls.ws + '/ws' , { 
-      ctx: this._zitiContext,
+      zitiContext: this._zitiContext,
     });
     this._callerId = "ws:";
 
@@ -148,10 +158,10 @@ class ZitiChannel {
     return new Promise((resolve) => {
       (function waitForTLSHandshakeComplete() {
         if (!self._tlsConn.isTLSHandshakeComplete()) {
-          self._zitiContext.logger.trace('awaitTLSHandshakeComplete() tlsConn for ch[%d] TLS handshake still not complete', self.getId());
-          setTimeout(waitForTLSHandshakeComplete, 100);  
+          self._zitiContext.logger.trace('awaitTLSHandshakeComplete() tlsConn for ch[%d] TLS handshake still not complete', self.id);
+          setTimeout(waitForTLSHandshakeComplete, 1000);  
         } else {
-          self._zitiContext.logger.trace('tlsConn for ch[%d] TLS handshake is now complete', self.getId());
+          self._zitiContext.logger.trace('tlsConn for ch[%d] TLS handshake is now complete', self.id);
           return resolve();
         }
       })();
@@ -221,7 +231,7 @@ class ZitiChannel {
 
     this._helloCompletedTimestamp = Date.now();
     this._helloCompleted = true;
-    this.setState(ZitiEdgeProtocol.conn_state.Connected);
+    this.state = (ZitiEdgeProtocol.conn_state.Connected);
     this._zitiContext.logger.debug('ch[%d] Hello handshake to Edge Router [%s] completed at timestamp[%o]', this._id, this._edgeRouterHost, this._helloCompletedTimestamp);
 
     return new Promise( async (resolve) => {
@@ -239,13 +249,13 @@ class ZitiChannel {
     const self = this;
     return new Promise( async (resolve, reject) => {
     
-      self._zitiContext.logger.debug('initiating Connect to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.getId());
+      self._zitiContext.logger.debug('initiating Connect to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
-      await sodium.ready;
+      // await sodium.ready;
     
-      let keypair = sodium.crypto_kx_keypair();
+      // let keypair = sodium.crypto_kx_keypair();
   
-      conn.setKeypair(keypair);
+      // conn.setKeypair(keypair);
   
       let sequence = this.getAndIncrementSequence();
 
@@ -253,7 +263,7 @@ class ZitiChannel {
     
         new Header( ZitiEdgeProtocol.header_id.ConnId, {
           headerType: ZitiEdgeProtocol.header_type.IntType,
-          headerData: conn.getId()
+          headerData: conn.id
         }),
   
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
@@ -263,7 +273,7 @@ class ZitiChannel {
     
       ];
 
-      if (conn.getEncrypted()) {  // if connected to a service that has 'encryptionRequired'
+      if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
 
         headers.push(
         
@@ -275,9 +285,9 @@ class ZitiChannel {
         );
       }
   
-      conn.setState(ZitiEdgeProtocol.conn_state.Connecting);
+      conn.state = (ZitiEdgeProtocol.conn_state.Connecting);
   
-      self._zitiContext.logger.debug('about to send Connect to Edge Router [%s] for conn[%d]', conn.getChannel().getEdgeRouterHost(), conn.getId());
+      self._zitiContext.logger.debug('about to send Connect to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
   
       let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.Connect, headers, self._network_session_token, { 
           conn: conn,
@@ -285,7 +295,7 @@ class ZitiChannel {
         } 
       );
 
-      self._zitiContext.logger.debug('connect() calling _recvConnectResponse() for conn[%d]', conn.getId());
+      self._zitiContext.logger.debug('connect() calling _recvConnectResponse() for conn[%d]', conn.id);
 
       await self._recvConnectResponse(msg.data, conn);
     
@@ -303,7 +313,7 @@ class ZitiChannel {
     const self = this;
     return new Promise( async (resolve, reject) => {
     
-      self._zitiContext.logger.debug('initiating Close to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.getId());
+      self._zitiContext.logger.debug('initiating Close to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
       let sequence = conn.getAndIncrementSequence();
 
@@ -311,7 +321,7 @@ class ZitiChannel {
     
         new Header( ZitiEdgeProtocol.header_id.ConnId, {
           headerType: ZitiEdgeProtocol.header_type.IntType,
-          headerData: conn.getId()
+          headerData: conn.id
         }),
   
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
@@ -321,7 +331,7 @@ class ZitiChannel {
     
       ];
     
-      self._zitiContext.logger.debug('about to send Close to Edge Router [%s] for conn[%d]', conn.getChannel().getEdgeRouterHost(), conn.getId());
+      self._zitiContext.logger.debug('about to send Close to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
   
       let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.StateClosed, headers, self._network_session_token, { 
           conn: conn,
@@ -331,7 +341,7 @@ class ZitiChannel {
 
       self._zitiContext.logger.debug('close() completed with response[%o]', msg);
 
-      conn.setState(ZitiEdgeProtocol.conn_state.Closed);
+      conn.state = (ZitiEdgeProtocol.conn_state.Closed);
     
       resolve();
   
@@ -353,46 +363,46 @@ class ZitiChannel {
     let connId = await this._messageGetConnId(msg);
     let conn = this._connections._getConnection(connId);
     throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
-    if (!isEqual(conn.getId(), expectedConn.getId())) {
-      this._zitiContext.logger.error("_recvConnectResponse() actual conn[%d] expected conn[%d]", conn.getId(), expectedConn.getId());
+    if (!isEqual(conn.id, expectedconn.id)) {
+      this._zitiContext.logger.error("_recvConnectResponse() actual conn[%d] expected conn[%d]", conn.id, expectedconn.id);
     }
 
-    this._zitiContext.logger.debug("ConnectResponse contentType[%d] seq[%d] received for conn[%d]", contentType, sequence, conn.getId());
+    this._zitiContext.logger.debug("ConnectResponse contentType[%d] seq[%d] received for conn[%d]", contentType, sequence, conn.id);
 
     switch (contentType) {
 
       case ZitiEdgeProtocol.content_type.StateClosed:
 
-        this._zitiContext.logger.warn("conn[%d] failed to connect on ch[%d]", conn.getId(), this.getId());
-        conn.setState(ZitiEdgeProtocol.conn_state.Closed);
+        this._zitiContext.logger.warn("conn[%d] failed to connect on ch[%d]", conn.id, this.getId());
+        conn.state = (ZitiEdgeProtocol.conn_state.Closed);
         break;
 
       case ZitiEdgeProtocol.content_type.StateConnected:
 
-        if (conn.getState() == ZitiEdgeProtocol.conn_state.Connecting) {
-          this._zitiContext.logger.debug("conn[%d] connected", conn.getId());
+        if (conn.state == ZitiEdgeProtocol.conn_state.Connecting) {
+          this._zitiContext.logger.debug("conn[%d] connected", conn.id);
 
-          if (conn.getEncrypted()) {  // if connected to a service that has 'encryptionRequired'
+          if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
 
             await this._establish_crypto(conn, msg);
-            this._zitiContext.logger.debug("establish_crypto completed for conn[%d]", conn.getId());
+            this._zitiContext.logger.debug("establish_crypto completed for conn[%d]", conn.id);
 
             await this._send_crypto_header(conn);
-            this._zitiContext.logger.debug("send_crypto_header completed for conn[%d]", conn.getId());
+            this._zitiContext.logger.debug("send_crypto_header completed for conn[%d]", conn.id);
 
           }
 
-          conn.setState(ZitiEdgeProtocol.conn_state.Connected);
+          conn.state = (ZitiEdgeProtocol.conn_state.Connected);
         }
 
-        else if (conn.getState() == ZitiEdgeProtocol.conn_state.Closed || conn.getState() == ZitiEdgeProtocol.conn_state.Timedout) {
-          this._zitiContext.logger.warn("received connect reply for closed/timedout conne[%d]", conn.getId());
+        else if (conn.state == ZitiEdgeProtocol.conn_state.Closed || conn.state == ZitiEdgeProtocol.conn_state.Timedout) {
+          this._zitiContext.logger.warn("received connect reply for closed/timedout conne[%d]", conn.id);
           // ziti_disconnect(conn);
         }
         break;
 
       default:
-        this._zitiContext.logger.error("unexpected content_type[%d] conn[%d]", contentType, conn.getId());
+        this._zitiContext.logger.error("unexpected content_type[%d] conn[%d]", contentType, conn.id);
         // ziti_disconnect(conn);
     }
 
@@ -403,19 +413,19 @@ class ZitiChannel {
    */
   async _establish_crypto(conn, msg) {
 
-    this._zitiContext.logger.debug("_establish_crypto(): entered for conn[%d]", conn.getId());
+    this._zitiContext.logger.debug("_establish_crypto(): entered for conn[%d]", conn.id);
 
     let result = await this._messageGetBytesHeader(msg, ZitiEdgeProtocol.header_id.PublicKey);
     let peerKey = result.data;
     this._zitiContext.logger.debug("_establish_crypto(): peerKey is: ", peerKey);
 
     if (peerKey == undefined) {
-      this._zitiContext.logger.debug("_establish_crypto(): did not receive peer key. connection[%d] will not be encrypted: ", conn.getId());
-      conn.setEncrypted(false);
+      this._zitiContext.logger.debug("_establish_crypto(): did not receive peer key. connection[%d] will not be encrypted: ", conn.id);
+      conn.encrypted = false;
       return;
     }
 
-    if (conn.getState() == ZitiEdgeProtocol.conn_state.Connecting) {
+    if (conn.state == ZitiEdgeProtocol.conn_state.Connecting) {
 
       let keypair = conn.getKeypair();
 
@@ -425,7 +435,7 @@ class ZitiChannel {
       conn.setSharedTx(results.sharedTx);
 
     } else {
-      this._zitiContext.logger.error("_establish_crypto(): cannot establish crypto while connection is in %d state: ", conn.getState());
+      this._zitiContext.logger.error("_establish_crypto(): cannot establish crypto while connection is in %d state: ", conn.state);
     }
 
   }
@@ -452,7 +462,7 @@ class ZitiChannel {
     conn.setCrypt_i(state_in);
 
     // Indicate that subsequent sends on this connection should be encrypted
-    conn.setEncrypted(true);
+    conn.encrypted = true;
 
     // Unblock writes to the connection now that we have sent the crypto header
     conn.setCryptoEstablishComplete(true);
@@ -470,10 +480,10 @@ class ZitiChannel {
     return new Promise((resolve) => {
       (function waitForCryptoEstablishComplete() {
         if (conn.getCryptoEstablishComplete()) {
-          conn.zitiContext.logger.debug('Connection [%d] now Crypto-enabled with Edge Router', conn.getId());
+          conn.zitiContext.logger.debug('Connection [%d] now Crypto-enabled with Edge Router', conn.id);
           return resolve();
         }
-        conn.zitiContext.logger.debug('awaitConnectionCryptoEstablishComplete() conn[%d] still not yet CryptoEstablishComplete', conn.getId());
+        conn.zitiContext.logger.debug('awaitConnectionCryptoEstablishComplete() conn[%d] still not yet CryptoEstablishComplete', conn.id);
         setTimeout(waitForCryptoEstablishComplete, 100);
       })();
     });
@@ -497,7 +507,7 @@ class ZitiChannel {
 
         new Header( ZitiEdgeProtocol.header_id.ConnId, {
           headerType: ZitiEdgeProtocol.header_type.IntType,
-          headerData: conn.getId()
+          headerData: conn.id
         }),
 
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
@@ -507,7 +517,7 @@ class ZitiChannel {
 
       ];    
 
-      self._zitiContext.logger.debug('_send_crypto_header(): conn[%d] sending Data [%o]', conn.getId(), conn.getCrypt_o().header);
+      self._zitiContext.logger.debug('_send_crypto_header(): conn[%d] sending Data [%o]', conn.id, conn.getCrypt_o().header);
 
       // self.sendMessageNoWait( ZitiEdgeProtocol.content_type.Data, headers, conn.getCrypt_o().header, { conn: conn, sequence: sequence });
 
@@ -517,7 +527,7 @@ class ZitiChannel {
         }
       );
 
-      self._zitiContext.logger.debug('_send_crypto_header() calling _recvCryptoResponse() for conn[%d]', conn.getId());
+      self._zitiContext.logger.debug('_send_crypto_header() calling _recvCryptoResponse() for conn[%d]', conn.id);
       await self._recvCryptoResponse(msg.data, conn);
 
       resolve();
@@ -532,14 +542,14 @@ class ZitiChannel {
    */
   async write(conn, data) {
 
-    if (!isEqual(conn.getState(), ZitiEdgeProtocol.conn_state.Closed)) {
+    if (!isEqual(conn.state, ZitiEdgeProtocol.conn_state.Closed)) {
 
       let sequence = conn.getAndIncrementSequence();
 
       let headers = [
         new Header( ZitiEdgeProtocol.header_id.ConnId, {
           headerType: ZitiEdgeProtocol.header_type.IntType,
-          headerData: conn.getId()
+          headerData: conn.id
         }),
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
           headerType: ZitiEdgeProtocol.header_type.IntType, 
@@ -574,10 +584,10 @@ class ZitiChannel {
     let conn;
     if (!isUndefined(options.conn)) {
       conn = options.conn;
-      messagesQueue = options.conn.getMessages();
+      messagesQueue = options.conn.messages;
     }
 
-    this._zitiContext.logger.debug("send -> conn[%o] seq[%o] contentType[%o] body[%s]", (conn ? conn.getId() : 'n/a'), messageId, contentType, (body ? body.toString() : 'n/a'));
+    this._zitiContext.logger.debug("send -> conn[%o] seq[%o] contentType[%o] body[%s]", (conn ? conn.id : 'n/a'), messageId, contentType, (body ? body.toString() : 'n/a'));
 
     return messagesQueue.create(messageId, () => {
       this._sendMarshaled(contentType, headers, body, options, messageId);
@@ -597,13 +607,13 @@ class ZitiChannel {
     const timeout = options.timeout !== undefined ? options.timeout : this._timeout;
     const messageId = options.sequence || this._sequence;
     // this._zitiContext.logger.debug("send (no wait) -> conn[%o] seq[%o] contentType[%o]", 
-    //   (options.conn ? options.conn.getId() : 'n/a'), 
+    //   (options.conn ? options.conn.id : 'n/a'), 
     //   messageId, 
     //   contentType, 
     //   (body ? body.toString() : 'n/a'));
 
     this._zitiContext.logger.debug("send (no wait) -> conn[%o] seq[%o] contentType[%o] bodyLen[%o] ", 
-      (options.conn ? options.conn.getId() : 'n/a'), 
+      (options.conn ? options.conn.id : 'n/a'), 
       messageId, contentType, 
       (body ? body.length : 'n/a'),
       (body ? body.toString() : 'n/a')
@@ -633,12 +643,12 @@ class ZitiChannel {
           connId = header.getData();
         }
       });
-      throwIf(isUndefined(connId), formatMessage('Cannot find ConnId heder', { } ) );
+      throwIf(isUndefined(connId), formatMessage('Cannot find ConnId header', { } ) );
 
       let conn = this._connections._getConnection(connId);
       throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
 
-      if (conn.getEncrypted() && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
+      if (conn.encrypted && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
 
         let [state_out, header] = [conn.getCrypt_o().state, conn.getCrypt_o().header];
 
@@ -718,7 +728,7 @@ class ZitiChannel {
         
     bytes = new Buffer(4);
   
-    let hdrsLen = utils.sumBy(headers, function (header) {
+    let hdrsLen = sumBy(headers, function (header) {
       return header.getLength(); 
     });
 
@@ -759,7 +769,7 @@ class ZitiChannel {
       let view_body_section = new Uint8Array(buffer_body_section);
       let body_bytes;
       if (typeof body === 'string') {
-        body_bytes = utils.toUTF8Array(body);
+        body_bytes = toUTF8Array(body);
       } else {
         body_bytes = body;
       }
@@ -771,8 +781,8 @@ class ZitiChannel {
     this._zitiContext.logger.trace("_marshalMessage -> buffer_message_section Len[%o] ", buffer_message_section.byteLength);
     this._zitiContext.logger.trace("_marshalMessage -> buffer_headers_section Len[%o] ", buffer_headers_section.byteLength);
     this._zitiContext.logger.trace("_marshalMessage -> buffer_body_section Len[%o] ", buffer_body_section.byteLength);
-    let buffer_combined = utils.appendBuffer(buffer_message_section, buffer_headers_section);
-    buffer_combined = utils.appendBuffer(buffer_combined, buffer_body_section);
+    let buffer_combined = appendBuffer(buffer_message_section, buffer_headers_section);
+    buffer_combined = appendBuffer(buffer_combined, buffer_body_section);
     let view_combined = new Uint8Array(buffer_combined);
   
     return view_combined.buffer;
@@ -825,7 +835,7 @@ class ZitiChannel {
 
     if (!isUndefined(ch._partialMessage)) {  // if we are awaiting rest of a partial msg to arrive, append this chunk onto the end, then proceed
       let dataView = new Uint8Array(data);
-      ch._partialMessage = utils.concatTypedArrays(ch._partialMessage, dataView);
+      ch._partialMessage = concatTypedArrays(ch._partialMessage, dataView);
       buffer = ch._partialMessage.buffer.slice(0);
     } 
 
@@ -902,7 +912,7 @@ class ZitiChannel {
       if (!isUndefined(connId)) {
         conn = this._connections._getConnection(connId);
         if (!isUndefined(conn)) {
-          if (isEqual(conn.getState(), ZitiEdgeProtocol.conn_state.Connecting)) {
+          if (isEqual(conn.state, ZitiEdgeProtocol.conn_state.Connecting)) {
             let result = await this._messageGetBytesHeader(data, ZitiEdgeProtocol.header_id.SeqHeader);
             if (!isUndefined(result)) {
               replyForView = new Int32Array(result.data, 0, 1);
@@ -959,7 +969,7 @@ class ZitiChannel {
 
       if (bodyLength > 0) {
 
-        if (conn.getEncrypted() && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
+        if (conn.encrypted && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
 
           let unencrypted_data = sodium.crypto_secretstream_xchacha20poly1305_pull(conn.getCrypt_i(), bodyView);
 
@@ -1043,9 +1053,9 @@ class ZitiChannel {
 
     let messagesQueue = this._messages;
     if (!isUndefined(conn)) {
-      messagesQueue = conn.getMessages();
+      messagesQueue = conn.messages;
     }
-    this._zitiContext.logger.trace("_tryHandleResponse():  conn[%d] seq[%d]", (conn ? conn.getId() : 'n/a'), responseSequence);
+    this._zitiContext.logger.trace("_tryHandleResponse():  conn[%d] seq[%d]", (conn ? conn.id : 'n/a'), responseSequence);
     if (!isNull(responseSequence)) {
       messagesQueue.resolve(responseSequence, data);
     } else {
@@ -1178,12 +1188,12 @@ class ZitiChannel {
     this._dataCallback = fn;
   }
 
-  getEncrypted() {
-    return this._encrypted;
-  }
-  setEncrypted(encrypted) {
-    this._encrypted = encrypted;
-  }
+  // getEncrypted() {
+  //   return this._encrypted;
+  // }
+  // setEncrypted(encrypted) {
+  //   this._encrypted = encrypted;
+  // }
 
   getCryptoEstablishComplete() {
     return this._cryptoEstablishComplete;

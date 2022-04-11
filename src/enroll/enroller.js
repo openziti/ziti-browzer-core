@@ -83,8 +83,6 @@ import { isUndefined, isNull } from 'lodash-es';
    */
   async createEphemeralCert() {
   
-    this.logger.trace('ZitiEnroller.createEphemeralCert() entered');
-
     let res = await this.zitiContext._zitiBrowzerEdgeClient.createCurrentApiSessionCertificate({
       sessionCertificate: { 
         csr:  this._csr
@@ -92,8 +90,6 @@ import { isUndefined, isNull } from 'lodash-es';
     }).catch((error) => {
       throw error;
     });
-
-    this.logger.trace('ZitiEnroller.createEphemeralCert(): res.data.certificate:', res.data.certificate);
 
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
@@ -109,8 +105,6 @@ import { isUndefined, isNull } from 'lodash-es';
     }
   
     this._cert = res.data.certificate;
-
-    this.logger.trace('ZitiContext.createEphemeralCert() exiting; this._cert [%o]', this._cert);
       
   }
   
