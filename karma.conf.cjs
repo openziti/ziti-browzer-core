@@ -18,7 +18,15 @@ module.exports = function(config) {
 
   config.set(
     {
+      envPreprocessor: [
+        'ZITI_EDGE_CLIENT_TESTS_USER',
+        'ZITI_EDGE_CLIENT_TESTS_PSWD'
+      ],  
       
+      preprocessors: {
+        '*/*.js': ['env']
+      },
+  
       frameworks: [
         'mocha', 
         'chai', 
@@ -56,12 +64,14 @@ module.exports = function(config) {
       autoWatch: false,
 
       singleRun: true, // Karma captures browsers, runs the tests and exits
+      // singleRun: false, // Karma captures browsers, runs the tests and keeps browser OPEN for debugging
       
       concurrency: Infinity,
 
       plugins: [
         require.resolve('@open-wc/karma-esm'),  // make ESM work    
         'karma-*',  // fallback: resolve any karma- plugins
+        'karma-env-preprocessor',
       ],
     
       esm: {

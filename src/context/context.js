@@ -671,7 +671,7 @@ class ZitiContext {
 
     await this.connect(conn, network_session);
 
-    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.getEncrypted());
+    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.encrypted);
 
   };
 
@@ -840,7 +840,7 @@ class ZitiContext {
       // Initiate connection with Edge Router (creates Fabric session)
       await channelWithNearestEdgeRouter.connect(conn);
   
-      if (conn.state == edge_protocol.conn_state.Connected) {
+      if (conn.state == ZitiEdgeProtocol.conn_state.Connected) {
         if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
           // Do not proceed until crypto handshake has completed
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);

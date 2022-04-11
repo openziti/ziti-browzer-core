@@ -1,6 +1,10 @@
 
 import {ZitiBrowzerCore} from "../dist/esm/index.js";
 
+// var updbUser = window.__env__['ZITI_EDGE_CLIENT_TESTS_USER'];
+// var updbPswd = window.__env__['ZITI_EDGE_CLIENT_TESTS_PSWD'];
+var updbUser = 'curt';
+var updbPswd = 'browzer!';
 
 
 describe("test-edge-client", function () {
@@ -18,16 +22,16 @@ describe("test-edge-client", function () {
   it("get Controller version", async function () {
     let zitiContext = this.zitiBrowzerCore.createZitiContext({
       logger: this.logger,
-      controllerApi: 'https://curt-controller:1280',
-      updbUser: 'admin',
-      updbPswd: 'admin',
+      controllerApi: 'https://ziti-edge-controller:1280',
+      updbUser: updbUser,
+      updbPswd: updbPswd,
     });
     expect(zitiContext).to.not.equal(undefined);
 
     await zitiContext.initialize();
 
     let zitiBrowzerEdgeClient = zitiContext.createZitiBrowzerEdgeClient({
-        domain: 'https://curt-controller:1280',
+        domain: 'https://ziti-edge-controller:1280',
         logger: this.logger
     });
     expect(zitiBrowzerEdgeClient).to.not.equal(undefined);

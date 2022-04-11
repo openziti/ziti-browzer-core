@@ -363,8 +363,8 @@ class ZitiChannel {
     let connId = await this._messageGetConnId(msg);
     let conn = this._connections._getConnection(connId);
     throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
-    if (!isEqual(conn.id, expectedconn.id)) {
-      this._zitiContext.logger.error("_recvConnectResponse() actual conn[%d] expected conn[%d]", conn.id, expectedconn.id);
+    if (!isEqual(conn.id, expectedConn.id)) {
+      this._zitiContext.logger.error("_recvConnectResponse() actual conn[%d] expected conn[%d]", conn.id, expectedConn.id);
     }
 
     this._zitiContext.logger.debug("ConnectResponse contentType[%d] seq[%d] received for conn[%d]", contentType, sequence, conn.id);
@@ -1042,7 +1042,7 @@ class ZitiChannel {
   _tryHandleResponse(conn, responseSequence, data) {
 
     if (!isUndefined(conn)) {
-      let socket = conn.getSocket();
+      let socket = conn.socket;
       if (!isUndefined(socket)) {
         if (socket.isWebSocket) {
           return;
