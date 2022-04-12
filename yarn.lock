@@ -1009,12 +1009,11 @@
     "@types/emscripten" "^1.39.6"
     "@wasmer/wasi" "^1.0.2"
 
-"@openziti/ziti-browzer-edge-client@^0.1.15":
-  version "0.1.15"
-  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.15.tgz#a5d547d7b62ff1ed8346a063d2bb3e788faab2bb"
-  integrity sha512-KF4tdrxrnzJROcHgHWYUqYCbnxKnZESu6ojLzUFbFy9/K6C4rH/3ai/ZZy6HwNvebMLbSe5e7MVC22hMMz33cQ==
+"@openziti/ziti-browzer-edge-client@^0.1.17":
+  version "0.1.17"
+  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.17.tgz#121104b82ef03aaed4c2f7d5a3105790a4310231"
+  integrity sha512-y163Ocx1egB8Htc4ZFaOAcWyvxP2aTnJ/kXicpzx8/EPNDiI4BfLy1441UP254hFNpxlxSZhojaz+UOvygVJtg==
   dependencies:
-    q "^1.5.1"
     superagent "^7.1.1"
 
 "@rollup/plugin-commonjs@^21.0.2":
@@ -5545,11 +5544,6 @@ punycode@^2.1.0, punycode@^2.1.1:
   version "2.1.1"
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.1.1.tgz"
   integrity sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==
-
-q@^1.5.1:
-  version "1.5.1"
-  resolved "https://registry.npmjs.org/q/-/q-1.5.1.tgz"
-  integrity sha1-fjL3W0E4EpHQRhHxvxQQmsAGUdc=
 
 qjobs@^1.2.0:
   version "1.2.0"
