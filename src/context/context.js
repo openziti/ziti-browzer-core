@@ -27,10 +27,10 @@ import { ZitiChannel } from '../channel/channel'
 import throwIf from '../utils/throwif';
 import { ZITI_CONSTANTS } from '../constants';
 
-import { LibCrypto } from '@openziti/libcrypto-js'
+import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout} from 'async-mutex';
-import { isUndefined, isEqual, isNull, result, find, filter, has } from 'lodash-es';
+import { isUndefined, isEqual, isNull, result, find, filter, has, minBy } from 'lodash-es';
 
  
 /**
@@ -46,6 +46,8 @@ class ZitiContext {
     this._initialized = false;
 
     let _options = flatOptions(options, defaultOptions);
+
+    this._keyType = _options.keyType;
 
     this.logger = _options.logger;
     this.controllerApi = _options.controllerApi;
@@ -73,7 +75,7 @@ class ZitiContext {
     this._mutex = new Mutex();
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
 
-    this._ecKey = null;
+    this._pkey = null;
     this._privateKeyPEM = null;
     this._publicKeyPEM = null;
     this._certPEM = null;
@@ -136,17 +138,33 @@ class ZitiContext {
   /**
    * 
    */
+   generateRSAKey() {
+
+    this.logger.trace('ZitiContext.generateRSAKey() entered');
+
+    if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
+
+    this._pkey = this._libCrypto.generateKey({});
+
+    this.logger.trace('ZitiContext.generateRSAKey() exiting');
+
+    return this._pkey;
+  }
+
+  /**
+   * 
+   */
   generateECKey() {
 
     this.logger.trace('ZitiContext.generateECKey() entered');
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._ecKey = this._libCrypto.generateECKey({});
+    this._pkey = this._libCrypto.generateECKey({});
 
     this.logger.trace('ZitiContext.generateECKey() exiting');
 
-    return this._ecKey;
+    return this._pkey;
   }
 
   /**
@@ -191,7 +209,7 @@ class ZitiContext {
     curve = this._libCrypto.NID_secp521r1,
     compressed = this._libCrypto.POINT_CONVERSION_UNCOMPRESSED,
     version = 3,
-    name = "C=US, ST=CO, L=BeaverCreek, O=OpenZiti, OU=browZer, CN=NetFoundry",
+    name = "C=US, ST=NC, L=Charlotte, O=NetFoundry, OU=ADV-DEV, CN=ziti-browzer-core",
     // id = "0",
     // basicConstraints = null,
     // keyUsage = this.keyUsage,
@@ -217,14 +235,27 @@ class ZitiContext {
   /**
    * 
    */
-  get ecKey () {
+   get rsaKey () {
 
-    if (isNull(this._ecKey)) {
-      this.logger.trace('ZitiContext.get ecKey() needs to genetrate a new key');
-      this._ecKey = this.generateECKey({});      
+    if (isNull(this._pkey)) {
+      this.logger.trace('ZitiContext.get rsaKey() needs to genetrate a new key');
+      this._pkey = this.generateRSAKey({});      
     }
 
-    return this._ecKey;
+    return this._pkey;
+  }
+
+  /**
+   * 
+   */
+  get ecKey () {
+
+    if (isNull(this._pkey)) {
+      this.logger.trace('ZitiContext.get ecKey() needs to genetrate a new key');
+      this._pkey = this.generateECKey({});      
+    }
+
+    return this._pkey;
   }
   
   /**
@@ -232,11 +263,37 @@ class ZitiContext {
    */
   get privateKeyPEM () {
 
-    if (isNull(this._ecKey)) {
-      this._ecKey = this.generateECKey({});
-    }
-    if (isNull(this._privateKeyPEM)) {
-      this._privateKeyPEM = this.getPrivateKeyPEM(this._ecKey)
+    switch(this._keyType) {
+
+      case EVP_PKEY_RSA:
+        {
+          if (isNull(this._pkey)) {
+            this._pkey = this.generateRSAKey({});
+          }
+          if (isNull(this._privateKeyPEM)) {
+            this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+          }
+
+          // this._privateKeyPEM = this._privateKeyPEM.replace(/\\n/g, '\n');
+          // this._privateKeyPEM = this._privateKeyPEM.replaceAll('\x0a', '\\n' );
+
+
+        }
+        break;
+
+      case EVP_PKEY_EC:
+        {
+          if (isNull(this._pkey)) {
+            this._pkey = this.generateECKey({});
+          }
+          if (isNull(this._privateKeyPEM)) {
+            this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+          }      
+        }
+        break;
+
+      default:
+        throw Error("invalid _keyType");
     }
 
     return this._privateKeyPEM;
@@ -247,11 +304,32 @@ class ZitiContext {
    */
   get publicKeyPEM () {
 
-    if (isNull(this._ecKey)) {
-      this._ecKey = this.generateECKey({});
-    }
-    if (isNull(this._publicKeyPEM)) {
-      this._publicKeyPEM = this.getPrivateKeyPEM(this._ecKey)
+    switch(this._keyType) {
+
+      case EVP_PKEY_RSA:
+        {
+          if (isNull(this._pkey)) {
+            this._pkey = this.generateRSAKey({});
+          }
+          if (isNull(this._publicKeyPEM)) {
+            this._publicKeyPEM = this.getPublicKeyPEM(this._pkey);
+          }      
+        }
+        break;
+
+      case EVP_PKEY_EC:
+        {
+          if (isNull(this._pkey)) {
+            this._pkey = this.generateECKey({});
+          }
+          if (isNull(this._publicKeyPEM)) {
+            this._publicKeyPEM = this.getPublicKeyPEM(this._pkey);
+          }      
+        }
+        break;
+
+      default:
+        throw Error("invalid _keyType");
     }
 
     return this._publicKeyPEM;
@@ -349,9 +427,13 @@ class ZitiContext {
    */
   async enroll() {
   
-    await this._zitiEnroller.enroll();
+    if (isNull(this._certPEM)) {
 
-    this._certPEM = this._zitiEnroller.certPEM;
+      await this._zitiEnroller.enroll();
+
+      this._certPEM = this._zitiEnroller.certPEM;
+
+    }
 
   }
 
@@ -361,7 +443,7 @@ class ZitiContext {
   async getCertPEM () {
 
     if (isNull(this._privateKeyPEM)) {
-      this._privateKeyPEM = this.getPrivateKeyPEM(this._ecKey)
+      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
     }
     if (isNull(this._certPEM)) {
       await this.enroll()
@@ -593,7 +675,7 @@ class ZitiContext {
 
     await this.connect(conn, network_session);
 
-    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.getEncrypted());
+    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.encrypted);
 
   };
 
@@ -750,7 +832,7 @@ class ZitiContext {
       this.logger.trace('channelConnects [%o]', channelConnects);  
   
       // Select channel with nearest Edge Router. Heuristic: select one with earliest Hello-handshake completion timestamp
-      let channelConnectWithNearestEdgeRouter = minby(channelConnects, function(channelConnect) { 
+      let channelConnectWithNearestEdgeRouter = minBy(channelConnects, function(channelConnect) { 
         return channelConnect.channel.helloCompletedTimestamp;
       });
       
@@ -762,7 +844,7 @@ class ZitiContext {
       // Initiate connection with Edge Router (creates Fabric session)
       await channelWithNearestEdgeRouter.connect(conn);
   
-      if (conn.state == edge_protocol.conn_state.Connected) {
+      if (conn.state == ZitiEdgeProtocol.conn_state.Connected) {
         if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
           // Do not proceed until crypto handshake has completed
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
@@ -791,6 +873,15 @@ class ZitiContext {
   getNextChannelId() {
     this._channelSeq++;
     return this._channelSeq;
+  }
+ 
+
+  closeChannelByEdgeRouter( edgeRouter ) {
+    this._channels.delete( edgeRouter );  
+  }
+  
+  closeAllChannels() {
+    this._channels = new Map();
   }
  
  

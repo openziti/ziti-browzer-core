@@ -10,14 +10,14 @@
     <b>Core componentry for the Ziti browZer ecosystem.  This is used internally by <a href="https://github.com/openziti/ziti-browzer-runtime">ziti-browzer-runtime</a> and <a href="https://github.com/openziti/ziti-sdk-browzer">ziti-sdk-browzer</a>, both of which facilitate cretion of a <a href="https://ziti.dev/blog/zitification">Zitified</a> web app.</b>
     <br>
     <br>
-    <b>Part of the <a href="https://ziti.devdev/about">OpenZiti</a> Zero Trust browZer stack</b>
+    <b>Part of the <a href="https://ziti.dev/about">OpenZiti</a> Zero Trust browZer stack</b>
 </p>
 
 <p align="center">
     <br>
     <b>Are you interested in knowing how to easily embed programmable, high performance, zero trust networking into your app, on any internet connection, without VPNs?
     <br>
-    Learn more about our <a href="https://ziti.devdev/about">OpenZiti</a> project by clicking the image below:</b>
+    Learn more about our <a href="https://ziti.dev/about">OpenZiti</a> project by clicking the image below:</b>
     <br>
     <br>
     <a href="https://ziti.dev"><img src="ziti-dev-logo.png" width="200"></a>

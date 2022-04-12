@@ -1,6 +1,10 @@
 
 import {ZitiBrowzerCore} from "../dist/esm/index.js";
 
+// var updbUser = window.__env__['ZITI_EDGE_CLIENT_TESTS_USER'];
+// var updbPswd = window.__env__['ZITI_EDGE_CLIENT_TESTS_PSWD'];
+var updbUser = 'curt';
+var updbPswd = 'browzer!';
 
 
 describe("dial", function () {
@@ -16,11 +20,13 @@ describe("dial", function () {
   });
 
   it("Dial Services", async function () {
+    console.log('window.__env__ is: ', window.__env__);
+
     let zitiContext = this.zitiBrowzerCore.createZitiContext({
       logger: this.logger,
-      controllerApi: 'https://curt-controller:1280',
-      updbUser: 'admin',
-      updbPswd: 'admin',
+      controllerApi: 'https://ziti-edge-controller:1280',
+      updbUser: updbUser,
+      updbPswd: updbPswd,
     });
     expect(zitiContext).to.not.equal(undefined);
 
@@ -31,7 +37,7 @@ describe("dial", function () {
     expect(conn.zitiContext).to.equal(zitiContext);
 
     // TODO:  the following 'dial' requires the mTLS wiring to be operational
-    // await zitiContext.dial(conn, 'curt-mattermost-dark');
+    await zitiContext.dial(conn, 'mattermost-blue');
 
   });
 

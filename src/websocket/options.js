@@ -127,9 +127,9 @@ const defaultOptions = {
     connectionTimeout: 0,
   
     /**
-     * See {@link Options.ctx}
+     * See {@link Options.zitiContext}
      */
-    ctx: null,
+     zitiContext: null,
 };
 
 export {

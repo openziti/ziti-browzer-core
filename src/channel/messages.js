@@ -17,6 +17,7 @@ limitations under the License.
 
 import PromiseController from 'promise-controller';
 import { isNull } from 'lodash-es';
+import promiseFinally from 'promise.prototype.finally';
 
 
 /**
@@ -29,7 +30,7 @@ import { isNull } from 'lodash-es';
    */
   constructor(options) {
     this._items = new Map();
-    this._ctx = options.ctx;
+    this._zitiContext = options.zitiContext;
     this._conn = options.conn;
     this._channel = options.channel;
   }
@@ -43,15 +44,15 @@ import { isNull } from 'lodash-es';
    * @returns {Promise}
    */
   create(messageId, fn, timeout) {
-    this._ctx.logger.trace("messages.create(): conn[%d] messageId[%o]", (this._conn ? this._conn.getId() : 'n/a'), messageId);
+    this._zitiContext.logger.trace("messages.create(): conn[%d] messageId[%o]", (this._conn ? this._conn.id : 'n/a'), messageId);
     this._rejectExistingMessage(messageId);
     return this._createNewMessage(messageId, fn, timeout);
   }
 
   resolve(messageId, data) {
-    this._ctx.logger.trace("messages.resolve(): conn[%d] messageId[%o] data[%o]", (this._conn ? this._conn.getId() : 'n/a'), messageId, data);
+    this._zitiContext.logger.trace("messages.resolve(): conn[%d] messageId[%o] data[%o]", (this._conn ? this._conn.id : 'n/a'), messageId, data);
     if (!isNull(messageId) && this._items.has(messageId)) {
-      this._ctx.logger.trace("messages.resolve(): FOUND messageId: [%o]", messageId);
+      this._zitiContext.logger.trace("messages.resolve(): FOUND messageId: [%o]", messageId);
       this._items.get(messageId).resolve(data);
     }
   }
@@ -73,7 +74,7 @@ import { isNull } from 'lodash-es';
       timeoutReason: `message was rejected by timeout (${timeout} ms). messageId: ${messageId}`
     });
     this._items.set(messageId, message);
-    return Promise.finally(message.call(fn), () => this._deleteMessage (messageId, message));
+    return promiseFinally(message.call(fn), () => this._deleteMessage (messageId, message));
   }
 
   _deleteMessage (messageId, message) {

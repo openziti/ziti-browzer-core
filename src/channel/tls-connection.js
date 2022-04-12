@@ -46,8 +46,6 @@ forge.options.usePureJavaScript = true;
 
     this._zitiContext = this._options.zitiContext;
 
-    this.logger = this._zitiContext.certPEM;
-
     this._ws = this._options.ws;
 
     this._ch = this._options.ch;
@@ -66,10 +64,8 @@ forge.options.usePureJavaScript = true;
   async pullKeyPair() {
 
     this._privateKeyPEM = this._zitiContext.privateKeyPEM;
-    this._zitiContext.logger.trace('pullKeyPair() this._privateKeyPEM [%o]', this._privateKeyPEM);
 
     this._certPEM = await this._zitiContext.getCertPEM();
-    this._zitiContext.logger.trace('pullKeyPair() this._certPEM [%o]', this._certPEM);
 
     if (
       isUndefined(this._certPEM) ||
@@ -144,13 +140,13 @@ forge.options.usePureJavaScript = true;
 
       // client-side cert
       getCertificate: function(connection, hint) {
-        self._zitiContext.logger.trace('getCertificate(): for: %o, [%o]', self._uuid, self._certPEM );
+        // self._zitiContext.logger.trace('getCertificate(): for: %o: ', self._uuid, self._certPEM );
         return self._certPEM;
       },
 
       // client-side private key
       getPrivateKey: function(connection, cert) {
-        self._zitiContext.logger.trace('getPrivateKey(): for: %o, [%o]', self._uuid, self._privateKeyPEM );
+        // self._zitiContext.logger.trace('getPrivateKey(): for: %o: ', self._uuid, self._privateKeyPEM );
         return self._privateKeyPEM;
       },
 
@@ -158,7 +154,7 @@ forge.options.usePureJavaScript = true;
       tlsDataReady: function(connection) {
         let chunk = new Buffer(connection.tlsData.getBytes(), "binary");
         if (chunk.length > 0) {
-          self._zitiContext.logger.trace('tlsDataReady: encrypted data is ready to be sent to the server  ---> [%o]', chunk);
+          self._zitiContext.logger.trace('tlsDataReady: encrypted data is ready to be sent to the server  ---> ', chunk);
           self._ws.send(chunk);
         }
       },
