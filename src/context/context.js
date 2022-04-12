@@ -427,9 +427,13 @@ class ZitiContext {
    */
   async enroll() {
   
-    await this._zitiEnroller.enroll();
+    if (isNull(this._certPEM)) {
 
-    this._certPEM = this._zitiEnroller.certPEM;
+      await this._zitiEnroller.enroll();
+
+      this._certPEM = this._zitiEnroller.certPEM;
+
+    }
 
   }
 

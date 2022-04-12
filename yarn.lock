@@ -1001,18 +1001,18 @@
     portfinder "^1.0.21"
     request "^2.88.0"
 
-"@openziti/libcrypto-js@^0.6.20":
-  version "0.6.20"
-  resolved "https://registry.yarnpkg.com/@openziti/libcrypto-js/-/libcrypto-js-0.6.20.tgz#0bcb8aab84835bb4ba643be07079c0252de42606"
-  integrity sha512-h0Eq+rLKjzXx3RqQZMMJpRzkEBj+x5+91tkpb2Ww4qof/MYy2PxL5oC11N+ZQ0U1P2cXlaUhsThi7+u56JeyQw==
+"@openziti/libcrypto-js@^0.6.21":
+  version "0.6.21"
+  resolved "https://registry.yarnpkg.com/@openziti/libcrypto-js/-/libcrypto-js-0.6.21.tgz#b1943dd6ffe6239ee0749ccb37cf84434f2404eb"
+  integrity sha512-+wTbXqLlAaKiwH74evnKbwmkPNj8vNqnUJJ+AV2FtfEWwfbyL6xulAhemgM/ps0sfB7fSPtiH6yx1+PbFiKCsg==
   dependencies:
     "@types/emscripten" "^1.39.6"
     "@wasmer/wasi" "^1.0.2"
 
-"@openziti/ziti-browzer-edge-client@^0.1.14":
-  version "0.1.14"
-  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.14.tgz#c0af9974eeb01ca2d7743fe52dad926c26fbf95e"
-  integrity sha512-7Wm/FvAo+pFyarFfyaXxYHDjZ56LlyqChRrnsr7nIHc9eA3DsSbbig/uma/yZFxgVr39BniSJTAcOr9OnToKvQ==
+"@openziti/ziti-browzer-edge-client@^0.1.15":
+  version "0.1.15"
+  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.1.15.tgz#a5d547d7b62ff1ed8346a063d2bb3e788faab2bb"
+  integrity sha512-KF4tdrxrnzJROcHgHWYUqYCbnxKnZESu6ojLzUFbFy9/K6C4rH/3ai/ZZy6HwNvebMLbSe5e7MVC22hMMz33cQ==
   dependencies:
     q "^1.5.1"
     superagent "^7.1.1"
