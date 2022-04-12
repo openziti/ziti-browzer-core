@@ -19,6 +19,13 @@ limitations under the License.
  */
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
+import {
+  convertPemToCertificate,
+  printCertificate,
+  getExpiryTimeFromCertificate,
+  getBecomesUsableTimeFromCertificate,
+  getBecomesUsableStringFromCertificate
+} from '../utils/pki';
 import { isUndefined, isNull } from 'lodash-es';
 
 
@@ -106,6 +113,33 @@ import { isUndefined, isNull } from 'lodash-es';
   
     this._cert = res.data.certificate;
       
+    let flatcert = this._cert.replace(/\\n/g, '\n');
+
+    let certificate;
+    try {
+      certificate = convertPemToCertificate( flatcert );
+      printCertificate( certificate );
+    } catch (err) {
+      this.logger.error(err);
+      this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert [%o] which convertPemToCertificate cannot process', this._cert);
+      throw new Error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert which convertPemToCertificate cannot process');
+    }
+
+    let expiryTime = getExpiryTimeFromCertificate(certificate);
+    let expiryDate = new Date(expiryTime);
+
+    let becomesUsableTime = getBecomesUsableTimeFromCertificate(certificate);
+    let becomesUsableTimeString = getBecomesUsableStringFromCertificate(certificate);
+    let now = new Date();
+    let nowTime = now.getTime();
+    this.logger.info('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with NotBefore time [%o][%o], it is now [%o][%o], difference of [%o]', becomesUsableTime, becomesUsableTimeString, nowTime, now, (nowTime-becomesUsableTime));
+    if (nowTime < becomesUsableTime) {
+      this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with NotBefore IN THE FUTURE', becomesUsableTimeString);
+    }
+
+    this.logger.debug('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with expiryTime: [%o] expiryDate:[%o]', expiryTime, expiryDate);
+
+    this._certExpiryTime = expiryTime;
   }
   
   /**
@@ -118,6 +152,18 @@ import { isUndefined, isNull } from 'lodash-es';
     }
 
     return this._cert;
+  }
+
+  /**
+   * 
+   */
+   get certPEMExpiryTime () {
+
+    if (isUndefined(this._cert)) {
+      throw new Error('enroller contains no certificate; Ephemeral Cert creation needed');
+    }
+
+    return this._certExpiryTime;
   }
 
 

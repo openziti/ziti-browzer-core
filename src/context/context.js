@@ -432,6 +432,7 @@ class ZitiContext {
       await this._zitiEnroller.enroll();
 
       this._certPEM = this._zitiEnroller.certPEM;
+      this._certExpiryTime = this._zitiEnroller.certPEMExpiryTime;
 
     }
 
@@ -452,6 +453,21 @@ class ZitiContext {
     return this._certPEM;
   }
 
+  /**
+   * 
+   */
+  async getCertPEMExpiryTime () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+    }
+    if (isNull(this._certPEM)) {
+      await this.enroll()
+    }
+
+    return this._certExpiryTime;
+  }
+  
 
   /**
    *
@@ -857,6 +873,134 @@ class ZitiContext {
       throw new Error(err);
     });  
   }
+
+
+ /**
+  * Determine if the given URL should be routed over Ziti.
+  * 
+  * @param {*} url
+  */
+  async shouldRouteOverZiti(url) {
+   
+    this.logger.debug('shouldRouteOverZiti() entered for url[%o]', url);  
+
+    let parsedURL = new URL(url);
+ 
+    let hostname = parsedURL.hostname;
+    let port = parsedURL.port;
+  
+    if (port === '') {
+      if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
+        port = 443;
+      } else {
+        port = 80;
+      }
+    }
+    
+    let serviceName = await this.getServiceNameByHostNameAndPort(hostname, port).catch(( error ) => {
+      throw new Error( error );
+    });
+  
+    return serviceName;
+   
+  }
+
+
+  /**
+   * 
+   * @param {*} hostname 
+   * @param {*} port 
+   * @returns 
+   */
+  async getServiceNameByHostNameAndPort(hostname, port) {
+
+    if (typeof port === 'string') {
+      port = parseInt(port, 10);
+    }
+
+    await this._mutex.runExclusive(async () => {
+      if (isEqual( self.getServices().size, 0 )) {
+        await self.fetchServices().catch((error) => {
+          throw new Error(error);
+        });
+      }
+    });
+
+    let serviceName = result(find(self._services, function(obj) {
+
+      if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
+        return true;
+      }
+
+      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+
+    }), 'name');
+
+    return serviceName;
+  }
+
+
+  /**
+   "config": {
+     "ziti-tunneler-client.v1": {
+         "ziti-tunneler-client.v1": {
+           "hostname": "example.com",
+          "port": 443
+        }
+      }
+    }
+  */
+  _getMatchConfigTunnelerClientV1 = function(config, hostname, port) {
+    if (isUndefined(config)) {
+      return false;
+    }
+    if (config.hostname !== hostname) {
+      return false;
+    }
+    if (config.port !== port) {
+      return false;
+    }
+    return true;
+  }
+
+
+  /**
+    "config": {
+      "intercept.v1": {
+        "addresses": ["example.com"],
+        "portRanges": [{
+          "high": 443,
+          "low": 443
+        }],
+        "protocols": ["tcp"]
+      }
+    }
+  */
+  _getMatchConfigInterceptV1 = function(config, hostname, port) {
+    if (isUndefined(config)) {
+      return false;
+    }
+    let foundAddress = result(find(config.addresses, function(address) {
+      if (address !== hostname) {
+        return false;
+      }
+      return true;  
+    }), 'name', 'default');
+
+    if (!foundAddress) {
+      return false;
+    }
+
+    let foundPort = result(find(config.portRanges, function(portRange) {
+      if ((port >= portRange.low) && (port <= portRange.high)) {
+        return true;
+      }
+      return false;  
+    }), 'name', 'default');
+
+    return foundPort;
+  }
+
 
 
   /**
