@@ -33,6 +33,10 @@ import {Mutex, withTimeout} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy } from 'lodash-es';
 
  
+// const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
+const EXPIRE_WINDOW = 2.0
+
+
 /**
  *    ZitiContext
  */
@@ -79,6 +83,7 @@ class ZitiContext {
     this._privateKeyPEM = null;
     this._publicKeyPEM = null;
     this._certPEM = null;
+    this._apiSession = null;
 
     this._timeout = ZITI_CONSTANTS.ZITI_DEFAULT_TIMEOUT;
 
@@ -411,7 +416,7 @@ class ZitiContext {
    */
   async ensureAPISession() {
   
-    if (isUndefined( this._apiSession ) || isUndefined( this._apiSession.token )) {
+    if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
 
       await this.getFreshAPISession().catch((error) => {
         throw error;
@@ -919,20 +924,20 @@ class ZitiContext {
     }
 
     await this._mutex.runExclusive(async () => {
-      if (isEqual( self.getServices().size, 0 )) {
-        await self.fetchServices().catch((error) => {
+      if (isEqual( this.getServices().size, 0 )) {
+        await this.fetchServices().catch((error) => {
           throw new Error(error);
         });
       }
     });
 
-    let serviceName = result(find(self._services, function(obj) {
+    let serviceName = result(find(this._services, function(obj) {
 
-      if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
+      if (this._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
         return true;
       }
 
-      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+      return this._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
 
     }), 'name');
 
@@ -1002,6 +1007,42 @@ class ZitiContext {
   }
 
 
+ /**
+  * 
+  */
+  async isCertExpired() {
+ 
+    let expired = false;
+
+    let certExpiry = await this.getCertPEMExpiryTime();
+
+    let now = Date.now();
+    const diffTime = (certExpiry - now);
+    const diffMins = (diffTime / (1000 * 60));
+
+    this.logger.debug('mins before cert expiration [%o]', diffMins);
+
+    if (diffMins < EXPIRE_WINDOW) { // if expired, or about to expire
+
+      this.flushExpiredAPISessionData(); 
+
+      expired = true;
+    
+    }
+    return expired;
+  }
+
+ /**
+  *
+  */
+  flushExpiredAPISessionData() {
+ 
+    this._certPEM = null;
+    this._apiSession = null;
+  
+   }
+ 
+ 
 
   /**
    * 
