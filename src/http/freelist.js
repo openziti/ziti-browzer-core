@@ -14,25 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Default options.
- */
+'use strict';
 
+class FreeList {
+  constructor(name, max, ctor) {
+    this.name = name;
+    this.ctor = ctor;
+    this.max = max;
+    this.list = [];
+  }
 
-const defaultOptions = {
-  
-  /**
-   * See {@link Options.headerType}
-   */
-  headerType: null,
+  alloc() {
+    return this.list.length > 0 ?
+      this.list.pop() :
+      Reflect.apply(this.ctor, this, arguments);
+  }
 
-  /**
-   * See {@link Options.headerData}
-   */
-  headerData: null,
-
-};
+  free(obj) {
+    if (this.list.length < this.max) {
+      this.list.push(obj);
+      return true;
+    }
+    return false;
+  }
+}
 
 export {
-  defaultOptions
-}
+  FreeList
+};

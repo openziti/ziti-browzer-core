@@ -44,7 +44,6 @@ import { Buffer } from 'buffer';
 
     throwIf(isNull(this._options.headerData), 'headerData not specified');
     this._headerData = this._options.headerData;
-    console.log('this._headerData is: ', this._headerData);
 
     this._bytesForWire = this._createBytesForWire();
 

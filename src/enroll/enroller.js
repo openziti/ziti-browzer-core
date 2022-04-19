@@ -79,7 +79,7 @@ import { isUndefined, isNull } from 'lodash-es';
   generateCSR() {
 
     this._csr = this.zitiContext.createCertificateSigningRequest({
-      key: this.zitiContext.ecKey,
+      key: this.zitiContext.pKey,
     })
     
   }

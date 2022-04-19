@@ -28,12 +28,9 @@ import { Messages } from './messages';
 import { ZitiEdgeProtocol } from '../channel/protocol';
 import throwIf from '../utils/throwif';
 import {
-  type,
   appendBuffer,
   toUTF8Array,
-  baseSum,
   sumBy,
-  parseURL,
   concatTypedArrays
 } from '../utils/utils';
 
@@ -136,6 +133,10 @@ class ZitiChannel {
 
   get helloCompletedTimestamp() {
     return this._helloCompletedTimestamp;
+  }
+
+  get isHelloCompleted() {
+    return Boolean(this._helloCompleted);
   }
 
   /**
@@ -1023,7 +1024,7 @@ class ZitiChannel {
       }
 
       // 
-      let dataCallback = conn.getDataCallback();
+      let dataCallback = conn.dataCallback;
       if (!isUndefined(dataCallback)) {
         this._zitiContext.logger.trace("recv <- contentType[%o] seq[%o] passing body to dataCallback", contentType, sequenceView[0]);
         dataCallback(conn, bodyView);
