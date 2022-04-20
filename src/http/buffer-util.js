@@ -16,6 +16,8 @@ limitations under the License.
 
 'use strict';
 
+import { Buffer } from 'buffer';
+
 import bufferUtil from 'bufferutil';
 
 import { CONSTANTS } from './constants';
@@ -139,18 +141,18 @@ function viewToBuffer(view) {
   const bu = bufferUtil.BufferUtil || bufferUtil;
 
 const BUFFERUTIL = {
-    concat,
-    mask(source, mask, output, offset, length) {
-      if (length < 48) _mask(source, mask, output, offset, length);
-      else bu.mask(source, mask, output, offset, length);
-    },
-    toArrayBuffer,
-    toBuffer,
-    unmask(buffer, mask) {
-      if (buffer.length < 32) _unmask(buffer, mask);
-      else bu.unmask(buffer, mask);
-    }
-  };
+  concat,
+  applyMask(source, mask, output, offset, length) {
+    if (length < 48) _mask(source, mask, output, offset, length);
+    else bu.mask(source, mask, output, offset, length);
+  },
+  toArrayBuffer,
+  toBuffer,
+  unmask(buffer, mask) {
+    if (buffer.length < 32) _unmask(buffer, mask);
+    else bu.unmask(buffer, mask);
+  }
+};
 
 export {
   BUFFERUTIL

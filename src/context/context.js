@@ -19,7 +19,7 @@ limitations under the License.
  */
 
 import { PassThrough } from '../http/readable-stream/_stream_passthrough';
-// import { Readable } from '../http/readable-stream/_stream_readable';
+import Cookies from 'js-cookie';
 
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
@@ -34,6 +34,8 @@ import { HttpResponse } from '../http/response';
 import { ZitiFormData } from '../http/form-data';
 import { BrowserStdout } from '../http/browser-stdout';
 import { http } from '../http/http';
+import { ZitiWebSocketWrapperCtor } from '../http/ziti-websocket-wrapper-ctor';
+
 
 
 import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
@@ -878,11 +880,11 @@ class ZitiContext {
     }
   
     //
-    this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
+    // this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
   
-    await this._connectMutexWithTimeout.runExclusive(async () => {
+    // await this._connectMutexWithTimeout.runExclusive(async () => {
   
-      this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
+      // this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
       this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
@@ -909,12 +911,12 @@ class ZitiContext {
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
         }
       }
-      this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
-    })
-    .catch(( err ) => {
-      this.logger.error(err);
-      throw new Error(err);
-    });  
+      // this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
+    // })
+    // .catch(( err ) => {
+    //   this.logger.error(err);
+    //   throw new Error(err);
+    // });  
   }
 
 
@@ -1114,6 +1116,9 @@ class ZitiContext {
     this._channels = new Map();
   }
  
+  get zitiWebSocketWrapper() {
+    return ZitiWebSocketWrapperCtor;
+  }
 
  /**
   * Close specified ZitiConnection with Edge Router.
@@ -1225,10 +1230,10 @@ class ZitiContext {
               let expires;
               let httpOnly = false;
   
-              let zitiCookies = await ls.getWithExpiry(zitiConstants.get().ZITI_COOKIES);
-              if (isNull(zitiCookies)) {
-                zitiCookies = {}
-              }
+              //   let zitiCookies = await ls.getWithExpiry(zitiConstants.get().ZITI_COOKIES);
+              //   if (isNull(zitiCookies)) {
+              //     zitiCookies = {}
+              //   }
   
               for (let i = 0; i < cookieArray.length; i++) {
   
@@ -1252,9 +1257,9 @@ class ZitiContext {
                   }
   
   
-                  zitiCookies[name] = cookie_value;
+                  //       zitiCookies[name] = cookie_value;
   
-                  await ls.setWithExpiry(zitiConstants.get().ZITI_COOKIES, zitiCookies, new Date(8640000000000000));
+                  //       await ls.setWithExpiry(zitiConstants.get().ZITI_COOKIES, zitiCookies, new Date(8640000000000000));
   
                   Cookies.set(name, cookie_value, { expires: expires, path:  cookiePath});
                 }

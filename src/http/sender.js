@@ -16,10 +16,10 @@ limitations under the License.
 
 'use strict';
 
-import { randomFillSync } from 'crypto';
+import { Buffer } from 'buffer';
 
-import PerMessageDeflate from './permessage-deflate';
-import { EMPTY_BUFFER } from './constants';
+import { PerMessageDeflate } from './permessage-deflate';
+import { CONSTANTS } from './constants';
 import { isValidStatusCode } from './validation';
 import { BUFFERUTIL } from './buffer-util';
 
@@ -36,7 +36,7 @@ class Sender {
    * @param {Object} extensions An object containing the negotiated extensions
    */
   constructor(socket, extensions) {
-    ziti._ctx.logger.debug('ZitiWebSocket.Sender ctor entered');
+    // ziti._ctx.logger.debug('ZitiWebSocket.Sender ctor entered');
 
     this._extensions = extensions || {};
     this._socket = socket;
@@ -91,7 +91,9 @@ class Sender {
 
     if (!options.mask) return [target, data];
 
-    randomFillSync(mask, 0, 4);
+    // randomFillSync(mask, 0, 4);
+    crypto.getRandomValues(mask);
+
 
     target[1] |= 0x80;
     target[offset - 4] = mask[0];
@@ -121,7 +123,7 @@ class Sender {
     let buf;
 
     if (code === undefined) {
-      buf = EMPTY_BUFFER;
+      buf = CONSTANTS.EMPTY_BUFFER;
     } else if (typeof code !== 'number' || !isValidStatusCode(code)) {
       throw new TypeError('First argument must be a valid error code number');
     } else if (data === undefined || data === '') {
@@ -155,7 +157,7 @@ class Sender {
    * @private
    */
   doClose(data, mask, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket doClose ---> data=[%o]', data);
+    // ziti._ctx.logger.info('ZitiWebSocket doClose ---> data=[%o]', data);
     this.sendFrame(
       Sender.frame(data, {
         fin: true,
@@ -177,7 +179,7 @@ class Sender {
    * @public
    */
   ping(data, mask, cb) {
-    ziti._ctx.logger.debug('ZitiWebSocket.Sender ping entered, data: %s', data);
+    // ziti._ctx.logger.debug('ZitiWebSocket.Sender ping entered, data: %s', data);
 
     const buf = BUFFERUTIL.toBuffer(data);
 
@@ -185,7 +187,7 @@ class Sender {
       throw new RangeError('The data size must not be greater than 125 bytes');
     }
 
-    ziti._ctx.logger.debug('ZitiWebSocket.Sender ping this._deflating: ', this._deflating);
+    // ziti._ctx.logger.debug('ZitiWebSocket.Sender ping this._deflating: ', this._deflating);
 
     if (this._deflating) {
       this.enqueue([this.doPing, buf, mask, BUFFERUTIL.toBuffer.readOnly, cb]);
@@ -204,7 +206,7 @@ class Sender {
    * @private
    */
   doPing(data, mask, readOnly, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket doPing ---> data=[%o]', data);
+    // ziti._ctx.logger.info('ZitiWebSocket doPing ---> data=[%o]', data);
     this.sendFrame(
       Sender.frame(data, {
         fin: true,
@@ -226,7 +228,7 @@ class Sender {
    * @public
    */
   pong(data, mask, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket.Sender pong entered, dfata is: %o', data);
+    // ziti._ctx.logger.info('ZitiWebSocket.Sender pong entered, dfata is: %o', data);
 
     const buf = BUFFERUTIL.toBuffer(data);
 
@@ -251,7 +253,7 @@ class Sender {
    * @private
    */
   doPong(data, mask, readOnly, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket doPong ---> data=[%o]', data);
+    // ziti._ctx.logger.info('ZitiWebSocket doPong ---> data=[%o]', data);
     this.sendFrame(
       Sender.frame(data, {
         fin: true,
@@ -277,8 +279,8 @@ class Sender {
    * @public
    */
   send(data, options, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket.Sender send entered, options: %o', options);
-    ziti._ctx.logger.info('ZitiWebSocket send ---> data=[%o]', data);
+    // ziti._ctx.logger.info('ZitiWebSocket.Sender send entered, options: %o', options);
+    // ziti._ctx.logger.info('ZitiWebSocket send ---> data=[%o]', data);
 
     const buf = BUFFERUTIL.toBuffer(data);
 
@@ -342,7 +344,7 @@ class Sender {
    * @private
    */
   dispatch(data, compress, options, cb) {
-    ziti._ctx.logger.info('ZitiWebSocket dispatch ---> data=[%o]', data);
+    // ziti._ctx.logger.info('ZitiWebSocket dispatch ---> data=[%o]', data);
     if (!compress) {
       this.sendFrame(Sender.frame(data, options), cb);
       return;

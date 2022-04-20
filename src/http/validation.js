@@ -16,13 +16,13 @@ limitations under the License.
 
 'use strict';
 
-import isValidUTF8 from 'utf-8-validate';
+// import isValidUTF8 from 'utf-8-validate';
 
 
-const isValidUTF8 =
-  typeof isValidUTF8 === 'object'
-    ? isValidUTF8.Validation.isValidUTF8 // utf-8-validate@<3.0.0
-    : isValidUTF8;
+// const isValidUTF8 =
+//   typeof isValidUTF8 === 'object'
+//     ? isValidUTF8.Validation.isValidUTF8 // utf-8-validate@<3.0.0
+//     : isValidUTF8;
 
 /**
  * Checks if a status code is allowed in a close frame.
@@ -43,6 +43,6 @@ const isValidStatusCode = (code) => {
 };
 
 export {
-  isValidUTF8,
+  // isValidUTF8,
   isValidStatusCode
 };

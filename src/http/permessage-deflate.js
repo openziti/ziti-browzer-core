@@ -18,8 +18,10 @@ limitations under the License.
 
 import zlib from 'zlib';
 
-import bufferUtil from './buffer-util';
-import Limiter from './limiter';
+import { Buffer } from 'buffer';
+
+import { BUFFERUTIL } from './buffer-util';
+import { Limiter } from './limiter';
 import { CONSTANTS } from './constants';
 
 const TRAILER = Buffer.from([0x00, 0x00, 0xff, 0xff]);
@@ -385,7 +387,7 @@ class PerMessageDeflate {
         return;
       }
 
-      const data = bufferUtil.concat(
+      const data = BUFFERUTIL.concat(
         this._inflate[kBuffers],
         this._inflate[kTotalLength]
       );
@@ -449,7 +451,7 @@ class PerMessageDeflate {
         return;
       }
 
-      let data = bufferUtil.concat(
+      let data = BUFFERUTIL.concat(
         this._deflate[kBuffers],
         this._deflate[kTotalLength]
       );

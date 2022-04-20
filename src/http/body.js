@@ -65,7 +65,7 @@ function HttpBody(body, init = {
 	// 	// return `multipart/form-data;boundary=${body.getBoundary()}`;
 	} else if (typeof body === 'object' && typeof body.getAll === 'function') {
 		// detect FormData object
-		ziti._ctx.logger.debug('extractContentType() FormData DETECTED for: %o', body);
+		// ziti._ctx.logger.debug('extractContentType() FormData DETECTED for: %o', body);
 		var form = new ZitiFormData();
 		var lastkey;
 		for (var key of body.keys()) {
@@ -267,7 +267,7 @@ HttpBody.prototype.extractContentType = function(body) {
 		return `multipart/form-data;boundary=${body.getBoundary()}`;
 	} else if (typeof body === 'object' && typeof body.getAll === 'function') {
 		// detect FormData object
-		ziti._ctx.logger.info('extractContentType() FormData DETECTED for: %o', body);
+		// ziti._ctx.logger.info('extractContentType() FormData DETECTED for: %o', body);
 		// for (var key of body.keys()) {
 		// 	ziti._ctx.logger.info('key is: ', key);
 		// 	ziti._ctx.logger.info('val is: ', body.get(key));

@@ -14,28 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-'use strict';
+import { ZitiWebSocketWrapper } from './ziti-websocket-wrapper';
 
-import { Buffer } from 'buffer';
-
-const CONSTANTS = {
-
-  BINARY_TYPES: ['nodebuffer', 'arraybuffer', 'fragments'],
+/**
+ * ZitiWebSocketWrapperCtor:
+ * 
+ */
+class ZitiWebSocketWrapperCtor {
 
   /**
-   *    This GUID is defined by the Websocket protocol (https://tools.ietf.org/html/rfc6455)
+   * Create a new `ZitiWebSocketWrapper`.
+   *
    */
-  GUID: '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
+  constructor(address, protocols, options) {
 
-  kStatusCode: Symbol('status-code'),
+    // It is assumed that the ziti-browzer-runtime has already initialized before we get here
 
-  kWebSocket: Symbol('websocket'),
+    let ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
 
-  EMPTY_BUFFER: Buffer.alloc(0),
+    return ws;
 
-  NOOP: () => {}
-};
+  }
+}
 
 export {
-  CONSTANTS
-}
+  ZitiWebSocketWrapperCtor
+};
