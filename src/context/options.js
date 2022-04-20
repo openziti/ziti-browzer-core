@@ -69,6 +69,12 @@ const defaultOptions = {
     apiSessionHeartbeatTimeMin: (1),
     apiSessionHeartbeatTimeMax: (5),
 
+    /**
+     * See {@link Options.httpAgentTargetHost}
+     * 
+     */
+     httpAgentTargetHost: 'unknown',
+
 };
 
 export {

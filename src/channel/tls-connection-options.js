@@ -20,7 +20,7 @@ limitations under the License.
  */
 
 
-module.exports = {
+const defaultOptions = {
 
   /**
    * See {@link Options.type}
@@ -65,3 +65,7 @@ module.exports = {
   edgeRouterHost: null,
 
 };
+
+export {
+  defaultOptions
+}

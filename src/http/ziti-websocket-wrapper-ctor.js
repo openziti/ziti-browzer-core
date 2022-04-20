@@ -14,25 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { ZitiWebSocketWrapper } from './ziti-websocket-wrapper';
+
 /**
- * Default options.
+ * ZitiWebSocketWrapperCtor:
+ * 
  */
-
-
-const defaultOptions = {
-  
-  /**
-   * See {@link Options.headerType}
-   */
-  headerType: null,
+class ZitiWebSocketWrapperCtor {
 
   /**
-   * See {@link Options.headerData}
+   * Create a new `ZitiWebSocketWrapper`.
+   *
    */
-  headerData: null,
+  constructor(address, protocols, options) {
 
-};
+    // It is assumed that the ziti-browzer-runtime has already initialized before we get here
+
+    let ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
+
+    return ws;
+
+  }
+}
 
 export {
-  defaultOptions
-}
+  ZitiWebSocketWrapperCtor
+};

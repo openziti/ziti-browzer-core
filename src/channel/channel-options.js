@@ -19,8 +19,7 @@ limitations under the License.
  * Default options.
  */
 
-
-module.exports = {
+const defaultOptions = {
   
   /**
    * See {@link Options.zitiContext}
@@ -62,4 +61,8 @@ module.exports = {
      */
     helloTimeout: 0,
 
-  };
+};
+
+export {
+  defaultOptions
+}

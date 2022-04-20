@@ -1,0 +1,465 @@
+/*
+Copyright Netfoundry, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import {
+  Readable,
+} from 'stream-browserify';
+import mime from 'mime-types';
+import asynckit from 'asynckit';
+import { populate } from './populate.js';
+import MultiStream from 'multistream';
+import { ZitiFileReaderStream } from './file-reader-stream';
+import { isUndefined } from 'lodash-es';
+import process from 'process';
+
+
+export {
+  ZitiFormData
+};
+
+
+
+/**
+ * Create readable "multipart/form-data" streams.
+ * Can be used to submit forms
+ * and file uploads to other web applications.
+ *
+ * @constructor
+ * @param {Object} options - Properties to be added/overriden for ZitiFormData and CombinedStream
+ */
+function ZitiFormData(options) {
+  if (!(this instanceof ZitiFormData)) {
+    return new ZitiFormData(options);
+  }
+
+  this._overheadLength = 0;
+  this._valueLength = 0;
+  this._valuesToMeasure = [];
+  this._streams = [];
+
+
+  options = options || {pauseStreams: false};
+  for (var option in options) {
+    this[option] = options[option];
+  }
+}
+
+ZitiFormData.LINE_BREAK = '\r\n';
+ZitiFormData.DEFAULT_CONTENT_TYPE = 'application/octet-stream';
+
+
+ZitiFormData.prototype.append = function(field, value, options) {
+
+  options = options || {};
+
+  // allow filename as single option
+  if (typeof options == 'string') {
+    options = {filename: options};
+  }
+
+  // all that streamy business can't handle numbers
+  if (typeof value == 'number') {
+    value = '' + value;
+  }
+
+  if (Array.isArray(value)) {
+    // Please convert your array into string the way web server expects it
+    this._error(new Error('Arrays are not supported.'));
+    return;
+  }
+
+  var header = this._multiPartHeader(field, value, options);
+  // var footer = this._multiPartFooter();
+  var footer = undefined;
+  if (options.lastkey) {
+    footer = ZitiFormData.LINE_BREAK + this._lastBoundary();
+  }
+
+  var hdrStream = new Readable();
+  hdrStream.push( header );
+  hdrStream.push( null );
+  this._streams.push( hdrStream );
+
+
+  if ( value instanceof File ) {
+
+    options.knownLength = value.size;
+
+    this._streams.push( 
+      ZitiFileReaderStream( 
+        value, 
+        { 
+          chunkSize: 1024 * 8
+        } 
+      ) 
+    );
+
+    var lbStream = new Readable();
+    lbStream.push( ZitiFormData.LINE_BREAK );
+    lbStream.push( null );
+    this._streams.push( lbStream );
+  
+  } else {
+
+    options.knownLength = value.length;
+
+    var vStream = new Readable();
+    vStream.push( value );
+    vStream.push( ZitiFormData.LINE_BREAK );
+    vStream.push( null );
+    this._streams.push( vStream );
+  
+  }
+
+  if (!isUndefined(footer)) {
+    var ftrStream = new Readable();
+    ftrStream.push( footer );
+    ftrStream.push( null );
+    this._streams.push( ftrStream );
+  }
+
+  // pass along options.knownLength
+  this._trackLength(header, value, options);
+};
+
+
+ZitiFormData.prototype._trackLength = function(header, value, options) {
+  var valueLength = 0;
+
+  // used w/ getLengthSync(), when length is known.
+  // e.g. for streaming directly from a remote server,
+  // w/ a known file a size, and not wanting to wait for
+  // incoming file to finish to get its size.
+  if (options.knownLength !== null) {
+    valueLength += +options.knownLength;
+  } else if (Buffer.isBuffer(value)) {
+    valueLength = value.length;
+  } else if (typeof value === 'string') {
+    valueLength = Buffer.byteLength(value);
+  }
+
+  this._valueLength += valueLength;
+
+  // @check why add CRLF? does this account for custom/multiple CRLFs?
+  this._overheadLength +=
+    Buffer.byteLength(header) +
+    ZitiFormData.LINE_BREAK.length;
+
+  // empty or either doesn't have path or not an http response or not a stream
+  // if (!value || ( !value.path && !(value.readable && value.hasOwnProperty('httpVersion')) && !(value instanceof Stream))) {
+    // return;
+  // }
+
+  // no need to bother with the length
+  if (!options.knownLength) {
+    this._valuesToMeasure.push(value);
+  }
+};
+
+ZitiFormData.prototype._lengthRetriever = function(value, callback) {
+
+  //  http response
+  if (value.hasOwnProperty('httpVersion')) {
+    callback(null, +value.headers['content-length']);
+
+  // or request stream http://github.com/mikeal/request
+  } else if (value.hasOwnProperty('httpModule')) {
+    // wait till response come back
+    value.on('response', function(response) {
+      value.pause();
+      callback(null, +response.headers['content-length']);
+    });
+    value.resume();
+
+  // something else
+  } else {
+    callback('Unknown stream');
+  }
+};
+
+ZitiFormData.prototype._multiPartHeader = function(field, value, options) {
+  // custom header specified (as string)?
+  // it becomes responsible for boundary
+  // (e.g. to handle extra CRLFs on .NET servers)
+  if (typeof options.header == 'string') {
+    return options.header;
+  }
+
+  var contentDisposition = this._getContentDisposition(value, options);
+  var contentType = this._getContentType(value, options);
+
+  var contents = '';
+  var headers  = {
+    // add custom disposition as third element or keep it two elements if not
+    'Content-Disposition': ['form-data', 'name="' + field + '"'].concat(contentDisposition || []),
+    // if no content type. allow it to be empty array
+    'Content-Type': [].concat(contentType || [])
+  };
+
+  // allow custom headers.
+  if (typeof options.header == 'object') {
+    populate(headers, options.header);
+  }
+
+  var header;
+  for (var prop in headers) {
+    if (!headers.hasOwnProperty(prop)) continue;
+    header = headers[prop];
+
+    // skip nullish headers.
+    if (header === null) {
+      continue;
+    }
+
+    // convert all headers to arrays.
+    if (!Array.isArray(header)) {
+      header = [header];
+    }
+
+    // add non-empty headers.
+    if (header.length) {
+      contents += prop + ': ' + header.join('; ') + ZitiFormData.LINE_BREAK;
+    }
+  }
+
+  return '--' + this.getBoundary() + ZitiFormData.LINE_BREAK + contents + ZitiFormData.LINE_BREAK;
+};
+
+ZitiFormData.prototype._getContentDisposition = function(value, options) {
+
+  var filename
+    , contentDisposition
+    ;
+
+  if (typeof options.filepath === 'string') {
+    // custom filepath for relative paths
+    filename = path.normalize(options.filepath).replace(/\\/g, '/');
+  } else if (options.filename || value.name || value.path) {
+    // custom filename take precedence
+    // formidable and the browser add a name property
+    // fs- and request- streams have path property
+    filename = path.basename(options.filename || value.name || value.path);
+  } else if (value.readable && value.hasOwnProperty('httpVersion')) {
+    // or try http response
+    filename = path.basename(value.client._httpMessage.path || '');
+  }
+
+  if (filename) {
+    contentDisposition = 'filename="' + filename + '"';
+  }
+
+  return contentDisposition;
+};
+
+ZitiFormData.prototype._getContentType = function(value, options) {
+
+  // use custom content-type above all
+  var contentType = options.contentType;
+
+  // or try `name` from formidable, browser
+  if (!contentType && value.name) {
+    contentType = mime.lookup(value.name);
+  }
+
+  // or try `path` from fs-, request- streams
+  if (!contentType && value.path) {
+    contentType = mime.lookup(value.path);
+  }
+
+  // or if it's http-reponse
+  if (!contentType && value.readable && value.hasOwnProperty('httpVersion')) {
+    contentType = value.headers['content-type'];
+  }
+
+  // or guess it from the filepath or filename
+  if (!contentType && (options.filepath || options.filename)) {
+    contentType = mime.lookup(options.filepath || options.filename);
+  }
+
+  // fallback to the default content type if `value` is not simple value
+  if (!contentType && typeof value == 'object') {
+    contentType = ZitiFormData.DEFAULT_CONTENT_TYPE;
+  }
+
+  return contentType;
+};
+
+ZitiFormData.prototype._multiPartFooter = function() {
+  return function(next) {
+    var footer = ZitiFormData.LINE_BREAK;
+
+    var lastPart = (this._streams.length === 0);
+    if (lastPart) {
+      footer += this._lastBoundary();
+    }
+
+    next(footer);
+  }.bind(this);
+};
+
+ZitiFormData.prototype._lastBoundary = function() {
+  return '--' + this.getBoundary() + '--' + ZitiFormData.LINE_BREAK;
+};
+
+ZitiFormData.prototype.getHeaders = function(userHeaders) {
+  var header;
+  var formHeaders = {
+    'content-type': 'multipart/form-data; boundary=' + this.getBoundary()
+  };
+
+  for (header in userHeaders) {
+    if (userHeaders.hasOwnProperty(header)) {
+      formHeaders[header.toLowerCase()] = userHeaders[header];
+    }
+  }
+
+  return formHeaders;
+};
+
+ZitiFormData.prototype.setBoundary = function(boundary) {
+  this._boundary = boundary;
+};
+
+ZitiFormData.prototype.getBoundary = function() {
+  if (!this._boundary) {
+    this._generateBoundary();
+  }
+
+  return this._boundary;
+};
+
+
+ZitiFormData.prototype.getStream = function() {
+  return new MultiStream( this._streams );
+};
+
+
+ZitiFormData.prototype.getBuffer = async function() {
+
+  var dataBuffer = new Buffer.alloc( 0 );
+  var boundary = this.getBoundary();
+
+  // Create the form content. Add Line breaks to the end of data.
+  for (var i = 0, len = this._streams.length; i < len; i++) {
+    if (typeof this._streams[i] !== 'function') {
+      // Add content to the buffer.
+      if (Buffer.isBuffer(this._streams[i])) {
+        dataBuffer = Buffer.concat( [dataBuffer, this._streams[i]]);
+      }
+      else if ( this._streams[i] instanceof File ) {
+        let zfr = new ZitiFileReader( this._streams[i] );
+        let fileBuffer = await zfr.getBuffer();
+        dataBuffer = Buffer.concat( [dataBuffer, fileBuffer ] );
+      } else {
+        dataBuffer = Buffer.concat( [dataBuffer, Buffer.from(this._streams[i])]);
+      }
+
+      // Add break after content.
+      if (typeof this._streams[i] !== 'string' || this._streams[i].substring( 2, boundary.length + 2 ) !== boundary) {
+        dataBuffer = Buffer.concat( [dataBuffer, Buffer.from(ZitiFormData.LINE_BREAK)] );
+      }
+    }
+  }
+
+  // Add the footer and return the Buffer object.
+  return Buffer.concat( [dataBuffer, Buffer.from(this._lastBoundary())] );
+};
+
+ZitiFormData.prototype._generateBoundary = function() {
+  // This generates a 50 character boundary similar to those used by Firefox.
+  // They are optimized for boyer-moore parsing.
+  var boundary = '--------------------------';
+  for (var i = 0; i < 24; i++) {
+    boundary += Math.floor(Math.random() * 10).toString(16);
+  }
+
+  this._boundary = boundary;
+};
+
+// Note: getLengthSync DOESN'T calculate streams length
+// As workaround one can calculate file size manually
+// and add it as knownLength option
+ZitiFormData.prototype.getLengthSync = function() {
+  var knownLength = this._overheadLength + this._valueLength;
+
+  // Don't get confused, there are 3 "internal" streams for each keyval pair
+  // so it basically checks if there is any value added to the form
+  if (this._streams.length) {
+    knownLength += this._lastBoundary().length;
+  }
+
+  // https://github.com/form-data/form-data/issues/40
+  if (!this.hasKnownLength()) {
+    // Some async length retrievers are present
+    // therefore synchronous length calculation is false.
+    // Please use getLength(callback) to get proper length
+    this._error(new Error('Cannot calculate proper length in synchronous way.'));
+  }
+
+  return knownLength;
+};
+
+// Public API to check if length of added values is known
+// https://github.com/form-data/form-data/issues/196
+// https://github.com/form-data/form-data/issues/262
+ZitiFormData.prototype.hasKnownLength = function() {
+  var hasKnownLength = true;
+
+  if (this._valuesToMeasure.length) {
+    hasKnownLength = false;
+  }
+
+  return hasKnownLength;
+};
+
+ZitiFormData.prototype.getLength = function(cb) {
+  var knownLength = this._overheadLength + this._valueLength;
+
+  if (this._streams.length) {
+    knownLength += this._lastBoundary().length;
+  }
+
+  if (!this._valuesToMeasure.length) {
+    process.nextTick(cb.bind(this, null, knownLength));
+    return;
+  }
+
+  asynckit.parallel(this._valuesToMeasure, this._lengthRetriever, function(err, values) {
+    if (err) {
+      cb(err);
+      return;
+    }
+
+    values.forEach(function(length) {
+      knownLength += length;
+    });
+
+    cb(null, knownLength);
+  });
+};
+
+
+ZitiFormData.prototype._error = function(err) {
+  if (!this.error) {
+    this.error = err;
+    this.pause();
+    this.emit('error', err);
+  }
+};
+
+ZitiFormData.prototype.toString = function () {
+  return '[object ZitiFormData]';
+};

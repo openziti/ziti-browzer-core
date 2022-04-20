@@ -36,8 +36,10 @@ describe("dial", function () {
     expect(conn).to.not.equal(undefined);
     expect(conn.zitiContext).to.equal(zitiContext);
 
-    // TODO:  the following 'dial' requires the mTLS wiring to be operational
     await zitiContext.dial(conn, 'mattermost-blue');
+
+    let expiryTime = await zitiContext.getCertPEMExpiryTime();
+    expect(expiryTime).to.not.equal(undefined);
 
   });
 

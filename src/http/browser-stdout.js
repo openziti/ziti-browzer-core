@@ -14,25 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/**
- * Default options.
- */
+import WritableStream from 'stream';
+import process from 'process';
 
+class BrowserStdout extends WritableStream {
 
-const defaultOptions = {
+  constructor(opts) {
+    opts = opts || {}
+    WritableStream.call(this, opts)
+    this.req = opts.req;  
+  }
+
+  _write(chunk, encoding, cb) {
+    this.req.write( chunk );
+    process.nextTick(cb);
+  }
   
-  /**
-   * See {@link Options.headerType}
-   */
-  headerType: null,
-
-  /**
-   * See {@link Options.headerData}
-   */
-  headerData: null,
-
-};
+}
 
 export {
-  defaultOptions
-}
+  BrowserStdout
+};

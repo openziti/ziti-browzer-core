@@ -18,6 +18,9 @@ limitations under the License.
  * Module dependencies.
  */
 
+import { PassThrough } from '../http/readable-stream/_stream_passthrough';
+import Cookies from 'js-cookie';
+
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
 import { ZitiEnroller } from '../enroll/enroller';
@@ -26,6 +29,14 @@ import { ZitiEdgeProtocol } from '../channel/protocol';
 import { ZitiChannel } from '../channel/channel'
 import throwIf from '../utils/throwif';
 import { ZITI_CONSTANTS } from '../constants';
+import { ZitiHttpRequest } from '../http/request';
+import { HttpResponse } from '../http/response';
+import { ZitiFormData } from '../http/form-data';
+import { BrowserStdout } from '../http/browser-stdout';
+import { http } from '../http/http';
+import { ZitiWebSocketWrapperCtor } from '../http/ziti-websocket-wrapper-ctor';
+
+
 
 import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
@@ -33,6 +44,10 @@ import {Mutex, withTimeout} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy } from 'lodash-es';
 
  
+// const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
+const EXPIRE_WINDOW = 2.0
+
+
 /**
  *    ZitiContext
  */
@@ -63,6 +78,8 @@ class ZitiContext {
     this.apiSessionHeartbeatTimeMin  = _options.apiSessionHeartbeatTimeMin;
     this.apiSessionHeartbeatTimeMax = _options.apiSessionHeartbeatTimeMax;
 
+    this.httpAgentTargetHost = _options.httpAgentTargetHost;
+
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
 
@@ -79,6 +96,7 @@ class ZitiContext {
     this._privateKeyPEM = null;
     this._publicKeyPEM = null;
     this._certPEM = null;
+    this._apiSession = null;
 
     this._timeout = ZITI_CONSTANTS.ZITI_DEFAULT_TIMEOUT;
 
@@ -257,6 +275,36 @@ class ZitiContext {
 
     return this._pkey;
   }
+
+  /**
+   * 
+   */
+  get pKey () {
+
+    if (isNull(this._pkey)) {
+
+      switch(this._keyType) {
+
+        case EVP_PKEY_RSA:
+          {
+            this._pkey = this.rsaKey;
+          }
+          break;
+  
+        case EVP_PKEY_EC:
+          {
+            this._pkey = this.ecKey;
+          }
+          break;
+  
+        default:
+          throw Error("invalid _keyType");
+      }
+  
+    }
+
+    return this._pkey;
+  }
   
   /**
    * 
@@ -273,11 +321,6 @@ class ZitiContext {
           if (isNull(this._privateKeyPEM)) {
             this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
           }
-
-          // this._privateKeyPEM = this._privateKeyPEM.replace(/\\n/g, '\n');
-          // this._privateKeyPEM = this._privateKeyPEM.replaceAll('\x0a', '\\n' );
-
-
         }
         break;
 
@@ -411,7 +454,7 @@ class ZitiContext {
    */
   async ensureAPISession() {
   
-    if (isUndefined( this._apiSession ) || isUndefined( this._apiSession.token )) {
+    if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
 
       await this.getFreshAPISession().catch((error) => {
         throw error;
@@ -432,6 +475,7 @@ class ZitiContext {
       await this._zitiEnroller.enroll();
 
       this._certPEM = this._zitiEnroller.certPEM;
+      this._certExpiryTime = this._zitiEnroller.certPEMExpiryTime;
 
     }
 
@@ -452,6 +496,21 @@ class ZitiContext {
     return this._certPEM;
   }
 
+  /**
+   * 
+   */
+  async getCertPEMExpiryTime () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+    }
+    if (isNull(this._certPEM)) {
+      await this.enroll()
+    }
+
+    return this._certExpiryTime;
+  }
+  
 
   /**
    *
@@ -758,11 +817,13 @@ class ZitiContext {
 
       await this.awaitChannelConnectComplete(ch);
 
+      this.logger.debug('ch[%d] state[%d] for edgeRouter[%s] is connect-complete', ch.id, ch.state, edgeRouter.hostname);
+
       if (!isEqual( ch.state, ZitiEdgeProtocol.conn_state.Connected )) {
         this.logger.error('should not be here: ch[%d] has state[%d]', ch.id, ch.state);
       }
 
-      return resolve(ch);
+      return (ch);
     }
   
     // Create a Channel for this Edge Router
@@ -819,11 +880,11 @@ class ZitiContext {
     }
   
     //
-    this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
+    // this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
   
-    await this._connectMutexWithTimeout.runExclusive(async () => {
+    // await this._connectMutexWithTimeout.runExclusive(async () => {
   
-      this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
+      // this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
       this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
@@ -850,14 +911,185 @@ class ZitiContext {
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
         }
       }
-      this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
-    })
-    .catch(( err ) => {
-      this.logger.error(err);
-      throw new Error(err);
-    });  
+      // this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
+    // })
+    // .catch(( err ) => {
+    //   this.logger.error(err);
+    //   throw new Error(err);
+    // });  
   }
 
+
+ /**
+  * Determine if the given URL should be routed over Ziti.
+  * 
+  * @param {*} url
+  */
+  async shouldRouteOverZiti(url) {
+   
+    this.logger.debug('shouldRouteOverZiti() entered for url[%o]', url);  
+
+    let parsedURL = new URL(url);
+ 
+    let hostname = parsedURL.hostname;
+    let port = parsedURL.port;
+  
+    if (port === '') {
+      if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
+        port = 443;
+      } else {
+        port = 80;
+      }
+    }
+    
+    let serviceName = await this.getServiceNameByHostNameAndPort(hostname, port).catch(( error ) => {
+      throw new Error( error );
+    });
+  
+    return serviceName;
+   
+  }
+
+
+  /**
+   * 
+   * @param {*} hostname 
+   * @param {*} port 
+   * @returns 
+   */
+  async getServiceNameByHostNameAndPort(hostname, port) {
+
+    if (typeof port === 'string') {
+      port = parseInt(port, 10);
+    }
+
+    await this._mutex.runExclusive(async () => {
+      if (isEqual( this.services.size, 0 )) {
+        await this.fetchServices().catch((error) => {
+          throw new Error(error);
+        });
+      }
+    });
+
+    let self = this;
+
+    let serviceName = result(find(this._services, function(obj) {
+
+      if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
+        return true;
+      }
+
+      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+
+    }), 'name');
+
+    return serviceName;
+  }
+
+
+  /**
+   "config": {
+     "ziti-tunneler-client.v1": {
+         "ziti-tunneler-client.v1": {
+           "hostname": "example.com",
+          "port": 443
+        }
+      }
+    }
+  */
+  _getMatchConfigTunnelerClientV1 = function(config, hostname, port) {
+    if (isUndefined(config)) {
+      return false;
+    }
+    if (config.hostname !== hostname) {
+      return false;
+    }
+    if (config.port !== port) {
+      return false;
+    }
+    return true;
+  }
+
+
+  /**
+    "config": {
+      "intercept.v1": {
+        "addresses": ["example.com"],
+        "portRanges": [{
+          "high": 443,
+          "low": 443
+        }],
+        "protocols": ["tcp"]
+      }
+    }
+  */
+  _getMatchConfigInterceptV1 = function(config, hostname, port) {
+    if (isUndefined(config)) {
+      return false;
+    }
+    let foundAddress = result(find(config.addresses, function(address) {
+      if (address !== hostname) {
+        return false;
+      }
+      return true;  
+    }), 'name', 'default');
+
+    if (!foundAddress) {
+      return false;
+    }
+
+    let foundPort = result(find(config.portRanges, function(portRange) {
+      if ((port >= portRange.low) && (port <= portRange.high)) {
+        return true;
+      }
+      return false;  
+    }), 'name', 'default');
+
+    return foundPort;
+  }
+
+
+ /**
+  * 
+  */
+  async isCertExpired() {
+ 
+    await this._mutex.runExclusive(async () => {
+
+      let expired = false;
+
+      let certExpiry = await this.getCertPEMExpiryTime();
+
+      let now = Date.now();
+      const diffTime = (certExpiry - now);
+      const diffMins = (diffTime / (1000 * 60));
+
+      this.logger.debug('mins before cert expiration [%o]', diffMins);
+
+      if (diffMins < EXPIRE_WINDOW) { // if expired, or about to expire
+
+        this.flushExpiredAPISessionData(); 
+
+        expired = true;
+      
+      }
+
+      return expired;
+
+    });
+  }
+
+ /**
+  *
+  */
+  flushExpiredAPISessionData() {
+ 
+    this._certPEM = null;
+    this._apiSession = null;
+  
+   }
+ 
+ 
 
   /**
    * 
@@ -884,7 +1116,164 @@ class ZitiContext {
     this._channels = new Map();
   }
  
+  get zitiWebSocketWrapper() {
+    return ZitiWebSocketWrapperCtor;
+  }
+
+ /**
+  * Close specified ZitiConnection with Edge Router.
+  * 
+  * @param {ZitiConnection} conn
+  */
+  async close(conn) {
+    let ch = conn.channel;
+    await ch.close(conn);
+    ch._connections._deleteConnection(conn);
+  }
  
+ 
+
+  /**
+   * 
+   * @param {*} options 
+   * @returns Promise
+   */
+   async httpFetch (url, opts) {
+
+    let self = this;
+
+    return new Promise( async (resolve, reject) => {
+
+      /**
+       * ------------ Now Routing over Ziti -----------------
+       */
+      self.logger.debug('httpFetch starting for [%s]', url);
+
+      // build HTTP request object
+      let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
+      let options = await request.getRequestOptions();
+      // options.domProxyHit = domProxyHit;
+
+      let req;
+
+      if (options.method === 'GET') {
+  
+        req = http.get(options);
+  
+      } else {
+
+        req = http.request(options);
+
+        if (options.body) {
+          if (options.body instanceof Promise) {
+            let chunk = await options.body;
+            req.write( chunk );
+          }
+          else if (options.body instanceof ZitiFormData) {
+  
+            let p = new Promise((resolve, reject) => {
+  
+              let stream = options.body.getStream();
+  
+              stream.on('error', err => {
+                reject(new Error(`${err.message}`));
+              });
+  
+              stream.on('end', () => {
+                try {
+                  resolve();
+                } catch (err) {
+                  reject(new Error(`${err.message}`));
+                }
+              });
+  
+              stream.pipe(BrowserStdout({req: req}))
+            });
+  
+            await p;
+  
+          }
+          else {
+            req.write( options.body );
+          }
+        }
+  
+        req.end();
+  
+      }
+
+      req.on('error', err => {
+        self.logger.error('error EVENT: err: %o', err);
+        reject(new Error(`request to ${request.url} failed, reason: ${err.message}`));
+      });
+  
+      req.on('response', async res => {
+
+        let body = res.pipe(new PassThrough());
+  
+        const response_options = {
+          url: url,
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          headers: res.headers,
+          size: request.size,
+          timeout: request.timeout,
+          counter: request.counter
+        };
+        let response = new HttpResponse(body, response_options);
+  
+        for (const hdr in response_options.headers) {
+          if (response_options.headers.hasOwnProperty(hdr)) {
+            if (hdr === 'set-cookie') {
+              let cookieArray = response_options.headers[hdr];
+              let cookiePath;
+              let expires;
+              let httpOnly = false;
+  
+              //   let zitiCookies = await ls.getWithExpiry(zitiConstants.get().ZITI_COOKIES);
+              //   if (isNull(zitiCookies)) {
+              //     zitiCookies = {}
+              //   }
+  
+              for (let i = 0; i < cookieArray.length; i++) {
+  
+                let cookie = cookieArray[i];
+                let name = cookie.substring(0, cookie.indexOf("="));
+                let value = cookie.substring(cookie.indexOf("=") + 1);
+                let cookie_value = value.substring(0, value.indexOf(";"));
+                if (cookie_value !== ''){
+                  let parts = value.split(";");
+                  for (let j = 0; j < parts.length; j++) {
+                    let part = parts[j].trim();
+                    if ( part.startsWith("Path") ) {
+                      cookiePath = part.substring(part.indexOf("=") + 1);
+                    }
+                    else if ( part.startsWith("Expires") ) {
+                      expires = new Date( part.substring(part.indexOf("=") + 1) );
+                    }
+                    else if ( part.startsWith("HttpOnly") ) {
+                      httpOnly = true;
+                    }
+                  }
+  
+  
+                  //       zitiCookies[name] = cookie_value;
+  
+                  //       await ls.setWithExpiry(zitiConstants.get().ZITI_COOKIES, zitiCookies, new Date(8640000000000000));
+  
+                  Cookies.set(name, cookie_value, { expires: expires, path:  cookiePath});
+                }
+              }
+            }
+          }
+        }
+        
+        resolve(response);
+      });
+  
+    });
+  
+  }
 
 }
 
