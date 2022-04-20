@@ -1,3 +1,12 @@
+# [0.7.0](https://github.com/openziti/ziti-browzer-core/compare/v0.6.1...v0.7.0) (2022-04-20)
+
+
+### Features
+
+* intercepts, HTTP protocol/parser ([#20](https://github.com/openziti/ziti-browzer-core/issues/20)) ([5a814d8](https://github.com/openziti/ziti-browzer-core/commit/5a814d8ccc238bcd089bfd3b7a0db75e02a839fc))
+
+
+
 ## [0.6.1](https://github.com/openziti/ziti-browzer-core/compare/v0.6.0...v0.6.1) (2022-04-12)
 
 
