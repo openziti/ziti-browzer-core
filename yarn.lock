@@ -1623,11 +1623,11 @@ asn1@~0.2.3:
     safer-buffer "~2.1.0"
 
 asn1js@^2.1.1, asn1js@^2.3.2:
-  version "2.3.2"
-  resolved "https://registry.yarnpkg.com/asn1js/-/asn1js-2.3.2.tgz#1864f859f6e5dfd7350c0543f411e18963f30592"
-  integrity sha512-IYzujqcOk7fHaePpTyvD3KPAA0AjT3qZlaQAw76zmPPAV/XTjhO+tbHjbFbIQZIhw+fk9wCSfb0Z6K+JHe8Q2g==
+  version "2.3.3"
+  resolved "https://registry.yarnpkg.com/asn1js/-/asn1js-2.3.3.tgz#dd104e4a30e50ce1511e56c06a1cac4e42a47d29"
+  integrity sha512-pjbnq3exBPZiPb0uHTEyXbD6jh4LuAJ+ZBmJmH12eX4/najg5+2Xpnl25SLaNnp4YJUOj3D1s0ZdXNqEu5ArYQ==
   dependencies:
-    pvutils latest
+    pvutils "^1.1.3"
 
 assert-plus@1.0.0, assert-plus@^1.0.0:
   version "1.0.0"
@@ -5677,7 +5677,7 @@ punycode@^2.1.0, punycode@^2.1.1:
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.1.1.tgz"
   integrity sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==
 
-pvutils@^1.1.3, pvutils@latest:
+pvutils@^1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/pvutils/-/pvutils-1.1.3.tgz#f35fc1d27e7cd3dfbd39c0826d173e806a03f5a3"
   integrity sha512-pMpnA0qRdFp32b1sJl1wOJNxZLQ2cbQx+k6tjNtZ8CpvVhNqEPRgivZ2WOUev2YMajecdH7ctUPDvEe87nariQ==
