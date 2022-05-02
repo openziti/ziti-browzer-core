@@ -69,6 +69,8 @@ class ZitiContext {
 
     this.updbUser = _options.updbUser;
     this.updbPswd = _options.updbPswd;
+    this.token_type = _options.token_type;
+    this.access_token = _options.access_token;
 
     this.sdkType = _options.sdkType;
     this.sdkVersion = _options.sdkVersion;
@@ -122,6 +124,8 @@ class ZitiContext {
       logger: this.logger,
       controllerApi: this.controllerApi,
       domain: this.controllerApi,
+      token_type: this.token_type,
+      access_token: this.access_token,
     });
 
     this.logger.trace(`libCrypto.initialize starting`);
@@ -386,10 +390,14 @@ class ZitiContext {
   
     this.logger.trace('ZitiContext.getFreshAPISession() entered');
 
+    // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
+    let method = (isNull(this.access_token)) ? 'password' : 'ext-jwt';
+    this.logger.trace('ZitiContext.getFreshAPISession(): method:', method);
+
     // Get an API session with Controller
     let res = await this._zitiBrowzerEdgeClient.authenticate({
 
-      method: 'password',
+      method: method,
 
       auth: { 
 
@@ -407,7 +415,7 @@ class ZitiContext {
           arch: (typeof _ziti_realFetch !== 'undefined') ? window.navigator.userAgent : 'n/a',
 
           // e.g.:  'macOS', 'Linux', 'Windows'
-          os: (typeof _ziti_realFetch !== 'undefined') ? navigator.userAgentData.platform : 'n/a'
+          os: (typeof _ziti_realFetch !== 'undefined') ? (typeof navigator.userAgentData !== 'undefined' ? navigator.userAgentData.platform : 'n/a') : 'n/a'
         },
           
         sdkInfo: {
@@ -880,11 +888,11 @@ class ZitiContext {
     }
   
     //
-    // this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
+    this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
   
-    // await this._connectMutexWithTimeout.runExclusive(async () => {
+    await this._connectMutexWithTimeout.runExclusive(async () => {
   
-      // this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
+      this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
       this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
@@ -911,12 +919,12 @@ class ZitiContext {
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
         }
       }
-      // this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
-    // })
-    // .catch(( err ) => {
-    //   this.logger.error(err);
-    //   throw new Error(err);
-    // });  
+      this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
+    })
+    .catch(( err ) => {
+      this.logger.error(err);
+      throw new Error(err);
+    });  
   }
 
 
