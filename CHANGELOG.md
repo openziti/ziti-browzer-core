@@ -1,3 +1,12 @@
+# [0.8.0](https://github.com/openziti/ziti-browzer-core/compare/v0.7.0...v0.8.0) (2022-05-02)
+
+
+### Features
+
+* add IdP access_token handling ([#30](https://github.com/openziti/ziti-browzer-core/issues/30)) ([52511eb](https://github.com/openziti/ziti-browzer-core/commit/52511ebc265096159e56f9beb903371bc89bb9da))
+
+
+
 # [0.7.0](https://github.com/openziti/ziti-browzer-core/compare/v0.6.1...v0.7.0) (2022-04-20)
 
 
