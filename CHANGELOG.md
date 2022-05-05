@@ -1,3 +1,12 @@
+# [0.9.0](https://github.com/openziti/ziti-browzer-core/compare/v0.8.0...v0.9.0) (2022-05-05)
+
+
+### Features
+
+* reactivate end-to-end encryption ([#31](https://github.com/openziti/ziti-browzer-core/issues/31)) ([9590717](https://github.com/openziti/ziti-browzer-core/commit/95907178f02ccfa56e5477f74cc475b41cfbf88e))
+
+
+
 # [0.8.0](https://github.com/openziti/ziti-browzer-core/compare/v0.7.0...v0.8.0) (2022-05-02)
 
 
