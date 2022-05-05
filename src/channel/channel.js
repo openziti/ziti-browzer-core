@@ -39,7 +39,7 @@ import { Mutex } from 'async-mutex';
 import { Buffer } from 'buffer';
 
 //TODO: this breaks the build at the moment... figure out why!
-// import sodium  from 'libsodium-wrappers';
+import sodium  from 'libsodium-wrappers';
 
 import PromiseController from 'promise-controller';
 import formatMessage from 'format-message';
@@ -252,11 +252,11 @@ class ZitiChannel {
     
       self._zitiContext.logger.debug('initiating Connect to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
-      // await sodium.ready;
+      await sodium.ready;
     
-      // let keypair = sodium.crypto_kx_keypair();
+      let keypair = sodium.crypto_kx_keypair();
   
-      // conn.setKeypair(keypair);
+      conn.keypair = (keypair);
   
       let sequence = this.getAndIncrementSequence();
 
@@ -428,7 +428,7 @@ class ZitiChannel {
 
     if (conn.state == ZitiEdgeProtocol.conn_state.Connecting) {
 
-      let keypair = conn.getKeypair();
+      let keypair = conn.keypair();
 
       let results = sodium.crypto_kx_client_session_keys(keypair.publicKey, keypair.privateKey, peerKey);
 
@@ -458,7 +458,7 @@ class ZitiChannel {
     let headersLength = headersLengthView[0];
     var bodyView = new Uint8Array(buffer, 20 + headersLength);
 
-    let state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(bodyView, conn.getSharedRx());
+    let state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(bodyView, conn.sharedRx);
     
     conn.setCrypt_i(state_in);
 
@@ -480,7 +480,7 @@ class ZitiChannel {
   awaitConnectionCryptoEstablishComplete(conn) {
     return new Promise((resolve) => {
       (function waitForCryptoEstablishComplete() {
-        if (conn.getCryptoEstablishComplete()) {
+        if (conn.cryptoEstablishComplete) {
           conn.zitiContext.logger.debug('Connection [%d] now Crypto-enabled with Edge Router', conn.id);
           return resolve();
         }
@@ -498,7 +498,7 @@ class ZitiChannel {
     const self = this;
     return new Promise( async (resolve, reject) => {
 
-      let results = sodium.crypto_secretstream_xchacha20poly1305_init_push( conn.getSharedTx() );
+      let results = sodium.crypto_secretstream_xchacha20poly1305_init_push( conn.sharedTx );
 
       conn.setCrypt_o(results);
 
@@ -518,11 +518,9 @@ class ZitiChannel {
 
       ];    
 
-      self._zitiContext.logger.debug('_send_crypto_header(): conn[%d] sending Data [%o]', conn.id, conn.getCrypt_o().header);
+      self._zitiContext.logger.debug('_send_crypto_header(): conn[%d] sending Data [%o]', conn.id, conn.crypt_o.header);
 
-      // self.sendMessageNoWait( ZitiEdgeProtocol.content_type.Data, headers, conn.getCrypt_o().header, { conn: conn, sequence: sequence });
-
-      let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.Data, headers, conn.getCrypt_o().header, {
+      let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.Data, headers, conn.crypt_o.header, {
           conn: conn,
           sequence: sequence,
         }
@@ -649,9 +647,9 @@ class ZitiChannel {
       let conn = this._connections._getConnection(connId);
       throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
 
-      if (conn.encrypted && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
+      if (conn.encrypted && conn.cryptoEstablishComplete) {  // if connected to a service that has 'encryptionRequired'
 
-        let [state_out, header] = [conn.getCrypt_o().state, conn.getCrypt_o().header];
+        let [state_out, header] = [conn.crypt_o.state, conn.crypt_o.header];
 
         let encryptedData = sodium.crypto_secretstream_xchacha20poly1305_push(
           state_out,
@@ -970,9 +968,9 @@ class ZitiChannel {
 
       if (bodyLength > 0) {
 
-        if (conn.encrypted && conn.getCryptoEstablishComplete()) {  // if connected to a service that has 'encryptionRequired'
+        if (conn.encrypted && conn.cryptoEstablishComplete) {  // if connected to a service that has 'encryptionRequired'
 
-          let unencrypted_data = sodium.crypto_secretstream_xchacha20poly1305_pull(conn.getCrypt_i(), bodyView);
+          let unencrypted_data = sodium.crypto_secretstream_xchacha20poly1305_pull(conn.crypt_i, bodyView);
 
           if (!unencrypted_data) {
             this._zitiContext.logger.error("crypto_secretstream_xchacha20poly1305_pull failed. bodyLength[%d]", bodyLength);
