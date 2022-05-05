@@ -118,7 +118,7 @@ import { isUndefined, isNull } from 'lodash-es';
     let certificate;
     try {
       certificate = convertPemToCertificate( flatcert );
-      printCertificate( certificate );
+      // printCertificate( certificate );
     } catch (err) {
       this.logger.error(err);
       this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert [%o] which convertPemToCertificate cannot process', this._cert);
