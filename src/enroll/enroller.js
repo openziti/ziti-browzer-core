@@ -111,6 +111,7 @@ import { isUndefined, isNull } from 'lodash-es';
       throw new Error('response contains no certificate; Ephemeral Cert creation failed');
     }
   
+    this._cas  = res.data.cas;
     this._cert = res.data.certificate;
       
     let flatcert = this._cert.replace(/\\n/g, '\n');
@@ -142,6 +143,18 @@ import { isUndefined, isNull } from 'lodash-es';
     this._certExpiryTime = expiryTime;
   }
   
+  /**
+   * 
+   */
+   get casPEM () {
+
+    if (isUndefined(this._cas)) {
+      throw new Error('enroller contains no cas; Ephemeral Cert creation needed');
+    }
+
+    return this._cas;
+  }
+
   /**
    * 
    */

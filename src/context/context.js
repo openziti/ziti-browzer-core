@@ -88,7 +88,16 @@ class ZitiContext {
     this._network_sessions = new Map();
     this._services = new Map();
     this._channels = new Map();
-    this._channelSeq = 0;
+    this._channelsById = new Map();
+    
+    /**
+     * We start the channel id's at 10 so that they will be well above any 'fd'
+     * used by traditional WebAssembly (i.e. stdin, stdout, stderr). In the WebAssembly
+     * we have logic that watches for read/write operations to 'fd' values, and
+     * any that target a 'fd' above 10 will route the i/o to the appropriate ZitiChannel.
+     */
+    this._channelSeq = 10;
+    
     this._connSeq = 0;
 
     this._mutex = new Mutex();
@@ -97,6 +106,7 @@ class ZitiContext {
     this._pkey = null;
     this._privateKeyPEM = null;
     this._publicKeyPEM = null;
+    this._casPEM = null;
     this._certPEM = null;
     this._apiSession = null;
 
@@ -385,6 +395,255 @@ class ZitiContext {
 
   /**
    * 
+   * @returns 
+   */
+  async ssl_CTX_new() {
+
+    this.logger.trace('ZitiContext.ssl_CTX_new() entered');
+
+    if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
+
+    let sslContext = this._libCrypto.ssl_CTX_new();
+
+    await this.ssl_CTX_add_certificate(sslContext);
+    this.ssl_CTX_add_private_key(sslContext);
+    this.ssl_CTX_verify_certificate_and_key(sslContext);
+
+    this.logger.trace('ZitiContext.ssl_CTX_new() exiting');
+
+    return sslContext;
+  }
+
+  /**
+   * 
+   * @returns 
+   */
+  ssl_CTX_add_private_key(sslContext) {
+
+    this.logger.trace('ZitiContext.ssl_CTX_add_private_key() entered');
+
+    sslContext = this._libCrypto.ssl_CTX_add_private_key(sslContext, this.pKey);
+
+    if (isNull(sslContext)) throw Error("SSL Context failure.");
+
+    this.logger.trace('ZitiContext.ssl_CTX_add_private_key() exiting');
+
+    return sslContext;
+  }
+
+  /**
+   * 
+   * @returns 
+   */
+  async ssl_CTX_add_certificate(sslContext) {
+
+    this.logger.trace('ZitiContext.ssl_CTX_add_certificate() entered');
+
+    // Add client cert
+    sslContext = this._libCrypto.ssl_CTX_add_certificate(sslContext, await this.getCertPEM());
+    if (isNull(sslContext)) throw Error("SSL Context failure.");
+
+    // Add CAs
+    sslContext = this._libCrypto.ssl_CTX_add1_to_CA_list(sslContext, await this.getCasPEM());
+    if (isNull(sslContext)) throw Error("SSL Context failure.");
+
+    this.logger.trace('ZitiContext.ssl_CTX_add_certificate() exiting');
+
+    return sslContext;
+  }
+
+  /**
+   * 
+   * @returns 
+   */
+  ssl_CTX_verify_certificate_and_key(sslContext) {
+
+    this.logger.trace('ZitiContext.ssl_CTX_verify_certificate_and_key() entered');
+
+    sslContext = this._libCrypto.ssl_CTX_verify_certificate_and_key(sslContext);
+
+    if (isNull(sslContext)) throw Error("SSL Context failure.");
+
+    this.logger.trace('ZitiContext.ssl_CTX_add_private_key() exiting');
+
+    return sslContext;
+  }
+
+  /**
+   * 
+   */
+  bio_new_ssl_connect(sslContext) {
+
+    this.logger.trace('ZitiContext.bio_new_ssl_connect() entered');
+
+    let bio = this._libCrypto.bio_new_ssl_connect(sslContext);
+
+    if (isNull(bio)) throw Error("bio_new_ssl_connect create failure.");
+
+    this.logger.trace('ZitiContext.bio_new_ssl_connect() exiting');
+
+    return bio;
+  }
+
+  /**
+   * 
+   */
+   bio_get_ssl(bio) {
+
+    this.logger.trace('ZitiContext.bio_get_ssl() entered');
+
+    let ssl = this._libCrypto.bio_get_ssl(bio);
+
+    if (isNull(ssl)) throw Error("bio_get_ssl failure.");
+
+    this.logger.trace('ZitiContext.bio_get_ssl() exiting');
+
+    return ssl;
+  }
+
+  /**
+   * 
+   */
+  bio_do_connect() {
+
+    this.logger.trace('ZitiContext.bio_do_connect() entered');
+
+    if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
+    if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
+
+    let result = this._libCrypto.bio_do_connect(this._SSL_BIO);
+
+    this.logger.trace('ZitiContext.bio_do_connect() exiting');
+
+    return result;
+  }
+
+  /**
+   * 
+   */
+   bio_set_conn_hostname(hostname) {
+
+    this.logger.trace('ZitiContext.bio_set_conn_hostname() entered');
+
+    if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
+    if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
+
+    let result = this._libCrypto.bio_set_conn_hostname(this._SSL_BIO, hostname);
+
+    this.logger.trace('ZitiContext.bio_set_conn_hostname() exiting');
+
+    return result;
+  }
+
+  /**
+   * 
+   */
+  ssl_do_handshake(ssl) {
+
+    this.logger.trace('ZitiContext.ssl_do_handshake() entered');
+
+    let result = this._libCrypto.ssl_do_handshake(ssl);
+
+    this.logger.trace('ZitiContext.ssl_do_handshake() exiting, result=', result);
+
+    return result;
+  }
+  
+  /**
+   * 
+   * @returns 
+   */
+  ssl_new(sslContext) {
+
+    this.logger.trace('ZitiContext.ssl_new() entered');
+
+    let ssl = this._libCrypto.ssl_new(sslContext);
+
+    if (isNull(ssl)) throw Error("SSL create failure.");
+
+    this.logger.trace('ZitiContext.ssl_new() exiting');
+
+    return ssl;
+  }
+
+  /**
+   * 
+   * @returns 
+   */
+  ssl_set_fd(ssl, fd) {
+
+    this.logger.trace('ZitiContext.ssl_set_fd() entered');
+
+    let result = this._libCrypto.ssl_set_fd(ssl, fd);
+
+    if (result !== 1) throw Error("ssl_set_fd failure.");
+
+    this.logger.trace('ZitiContext.ssl_set_fd() exiting');
+
+    return result;
+  }
+
+  /**
+   * 
+   * @returns 
+   */
+  ssl_connect(ssl) {
+
+    this.logger.trace('ZitiContext.ssl_connect() entered');
+
+    let result = this._libCrypto.ssl_connect(ssl);
+
+    this.logger.trace('ZitiContext.ssl_connect() exiting');
+
+    return result;
+  }
+
+  /**
+   * 
+   */
+   ssl_get_verify_result(ssl) {
+
+    this.logger.trace('ZitiContext.ssl_get_verify_result() entered');
+
+    let result = this._libCrypto.ssl_get_verify_result(ssl);
+
+    this.logger.trace('ZitiContext.ssl_get_verify_result() exiting with: ', result);
+
+    return result;
+
+  }
+
+  /**
+   * 
+   */
+   tls_write(ssl, wireData) {
+
+    this.logger.trace('ZitiContext.tls_write() entered');
+
+    let result = this._libCrypto.tls_write(ssl, wireData);
+
+    this.logger.trace('ZitiContext.tls_write() exiting with: ', result);
+
+    return result;
+  }
+  
+  /**
+   * 
+   */
+  tls_read(ssl) {
+
+    this.logger.trace('ZitiContext.tls_read() entered');
+
+    let result = this._libCrypto.tls_read(ssl);
+
+    this.logger.trace('ZitiContext.tls_read() exiting with: ', result);
+
+    return result;
+  }
+
+
+  /**
+   * 
    */
   async getFreshAPISession() {
   
@@ -482,11 +741,27 @@ class ZitiContext {
 
       await this._zitiEnroller.enroll();
 
+      this._casPEM = this._zitiEnroller.casPEM;
       this._certPEM = this._zitiEnroller.certPEM;
       this._certExpiryTime = this._zitiEnroller.certPEMExpiryTime;
 
     }
 
+  }
+
+  /**
+   * 
+   */
+   async getCasPEM () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+    }
+    if (isNull(this._certPEM)) {
+      await this.enroll()
+    }
+
+    return this._casPEM;
   }
 
   /**
@@ -598,8 +873,12 @@ class ZitiContext {
     }
 
     this._services = res.data;
-    if (isUndefined( this._services )) {
+    
+    if (isUndefined( this._services ) ) {
       throw new Error('response contains no data');
+    }
+    if ( this._services.length === 0) {
+      throw new Error('list of services is empty!');
     }
 
     // this.logger.trace('List of available Services acquired: [%o]', this._services);
@@ -846,6 +1125,7 @@ class ZitiContext {
 
     this.logger.debug('Created ch[%o] ', ch);
     this._channels.set(key, ch);
+    this._channelsById.set(ch.id, ch);
     
     this.logger.trace('getChannelByEdgeRouter returning ch[%o]', ch);
 
@@ -1092,6 +1372,7 @@ class ZitiContext {
   */
   flushExpiredAPISessionData() {
  
+    this._casPEM = null;
     this._certPEM = null;
     this._apiSession = null;
   
@@ -1118,10 +1399,12 @@ class ZitiContext {
 
   closeChannelByEdgeRouter( edgeRouter ) {
     this._channels.delete( edgeRouter );  
+    this._channelsById.delete( edgeRouter.id );  
   }
   
   closeAllChannels() {
     this._channels = new Map();
+    this._channelsById = new Map();
   }
  
   get zitiWebSocketWrapper() {
