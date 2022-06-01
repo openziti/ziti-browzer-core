@@ -21,9 +21,10 @@ limitations under the License.
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './channel-options'
 import { ZitiConnections } from './connections';
-import { ZitiTLSConnection } from './tls-connection';
+import { ZitiWASMTLSConnection } from './wasm-tls-connection';
 import { Header } from './header';
 import { ZitiWebSocket } from '../websocket/websocket';
+import { ZitiSocket } from '../http/ziti-socket';
 import { Messages } from './messages';
 import { ZitiEdgeProtocol } from '../channel/protocol';
 import throwIf from '../utils/throwif';
@@ -112,6 +113,10 @@ class ZitiChannel {
     return this._id;
   }
 
+  get tlsConn() {
+    return this._tlsConn;
+  }
+
   get data() {
     return this._data;
   }
@@ -158,11 +163,15 @@ class ZitiChannel {
     let self = this;
     return new Promise((resolve) => {
       (function waitForTLSHandshakeComplete() {
-        if (!self._tlsConn.isTLSHandshakeComplete()) {
+        if (!self._tlsConn.connected) {
           self._zitiContext.logger.trace('awaitTLSHandshakeComplete() tlsConn for ch[%d] TLS handshake still not complete', self.id);
-          setTimeout(waitForTLSHandshakeComplete, 1000);  
+          setTimeout(waitForTLSHandshakeComplete, 100);  
         } else {
           self._zitiContext.logger.trace('tlsConn for ch[%d] TLS handshake is now complete', self.id);
+          let result = self._tlsConn.ssl_get_verify_result();
+          if (result !== 1) {
+            self._zitiContext.logger.error('tlsConn for ch[%d] fails TLS verification', self.id);
+          }
           return resolve();
         }
       })();
@@ -190,8 +199,16 @@ class ZitiChannel {
 
     if (isEqual(this._callerId, "ws:")) {
 
-      this._tlsConn = new ZitiTLSConnection({
-        type: 'edge-router',
+      // this._zitiContext.ssl_CTX_new();
+      // // this._zitiContext.bio_new_ssl_connect();
+      // // this._zitiContext.bio_set_conn_hostname('www.google.com:443');
+      // // this._zitiContext.bio_do_connect();
+  
+      // this._zitiContext.ssl_new();
+      // this._zitiContext.ssl_set_fd( this.id );
+      // this._zitiContext.ssl_connect();
+
+      this._tlsConn = new ZitiWASMTLSConnection({
         zitiContext: this._zitiContext,
         ws: this._zws,
         ch: this,
@@ -199,7 +216,7 @@ class ZitiChannel {
       });
       await this._tlsConn.pullKeyPair();
   
-      this._tlsConn.create();
+      await this._tlsConn.create();
 
       this._zitiContext.logger.debug('initiating TLS handshake');
 
@@ -374,7 +391,7 @@ class ZitiChannel {
 
       case ZitiEdgeProtocol.content_type.StateClosed:
 
-        this._zitiContext.logger.warn("conn[%d] failed to connect on ch[%d]", conn.id, this.getId());
+        this._zitiContext.logger.warn("conn[%d] failed to connect on ch[%d]", conn.id, this.id);
         conn.state = (ZitiEdgeProtocol.conn_state.Closed);
         break;
 
@@ -673,7 +690,7 @@ class ZitiChannel {
 
     // If connected to a WS edge router
     if (isEqual(this._callerId, "ws:")) {
-      this._tlsConn.prepare(wireData);
+      this._tlsConn.tls_write(wireData);
     }
     else {
       this._zws.send(wireData);
@@ -795,7 +812,7 @@ class ZitiChannel {
   async _recvSend(data) {
     if (!isUndefined(this._zws)) {
       if (!isNull(this._zws._ws)) {
-        this._zitiContext.logger.debug('_recvSend -> sentLen[%o] bufferedLen[%o]', data.byteLength, this._zws._ws.bufferedAmount);
+        this._zitiContext.logger.debug('_recvSend -> data[%o] sentLen[%o] bufferedLen[%o]', data, data.byteLength, this._zws._ws.bufferedAmount);
       }
     }
   }
@@ -819,8 +836,7 @@ class ZitiChannel {
   async _recvFromWire(data) {
     let buffer = await data.arrayBuffer();
     this._zitiContext.logger.debug("_recvFromWire <- data len[%o]", buffer.byteLength);
-    let tlsBinaryString = Buffer.from(buffer).toString('binary');
-    this._tlsConn.process(tlsBinaryString);
+    this._tlsConn.process(buffer);
   }
 
   /**

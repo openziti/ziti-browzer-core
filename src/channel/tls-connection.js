@@ -22,12 +22,10 @@ import { Buffer } from 'buffer/';  // note: the trailing slash is important!
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './tls-connection-options'
 
-import forge from 'node-forge';
 import { isUndefined, isNull } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
 
 
-forge.options.usePureJavaScript = true;
 
 
 /**

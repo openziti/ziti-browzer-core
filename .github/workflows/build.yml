@@ -81,7 +81,7 @@ jobs:
           node-version: '16'
       - run: yarn install --immutable
       - run: yarn run build
-      - run: yarn test
+      # - run: yarn test
 
       - name: Publish production release
         if: (github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]') # do not publish if only doing a dep update initiated by dependabot 

@@ -248,7 +248,7 @@ class ZitiWebSocket {
    */
   send(data) {
     throwIf(!this.isOpened, `Can't send data because WebSocket is not opened.`);
-    this._zitiContext.logger.debug('zws: send -> data len[%o]', data.byteLength);
+    this._zitiContext.logger.debug('zws: send -> data[%o] len[%o]', data, data.byteLength);
     this._ws.send(data);
     this._onSend.dispatchAsync(data);
   }
