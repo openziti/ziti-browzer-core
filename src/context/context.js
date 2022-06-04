@@ -1478,7 +1478,7 @@ class ZitiContext {
                 }
               });
   
-              stream.pipe(BrowserStdout({req: req}))
+              stream.pipe(new BrowserStdout({req: req}))
             });
   
             await p;

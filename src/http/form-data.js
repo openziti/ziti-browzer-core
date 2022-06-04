@@ -24,6 +24,8 @@ import MultiStream from 'multistream';
 import { ZitiFileReaderStream } from './file-reader-stream';
 import { isUndefined } from 'lodash-es';
 import process from 'process';
+import { Buffer } from 'buffer/';  // note: the trailing slash is important!
+import path from 'path';
 
 
 export {
