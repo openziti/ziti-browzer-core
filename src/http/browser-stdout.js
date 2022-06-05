@@ -33,7 +33,9 @@ class BrowserStdout extends WritableStream {
 
   write(chunk, encoding, cb) {
     this.req.write( chunk );
-    process.nextTick(cb);
+    if (cb) {
+      process.nextTick(cb);
+    }
   }
 
   end() { /* NOP */ }
