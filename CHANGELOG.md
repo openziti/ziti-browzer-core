@@ -1,3 +1,12 @@
+## [0.10.1](https://github.com/openziti/ziti-browzer-core/compare/v0.10.0...v0.10.1) (2022-06-07)
+
+
+### Bug Fixes
+
+* fixes for Form-Data/Mime-Type handling ([#47](https://github.com/openziti/ziti-browzer-core/issues/47)) ([ce7c240](https://github.com/openziti/ziti-browzer-core/commit/ce7c240af10f8dee99ca1a5117b994f7aea76ac5))
+
+
+
 # [0.10.0](https://github.com/openziti/ziti-browzer-core/compare/v0.9.0...v0.10.0) (2022-06-01)
 
 
