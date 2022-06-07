@@ -14,11 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as from2_ from 'from2';
-const from2 = from2_;
-
-import * as toBuffer_ from 'typedarray-to-buffer';
-const toBuffer = toBuffer_;
+import from2 from 'from2';
+import toBuffer from 'typedarray-to-buffer';
 
 const ZitiFileReaderStream = function (file, options) {
   options = options || {}

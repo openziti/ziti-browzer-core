@@ -20,6 +20,7 @@ import process from 'process';
 class BrowserStdout extends WritableStream {
 
   constructor(opts) {
+    super();
     opts = opts || {}
     WritableStream.call(this, opts)
     this.req = opts.req;  
@@ -29,7 +30,16 @@ class BrowserStdout extends WritableStream {
     this.req.write( chunk );
     process.nextTick(cb);
   }
-  
+
+  write(chunk, encoding, cb) {
+    this.req.write( chunk );
+    if (cb) {
+      process.nextTick(cb);
+    }
+  }
+
+  end() { /* NOP */ }
+
 }
 
 export {
