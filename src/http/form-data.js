@@ -110,7 +110,7 @@ ZitiFormData.prototype.append = function(field, value, options) {
     );
 
     var lbStream = new Readable();
-    lbStream.push( ZitiFormData.LINE_BREAK );
+    // lbStream.push( ZitiFormData.LINE_BREAK );
     lbStream.push( null );
     this._streams.push( lbStream );
   
