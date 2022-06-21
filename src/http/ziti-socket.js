@@ -50,6 +50,11 @@ class ZitiSocket extends EventEmitter {
         this.zitiContext = opts.zitiContext;
 
         /**
+         * The active HTTP request
+         */
+        this.req = opts.req;
+
+        /**
          * The underlying Ziti Connection
          * @private
          * @type {string}
@@ -123,8 +128,8 @@ class ZitiSocket extends EventEmitter {
      */
     captureResponseData(conn, data) {
 
-        conn.zitiContext.logger.trace("captureResponseData() <- conn: [%d], dataLen: [%o]", conn.id, data.byteLength);
-        conn.zitiContext.logger.trace("captureResponseData() <- conn: [%d], (string)data: [%s]", conn.id, Buffer.from(data, 'utf8'));
+        conn.zitiContext.logger.trace("captureResponseData() <- conn[%d], dataLen: [%o]", conn.id, data.byteLength);
+        conn.zitiContext.logger.trace("captureResponseData() <- conn[%d], (string)data: [%s]", conn.id, Buffer.from(data, 'utf8'));
 
         let zitiSocket = conn.socket;
 
@@ -146,7 +151,7 @@ class ZitiSocket extends EventEmitter {
             this.zitiConnection = opts.conn;
         }
         else if (typeof opts.serviceName == 'string') {
-            this.zitiConnection = this.zitiContext.newConnection();
+            this.zitiConnection = this.zitiContext.newConnection(opts);
             await this.zitiContext.dial(this.zitiConnection, opts.serviceName);
             this.zitiContext.logger.debug("ZitiSocket: connect: dial(%s) on conn[%d] now complete", opts.serviceName, this.zitiConnection.id);
         } else {

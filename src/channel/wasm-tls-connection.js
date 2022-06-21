@@ -53,6 +53,8 @@ import { v4 as uuidv4 } from 'uuid';
 
     this._uuid = uuidv4();
 
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.ctor: %o, _ws: %o', this._uuid, this._ws);
+
     /**
      * This stream is where we'll put any data arriving from an ER
      */
@@ -256,10 +258,7 @@ import { v4 as uuidv4 } from 'uuid';
    * @param {*} wireData (not TLS-encrypted yet)
    */
    tls_write(wireData) {
-    this._zitiContext.logger.trace('tls_write: unencrypted data is ready to be sent to the ER  ---> [%o]', wireData);
-    // let tlsBinaryString = Buffer.from(wireData).toString('binary')
-    // this._zitiContext.tls_write(this._SSL, tlsBinaryString);
-
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write[%o] _ws[%o] unencrypted data is ready to be sent to the ER  ---> [%o]', this._uuid, this._ws, wireData);
     this._zitiContext.tls_write(this._SSL, wireData);
   }
 
@@ -268,10 +267,7 @@ import { v4 as uuidv4 } from 'uuid';
    * @param {*} wireData (already TLS-encrypted)
    */
   fd_write(wireData) {
-    this._zitiContext.logger.trace('fd_write: encrypted data is being sent to the ER  ---> [%o]', wireData);
-    // let tlsBinaryString = Buffer.from(wireData).toString('binary')
-    // this._ws.send(tlsBinaryString);
-
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.fd_write[%o] _ws[%o] encrypted data is being sent to the ER  ---> [%o]', this._uuid, this._ws, wireData); 
     this._ws.send(wireData);
   }
 

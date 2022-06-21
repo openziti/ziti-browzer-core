@@ -76,6 +76,7 @@ ZitiAgent.prototype.addRequest = function(req, host, port, localAddress) {
         localAddress: opts.localAddress,
         isWebSocket: opts.isWebSocket,
         zitiContext: opts.zitiContext,
+        req: req
     };
 
     this.createConnection(info, (err, socket) => {

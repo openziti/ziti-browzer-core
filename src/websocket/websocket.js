@@ -241,16 +241,38 @@ class ZitiWebSocket {
     this.send(message);
   }
 
+  waitForWSConnection(callback) {
+    let self = this;
+    setTimeout(
+      function () {
+        if (self.isOpened) {
+          self._zitiContext.logger.debug("zws: waitForWSConnection: connection is now open");
+          callback();
+        } else {
+          self._zitiContext.logger.debug("zws: waitForWSConnection: wait...for %o", this);
+          self.waitForWSConnection(callback);
+        }
+      }, 
+    1000 ); // wait 5 ms for the connection...
+  }
+
   /**
    * Sends data without packing.
    *
    * @param {String|Blob|ArrayBuffer} data
    */
   send(data) {
-    throwIf(!this.isOpened, `Can't send data because WebSocket is not opened.`);
-    this._zitiContext.logger.debug('zws: send -> data[%o] len[%o]', data, data.byteLength);
-    this._ws.send(data);
-    this._onSend.dispatchAsync(data);
+    if (!this.isOpened) {
+      this.waitForWSConnection(function() {
+        this._zitiContext.logger.debug('zws: send (after awaiting open) -> data[%o] len[%o]', data, data.byteLength);
+        this._ws.send(data);
+        this._onSend.dispatchAsync(data);
+      });
+    } else {
+      this._zitiContext.logger.debug('zws: send -> data[%o] len[%o]', data, data.byteLength);
+      this._ws.send(data);
+      this._onSend.dispatchAsync(data);
+    }
   }
 
   /**

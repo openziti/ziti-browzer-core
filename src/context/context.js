@@ -989,7 +989,7 @@ class ZitiContext {
       data: data
     });
 
-    this.logger.trace('newConnection: conn[%d]', conn.id);
+    this.logger.trace('newConnection: conn[%d] data[%o]', conn.id, conn.data);
 
     return conn;
   };
