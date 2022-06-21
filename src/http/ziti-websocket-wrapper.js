@@ -544,7 +544,7 @@ async function initAsClient(websocket, address, protocols, options) {
     if (address.match( regex )) { // the request is targeting the Ziti HTTP Agent
 
         var newUrl = new URL( address );
-        newUrl.hostname = websocket._zitiConfig.httpAgent.target.host;
+        newUrl.hostname = websocket._zitiConfig.httpAgent.target.service;
         newUrl.port = websocket._zitiConfig.httpAgent.target.port;
         websocket._zitiContext.logger.debug( 'ZitiWebSocketWrapper: transformed URL: ', newUrl.toString());
 
@@ -562,15 +562,15 @@ async function initAsClient(websocket, address, protocols, options) {
 
             newUrl.protocol = "http:";
             opts.href = newUrl.protocol + '//' + newUrl.host.toLowerCase() + newUrl.pathname + newUrl.search;
-            opts.origin = "http://" + (websocket._zitiConfig.httpAgent.target.host).toLowerCase();
+            opts.origin = "http://" + (websocket._zitiConfig.httpAgent.target.service).toLowerCase();
             if (websocket._zitiConfig.httpAgent.target.port !== '80') {
               if (websocket._zitiConfig.httpAgent.target.port === '443') {
-                opts.origin = "https://" + (websocket._zitiConfig.httpAgent.target.host).toLowerCase();
+                opts.origin = "https://" + (websocket._zitiConfig.httpAgent.target.service).toLowerCase();
               } else {
                 opts.origin += ":" + websocket._zitiConfig.httpAgent.target.port;
               }
             }
-            opts.host = websocket._zitiConfig.httpAgent.target.host + ":" + websocket._zitiConfig.httpAgent.target.port;
+            opts.host = websocket._zitiConfig.httpAgent.target.service + ":" + websocket._zitiConfig.httpAgent.target.port;
         }
 
     } else {  // the request is targeting the raw internet

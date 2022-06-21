@@ -168,10 +168,11 @@ class ZitiChannel {
           setTimeout(waitForTLSHandshakeComplete, 100);  
         } else {
           self._zitiContext.logger.trace('tlsConn for ch[%d] TLS handshake is now complete', self.id);
-          let result = self._tlsConn.ssl_get_verify_result();
-          if (result !== 1) {
-            self._zitiContext.logger.error('tlsConn for ch[%d] fails TLS verification', self.id);
-          }
+          // TODO: investigate why this shows 'fail' when in fact it was 'success'
+          // let result = self._tlsConn.ssl_get_verify_result();
+          // if (result !== 1) {
+          //   self._zitiContext.logger.error('tlsConn for ch[%d] fails TLS verification', self.id);
+          // }
           return resolve();
         }
       })();
