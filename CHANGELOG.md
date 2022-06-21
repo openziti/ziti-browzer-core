@@ -1,3 +1,12 @@
+## [0.10.2](https://github.com/openziti/ziti-browzer-core/compare/v0.10.1...v0.10.2) (2022-06-21)
+
+
+### Bug Fixes
+
+* use httpAgent.target.service ([#52](https://github.com/openziti/ziti-browzer-core/issues/52)) ([641c1e6](https://github.com/openziti/ziti-browzer-core/commit/641c1e6c096f6188f3c7b3a2e4515de61289bb69))
+
+
+
 ## [0.10.1](https://github.com/openziti/ziti-browzer-core/compare/v0.10.0...v0.10.1) (2022-06-07)
 
 
