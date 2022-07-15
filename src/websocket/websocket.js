@@ -249,7 +249,7 @@ class ZitiWebSocket {
           self._zitiContext.logger.debug("zws: waitForWSConnection: connection is now open");
           callback();
         } else {
-          self._zitiContext.logger.debug("zws: waitForWSConnection: wait...for %o", this);
+          self._zitiContext.logger.debug("zws: waitForWSConnection: wait...for %o", self);
           self.waitForWSConnection(callback);
         }
       }, 

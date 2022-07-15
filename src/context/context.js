@@ -80,7 +80,7 @@ class ZitiContext {
     this.apiSessionHeartbeatTimeMin  = _options.apiSessionHeartbeatTimeMin;
     this.apiSessionHeartbeatTimeMax = _options.apiSessionHeartbeatTimeMax;
 
-    this.httpAgentTargetHost = _options.httpAgentTargetHost;
+    this.httpAgentTargetService = _options.httpAgentTargetService;
 
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
@@ -100,7 +100,11 @@ class ZitiContext {
     
     this._connSeq = 0;
 
-    this._mutex = new Mutex();
+    this._ensureAPISessionMutex = withTimeout(new Mutex(), 3 * 1000);
+    this._getNetworkSessionByServiceIdMutex = withTimeout(new Mutex(), 3 * 1000);
+    this._getServiceNameByHostNameAndPortMutex = withTimeout(new Mutex(), 3 * 1000);
+    this._isCertExpiredMutex = withTimeout(new Mutex(), 3 * 1000);
+
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
 
     this._pkey = null;
@@ -721,13 +725,13 @@ class ZitiContext {
    */
   async ensureAPISession() {
   
-    if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
-
-      await this.getFreshAPISession().catch((error) => {
-        throw error;
-      });
-                
-    }
+    await this._ensureAPISessionMutex.runExclusive(async () => {
+      if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
+        await this.getFreshAPISession().catch((error) => {
+          throw error;
+        });
+      }
+    });
   
   }
   
@@ -919,7 +923,7 @@ class ZitiContext {
    */
   async getNetworkSessionByServiceId(serviceID) {
    
-    await this._mutex.runExclusive(async () => {
+    await this._getNetworkSessionByServiceIdMutex.runExclusive(async () => {
 
       // if we do NOT have a NetworkSession for this serviceId, then create it
       if (!this._network_sessions.has(serviceID)) {
@@ -1251,7 +1255,7 @@ class ZitiContext {
       port = parseInt(port, 10);
     }
 
-    await this._mutex.runExclusive(async () => {
+    await this._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
       if (isEqual( this.services.size, 0 )) {
         await this.fetchServices().catch((error) => {
           throw new Error(error);
@@ -1342,7 +1346,7 @@ class ZitiContext {
   */
   async isCertExpired() {
  
-    await this._mutex.runExclusive(async () => {
+    await this._isCertExpiredMutex.runExclusive(async () => {
 
       let expired = false;
 

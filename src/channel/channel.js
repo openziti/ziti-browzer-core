@@ -36,7 +36,7 @@ import {
 } from '../utils/utils';
 
 import { isUndefined, isNull, isEqual, forEach } from 'lodash-es';
-import { Mutex } from 'async-mutex';
+import { Mutex, withTimeout, Semaphore } from 'async-mutex';
 import { Buffer } from 'buffer';
 
 //TODO: this breaks the build at the moment... figure out why!
@@ -45,6 +45,11 @@ import sodium  from 'libsodium-wrappers';
 import PromiseController from 'promise-controller';
 import formatMessage from 'format-message';
 
+formatMessage.setup({
+  // locale: 'en', // what locale strings should be displayed
+  // missingReplacement: '!!NOT TRANSLATED!!', // use this when a translation is missing instead of the default message
+  missingTranslation: 'ignore', // don't console.warn or throw an error when a translation is missing
+})
 
  
 /**
@@ -101,7 +106,7 @@ class ZitiChannel {
     this._view_version = new Uint8Array(new ArrayBuffer(4));
     this._view_version.set(ZitiEdgeProtocol.VERSION, 0);
 
-    this._mutex = new Mutex();
+    this._mutex = withTimeout(new Mutex(), 2 * 1000);
 
   }
 
