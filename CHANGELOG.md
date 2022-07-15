@@ -1,3 +1,12 @@
+## [0.10.3](https://github.com/openziti/ziti-browzer-core/compare/v0.10.2...v0.10.3) (2022-07-15)
+
+
+### Bug Fixes
+
+* Transition from hostName to serviceName ([#53](https://github.com/openziti/ziti-browzer-core/issues/53)) ([c90267e](https://github.com/openziti/ziti-browzer-core/commit/c90267e18ae0fa038dab873da1a8f70ac8340116))
+
+
+
 ## [0.10.2](https://github.com/openziti/ziti-browzer-core/compare/v0.10.1...v0.10.2) (2022-06-21)
 
 
