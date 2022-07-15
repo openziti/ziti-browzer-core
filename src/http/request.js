@@ -189,8 +189,8 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
 	 const parsedURL = this[INTERNALS].parsedURL;
 	 const headers = this[INTERNALS].headers;
  
-	 // Transform all occurances of the HTTP Agent hostname back to the target hostname
-	 var replace = this.getZitiContext().httpAgentTargetHost;
+	 // Transform all occurances of the HTTP Agent hostname back to the target service name
+	 var replace = this.getZitiContext().httpAgentTargetService;
 	 var re = new RegExp(replace,"gi");
 	 parsedURL.href = parsedURL.href.replace(re, replace);
 	 parsedURL.search = parsedURL.search.replace(re, replace);
