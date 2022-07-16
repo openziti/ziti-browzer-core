@@ -37,9 +37,9 @@ jobs:
 
       - name: Bump semver
         if: github.ref == 'refs/heads/main'
-        uses: TriPSs/conventional-changelog-action@v3.13.0
+        uses: TriPSs/conventional-changelog-action@v3
         with:
-          github-token: ${{ secrets.GH_ACTION }}
+          github-token: ${{ secrets.GH_TOKEN_ADMIN }}
           git-message: 'chore(release): {version}'
           preset: 'angular'
           tag-prefix: 'v'
