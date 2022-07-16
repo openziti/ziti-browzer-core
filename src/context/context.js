@@ -130,7 +130,7 @@ class ZitiContext {
   /**
    * 
    */
-  async initialize() {
+  async initialize(options) {
 
     if (this._initialized) throw Error("Already initialized; Cannot call .initialize() twice on instance.");
 
@@ -142,13 +142,21 @@ class ZitiContext {
       access_token: this.access_token,
     });
 
-    this.logger.trace(`libCrypto.initialize starting`);
+    if (options.loadWASM) {
 
-    await this._libCrypto.initialize();
+      this.logger.trace(`libCrypto.initialize starting`);
+
+      await this._libCrypto.initialize();
+
+      this.logger.trace(`libCrypto.initialize completed; WASM is now available`);
+
+    } else {
+
+      this.logger.trace(`libCrypto.initialize bypassed (options.loadWASM is false)`);
+
+    }
 
     this._initialized = true;    
-
-    this.logger.trace(`libCrypto.initialize completed; WASM is now available`);
 
     this._zitiEnroller = new ZitiEnroller ({
       logger: this.logger,
@@ -888,6 +896,34 @@ class ZitiContext {
     // this.logger.trace('List of available Services acquired: [%o]', this._services);
     
   }
+
+
+  /**
+   * 
+   */
+  async listControllerVersion() {
+     
+    let res = await this._zitiBrowzerEdgeClient.listVersion({ 
+    }).catch((error) => {
+      throw error;
+    });
+
+    this.logger.trace('ZitiContext.fetchControllerVersion(): response:', res);
+
+    if (!isUndefined(res.error)) {
+      this.logger.error(res.error.message);
+      throw new Error(res.error.message);
+    }
+
+    this._controllerVersion = res.data;
+    
+    if (isUndefined( this._controllerVersion ) ) {
+      throw new Error('response contains no data');
+    }
+
+    this.logger.info('Controller Version acquired: [%o]', this._controllerVersion);      
+  }
+  
 
   get services () {
     return this._services;
