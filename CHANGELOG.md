@@ -1,3 +1,22 @@
+# [0.16.0](https://github.com/openziti/ziti-browzer-core/compare/v0.10.2...v0.16.0) (2022-07-16)
+
+
+### Bug Fixes
+
+* Action Token ([#57](https://github.com/openziti/ziti-browzer-core/issues/57)) ([af85ce8](https://github.com/openziti/ziti-browzer-core/commit/af85ce8e35a0bfbf2b80d3a99ed9a1813de0804d))
+* Optional WASM Load ([#54](https://github.com/openziti/ziti-browzer-core/issues/54)) ([b895b4c](https://github.com/openziti/ziti-browzer-core/commit/b895b4ce2ee2a199a8b18b8ed4ecd589ba6e51d6))
+* pin conventional-changelog-action@v3.13.0 ([#56](https://github.com/openziti/ziti-browzer-core/issues/56)) ([398bf2c](https://github.com/openziti/ziti-browzer-core/commit/398bf2c7c446f74625d622b89c6fb32336fc9baf))
+* semver bump automation test ([#58](https://github.com/openziti/ziti-browzer-core/issues/58)) ([198d614](https://github.com/openziti/ziti-browzer-core/commit/198d6146a1ad26d52df9dd6d53666fa2fe09042f))
+* semver bump automation test ([#59](https://github.com/openziti/ziti-browzer-core/issues/59)) ([705b31c](https://github.com/openziti/ziti-browzer-core/commit/705b31cdf46d5dc95c8dce1c488b8fc12e722631))
+* Transition from hostName to serviceName ([#53](https://github.com/openziti/ziti-browzer-core/issues/53)) ([c90267e](https://github.com/openziti/ziti-browzer-core/commit/c90267e18ae0fa038dab873da1a8f70ac8340116))
+
+
+### Features
+
+* v0.11.0 ([#55](https://github.com/openziti/ziti-browzer-core/issues/55)) ([2cb519d](https://github.com/openziti/ziti-browzer-core/commit/2cb519dafdfc25a25aaf227e7acc961c09e730b1))
+
+
+
 ## [0.10.2](https://github.com/openziti/ziti-browzer-core/compare/v0.10.1...v0.10.2) (2022-06-21)
 
 
