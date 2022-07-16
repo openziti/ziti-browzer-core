@@ -44,7 +44,7 @@
 More detailed explanation...coming soon... but meanwhile:  
 
 The Ziti browZer environment allows
-you to run a web app server in a private, dark-to-the-internet VPC, and _still_ allow your authorized
+you to run a web app server in a private, dark-to-the-internet instance (no open ports), and _still_ allow your authorized
 users to access it, _AND_ in some cases you do not need to make any modifications to your web app to accomplish this.
 
 <br>
