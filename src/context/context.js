@@ -1388,7 +1388,7 @@ class ZitiContext {
       return true;  
     }), 'name', 'default');
 
-    if (!foundAddress) {
+    if (!foundAddress || foundAddress === 'default') {
       return false;
     }
 
@@ -1399,7 +1399,11 @@ class ZitiContext {
       return false;  
     }), 'name', 'default');
 
-    return foundPort;
+    if (!foundPort || foundPort === 'default') {
+      return false;
+    }
+
+    return true;
   }
 
 
