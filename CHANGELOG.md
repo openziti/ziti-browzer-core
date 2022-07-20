@@ -1,3 +1,12 @@
+## [0.16.2](https://github.com/openziti/ziti-browzer-core/compare/v0.16.1...v0.16.2) (2022-07-20)
+
+
+### Bug Fixes
+
+* getMatchConfigInterceptV1 false positives ([#61](https://github.com/openziti/ziti-browzer-core/issues/61)) ([ec0526b](https://github.com/openziti/ziti-browzer-core/commit/ec0526bc51cf7c9f8a42ff9c2d8cabc697058b83))
+
+
+
 ## [0.16.1](https://github.com/openziti/ziti-browzer-core/compare/v0.16.0...v0.16.1) (2022-07-19)
 
 
