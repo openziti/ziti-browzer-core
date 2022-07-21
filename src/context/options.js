@@ -15,7 +15,10 @@ limitations under the License.
 */
 
 
-import { EVP_PKEY_RSA, EVP_PKEY_EC } from '@openziti/libcrypto-js'
+import { 
+    // EVP_PKEY_RSA, 
+    EVP_PKEY_EC 
+} from '@openziti/libcrypto-js'
 
 
 /**
@@ -27,7 +30,7 @@ const defaultOptions = {
      * See {@link Options.keyType}
      *
      */
-    keyType: EVP_PKEY_RSA,
+    keyType: EVP_PKEY_EC,
 
     /**
      * See {@link Options.logger}

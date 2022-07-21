@@ -126,6 +126,13 @@ class ZitiContext {
     return this._timeout;
   }
 
+  setKeyTypeEC() {
+    this._keyType = EVP_PKEY_EC;
+  }
+  setKeyTypeRSA() {
+    this._keyType = EVP_PKEY_RSA;
+  }
+
 
   /**
    * 
