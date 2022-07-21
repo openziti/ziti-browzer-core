@@ -743,32 +743,6 @@ class ZitiContext {
   
   }
   
-  /**
-   * This is a 'test hack' where we pause for a bit after acquiring a session cert, and give the session cert 
-   * a little while to sync out to the ER(s).  Without this pause, we currently believe we have a race-condition
-   * where the zitiBrowzerRuntime will attempt to connect to an ER before the control-plane has synced out the
-   * session cert to all the ERs, and the connect attempt will fail.
-   * 
-   */
-  _enroll() {
-    let self = this;
-    return new Promise( async (resolve) => {
-
-      self.logger.debug(`acquiring session cert now`);
-
-      // Acquire the session cert
-      await self._zitiEnroller.enroll();
-
-      let sessionCertPauseTime = 2000;
-
-      self.logger.debug(`now pausing for session cert ER propagation for ${sessionCertPauseTime}ms`);
-
-      setTimeout(function() {
-        self.logger.debug(`pause for session cert ER propagation now complete`);
-        return resolve();
-      }, sessionCertPauseTime);
-    });
-  }
 
   /**
    * 
@@ -777,7 +751,8 @@ class ZitiContext {
   
     if (isNull(this._certPEM)) {
 
-      await this._enroll();
+      // Acquire the session cert
+      await this._zitiEnroller.enroll();
 
       this._casPEM = this._zitiEnroller.casPEM;
       this._certPEM = this._zitiEnroller.certPEM;
