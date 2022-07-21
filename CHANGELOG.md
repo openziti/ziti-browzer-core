@@ -1,3 +1,12 @@
+## [0.16.3](https://github.com/openziti/ziti-browzer-core/compare/v0.16.2...v0.16.3) (2022-07-21)
+
+
+### Bug Fixes
+
+* Revert pause for session sync ([#62](https://github.com/openziti/ziti-browzer-core/issues/62)) ([fe683aa](https://github.com/openziti/ziti-browzer-core/commit/fe683aaf8be7f6fdd73bfd164d51f5d739bf533b))
+
+
+
 ## [0.16.2](https://github.com/openziti/ziti-browzer-core/compare/v0.16.1...v0.16.2) (2022-07-20)
 
 
