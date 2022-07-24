@@ -1,3 +1,12 @@
+## [0.16.5](https://github.com/openziti/ziti-browzer-core/compare/v0.16.4...v0.16.5) (2022-07-24)
+
+
+### Bug Fixes
+
+* JWT expiration improvements ([#64](https://github.com/openziti/ziti-browzer-core/issues/64)) ([edefd29](https://github.com/openziti/ziti-browzer-core/commit/edefd295e5b91e46f48fb7cbedb1859cf23ef8d1))
+
+
+
 ## [0.16.4](https://github.com/openziti/ziti-browzer-core/compare/v0.16.3...v0.16.4) (2022-07-21)
 
 
