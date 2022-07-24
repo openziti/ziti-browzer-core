@@ -64,12 +64,18 @@ import { isUndefined, isNull } from 'lodash-es';
   async enroll() {
 
     // Don't proceed until we have successfully logged in to Controller and have established an API session
-    await this.zitiContext.ensureAPISession();
-    
+    let token = await this.zitiContext.ensureAPISession();
+
+    if (isUndefined(token) || isNull(token)) {
+      this.logger.trace('ZitiEnroller.enroll(): ensureAPISession returned null');
+      return false;
+    }
+  
     this.generateCSR();
 
-    await this.createEphemeralCert();
+    let result = await this.createEphemeralCert();
 
+    return result;
   }
 
 
@@ -100,15 +106,17 @@ import { isUndefined, isNull } from 'lodash-es';
 
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
-      throw new Error(res.error.message);
+      return false;
     }
 
     if (isUndefined( res.data )) {
-      throw new Error('response contains no data');
+      this.logger.error('response contains no data');
+      return false;
     }
 
     if (isUndefined( res.data.certificate )) {
-      throw new Error('response contains no certificate; Ephemeral Cert creation failed');
+      this.logger.error('response contains no certificate; Ephemeral Cert creation failed');
+      return false;
     }
   
     this._cas  = res.data.cas;
@@ -123,7 +131,7 @@ import { isUndefined, isNull } from 'lodash-es';
     } catch (err) {
       this.logger.error(err);
       this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert [%o] which convertPemToCertificate cannot process', this._cert);
-      throw new Error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert which convertPemToCertificate cannot process');
+      return false;
     }
 
     let expiryTime = getExpiryTimeFromCertificate(certificate);
@@ -135,12 +143,14 @@ import { isUndefined, isNull } from 'lodash-es';
     let nowTime = now.getTime();
     this.logger.info('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with NotBefore time [%o][%o], it is now [%o][%o], difference of [%o]', becomesUsableTime, becomesUsableTimeString, nowTime, now, (nowTime-becomesUsableTime));
     if (nowTime < becomesUsableTime) {
-      this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with NotBefore IN THE FUTURE', becomesUsableTimeString);
+      this.logger.warn('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with NotBefore IN THE FUTURE', becomesUsableTimeString);
     }
 
     this.logger.debug('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert with expiryTime: [%o] expiryDate:[%o]', expiryTime, expiryDate);
 
     this._certExpiryTime = expiryTime;
+
+    return true;
   }
   
   /**

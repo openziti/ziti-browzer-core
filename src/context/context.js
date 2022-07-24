@@ -172,6 +172,27 @@ class ZitiContext {
 
   }
 
+
+  /**
+   * 
+   */
+   async reInitialize(options) {
+
+    if (!this._initialized) throw Error("No previous initialization; Cannot call .reInitialize() yet.");
+
+    this.logger.trace(`ZitiContext doing a reInitialize now`);
+
+    this._zitiBrowzerEdgeClient = this.createZitiBrowzerEdgeClient ({
+      logger: this.logger,
+      controllerApi: this.controllerApi,
+      domain: this.controllerApi,
+      token_type: this.token_type,
+      access_token: this.access_token,
+    });
+
+  }
+
+
   /**
    * 
    * @param {*} options 
@@ -712,16 +733,18 @@ class ZitiContext {
 
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
-      throw new Error(res.error.message);
+      return null;
     }
 
     this._apiSession = res.data;
     if (isUndefined( this._apiSession )) {
-      throw new Error('response contains no data');
+      this.logger.error('response contains no data');
+      return null;
     }
 
     if (isUndefined( this._apiSession.token )) {
-      throw new Error('response contains no token');
+      this.logger.error('response contains no token');
+      return null;
     }
 
     // Set the token header on behalf of all subsequent Controller API calls
@@ -740,14 +763,19 @@ class ZitiContext {
    */
   async ensureAPISession() {
   
+    let token;
+
     await this._ensureAPISessionMutex.runExclusive(async () => {
       if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
-        await this.getFreshAPISession().catch((error) => {
-          throw error;
+        token = await this.getFreshAPISession().catch((error) => {
+          token = null;
         });
+      } else {
+        token = this._apiSession.token;
       }
     });
   
+    return token;
   }
   
 
@@ -758,13 +786,27 @@ class ZitiContext {
   
     if (isNull(this._certPEM)) {
 
+      // Don't proceed until we have successfully logged in to Controller and have established an API session
+      let token = await this.ensureAPISession();
+
+      if (isUndefined(token) || isNull(token)) {
+        this.logger.trace('ZitiContext.enroll(): ensureAPISession returned null');
+        return false;
+      }
+
       // Acquire the session cert
-      await this._zitiEnroller.enroll();
+      let result = await this._zitiEnroller.enroll();
+
+      if (!result) {
+        this.logger.trace('ZitiContext.enroll(): enroll failed');
+        return false;
+      }
 
       this._casPEM = this._zitiEnroller.casPEM;
       this._certPEM = this._zitiEnroller.certPEM;
       this._certExpiryTime = this._zitiEnroller.certPEMExpiryTime;
 
+      return true;
     }
 
   }
