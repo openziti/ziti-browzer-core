@@ -1,3 +1,12 @@
+## [0.16.6](https://github.com/openziti/ziti-browzer-core/compare/v0.16.5...v0.16.6) (2022-07-25)
+
+
+### Bug Fixes
+
+* correct missing Buffer reference ([#65](https://github.com/openziti/ziti-browzer-core/issues/65)) ([f5eb8b9](https://github.com/openziti/ziti-browzer-core/commit/f5eb8b9dfe268a3429b287056fd4080654a26a21))
+
+
+
 ## [0.16.5](https://github.com/openziti/ziti-browzer-core/compare/v0.16.4...v0.16.5) (2022-07-24)
 
 
