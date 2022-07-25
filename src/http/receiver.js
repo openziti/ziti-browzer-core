@@ -22,6 +22,7 @@ import { PerMessageDeflate } from './permessage-deflate';
 import { CONSTANTS } from './constants';
 import { BUFFERUTIL } from './buffer-util';
 import { isValidStatusCode } from './validation';
+import { Buffer } from 'buffer';
 
 const GET_INFO = 0;
 const GET_PAYLOAD_LENGTH_16 = 1;

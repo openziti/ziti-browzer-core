@@ -248,7 +248,7 @@ class ZitiLogger {
   }
 
   _logFn (defaults, args, isRaw) {
-    if (defaults._logLevel > this._logLevel) {
+    if (defaults.level > this._logLevel) {
       return this._async ? Promise.resolve(false) : false
     }
 
