@@ -43,32 +43,38 @@ const ZitiEdgeProtocol = {
       LatencyType:  3,
   
       // EDGE
-      Connect:            60783,
-      StateConnected:     60784,
-      StateClosed:        60785,
-      Data:               60786,
-      Dial:               60787,
-      DialSuccess:        60788,
-      DialFailed:         60789,
-      Bind:               60790,
-      Unbind:             60791,
-      StateSessionEnded:  60792,
-      Probe:              60793,
-      UpdateBind:         60794,
+      Connect:                        60783,
+      StateConnected:                 60784,
+      StateClosed:                    60785,
+      Data:                           60786,
+      Dial:                           60787,
+      DialSuccess:                    60788,
+      DialFailed:                     60789,
+      Bind:                           60790,
+      Unbind:                         60791,
+      StateSessionEnded:              60792,
+      Probe:                          60793,
+      UpdateBind:                     60794,
+      ContentTypeHealthEvent:         60795,
+      ContentTypeTraceRoute:          60796,
+      ContentTypeTraceRouteResponse:  60797,
 
     },
   
     header_id: {
 
-      ConnectionId: 0,
-      ReplyFor: 1,
+      ConnectionId:  0,
+      ReplyFor:      1,
       ResultSuccess: 2,
       HelloListener: 3,
+      HelloVersion:  4,
   
       // Headers in the range 128-255 inclusive will be reflected when creating replies
       ReflectedHeaderBitMask: 1 << 7,
       MaxReflectedHeader: (1 << 8) - 1,
   
+      UUID:          128,
+
       ConnId:                   1000,
       SeqHeader:                1001,
       SessionToken:             1002,
@@ -80,6 +86,17 @@ const ZitiEdgeProtocol = {
       CallerId:                 1008,
       CryptoMethod:             1009,
       Flags:                    1010,
+      AppData:                  1011,
+      RouterProvidedConnId:     1012,
+      HealthStatus:             1013,
+      ErrorCode:                1014,
+      Timestamp:                1015,
+      TraceHopCount:            1016,
+      TraceHopType:             1017,
+      TraceHopId:               1018,
+      TraceSourceRequestId:     1019,
+      TraceError:               1020,
+    
     },
 
     header_type: {

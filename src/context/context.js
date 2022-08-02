@@ -153,7 +153,11 @@ class ZitiContext {
 
       this.logger.trace(`libCrypto.initialize starting`);
 
+      let _real_Date_now = Date.now;  // work around an Emscripten issue
+
       await this._libCrypto.initialize();
+
+      Date.now = _real_Date_now;      // work around an Emscripten issue
 
       this.logger.trace(`libCrypto.initialize completed; WASM is now available`);
 
@@ -1588,8 +1592,8 @@ class ZitiContext {
       }
 
       req.on('error', err => {
-        self.logger.error('error EVENT: err: %o', err);
-        reject(new Error(`request to ${request.url} failed, reason: ${err.message}`));
+        self.logger.error('conn[%o] error EVENT: err: %o', req.socket.zitiConnection.id, err);
+        reject(new Error(`conn[${req.socket.zitiConnection.id}] request to ${request.url} failed, reason: ${err.message}`));
       });
   
       req.on('response', async res => {

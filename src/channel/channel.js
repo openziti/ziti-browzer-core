@@ -38,6 +38,9 @@ import {
 import { isUndefined, isNull, isEqual, forEach } from 'lodash-es';
 import { Mutex, withTimeout, Semaphore } from 'async-mutex';
 import { Buffer } from 'buffer';
+import { v4 as uuidv4 } from 'uuid';
+import { parse as uuidParse } from 'uuid';
+import { stringify as uuidStringify } from 'uuid';
 
 //TODO: this breaks the build at the moment... figure out why!
 import sodium  from 'libsodium-wrappers';
@@ -108,6 +111,34 @@ class ZitiChannel {
 
     this._mutex = withTimeout(new Mutex(), 2 * 1000);
 
+    this._hdrIdNameMap = new Map();
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ConnectionId,   'ConnectionId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ReplyFor,       'ReplyFor');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ResultSuccess,  'ResultSuccess');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.HelloListener,  'HelloListener');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.HelloVersion,   'HelloVersion');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ConnId,         'ConnId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.SeqHeader,      'SeqHeader');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.SessionToken,   'SessionToken');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.PublicKey,      'PublicKey');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.Cost,           'Cost');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.Precedence,     'Precedence');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TerminatorIdentity,       'TerminatorIdentity');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TerminatorIdentitySecret, 'TerminatorIdentitySecret');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.CallerId,       'CallerId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.CryptoMethod,   'CryptoMethod');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.Flags,          'Flags');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.AppData,        'AppData');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.RouterProvidedConnId, 'RouterProvidedConnId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.HealthStatus,         'HealthStatus');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ErrorCode,            'ErrorCode');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.Timestamp,            'Timestamp');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceHopCount,        'TraceHopCount');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceHopType,         'TraceHopType');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceHopId,           'TraceHopId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceSourceRequestId, 'TraceSourceRequestId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceError,           'TraceError');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.UUID,                 'UUID');
   }
 
   get zitiContext() {
@@ -235,6 +266,7 @@ class ZitiChannel {
     }
 
     this._zitiContext.logger.debug('initiating message: ZitiEdgeProtocol.content_type.HelloType: ', ZitiEdgeProtocol.header_type.StringType);
+    let uuid = uuidv4();
 
     let headers = [
       new Header( ZitiEdgeProtocol.header_id.SessionToken, { 
@@ -244,6 +276,10 @@ class ZitiChannel {
       new Header( ZitiEdgeProtocol.header_id.CallerId, { 
         headerType: ZitiEdgeProtocol.header_type.StringType, 
         headerData: this._callerId 
+      }),
+      new Header( ZitiEdgeProtocol.header_id.UUID, { 
+        headerType: ZitiEdgeProtocol.header_type.Uint8ArrayType, 
+        headerData: uuidParse(uuid)
       })
     ]; 
 
@@ -282,6 +318,7 @@ class ZitiChannel {
       conn.keypair = (keypair);
   
       let sequence = this.getAndIncrementSequence();
+      let uuid = uuidv4();
 
       let headers = [
     
@@ -295,6 +332,11 @@ class ZitiChannel {
           headerData: 0 
         }),
     
+        new Header( ZitiEdgeProtocol.header_id.UUID, { 
+          headerType: ZitiEdgeProtocol.header_type.Uint8ArrayType, 
+          headerData: uuidParse(uuid)
+        }),
+  
       ];
 
       if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
@@ -340,6 +382,7 @@ class ZitiChannel {
       self._zitiContext.logger.debug('initiating Close to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
       let sequence = conn.getAndIncrementSequence();
+      let uuid = uuidv4();
 
       let headers = [
     
@@ -353,6 +396,11 @@ class ZitiChannel {
           headerData: sequence
         }),
     
+        new Header( ZitiEdgeProtocol.header_id.UUID, { 
+          headerType: ZitiEdgeProtocol.header_type.Uint8ArrayType, 
+          headerData: uuidParse(uuid)
+        }),
+  
       ];
     
       self._zitiContext.logger.debug('about to send Close to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
@@ -526,6 +574,7 @@ class ZitiChannel {
       conn.setCrypt_o(results);
 
       let sequence = conn.getAndIncrementSequence();
+      let uuid = uuidv4();
 
       let headers = [
 
@@ -537,7 +586,12 @@ class ZitiChannel {
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
           headerType: ZitiEdgeProtocol.header_type.IntType, 
           headerData: sequence 
-        })
+        }),
+
+        new Header( ZitiEdgeProtocol.header_id.UUID, { 
+          headerType: ZitiEdgeProtocol.header_type.Uint8ArrayType, 
+          headerData: uuidParse(uuid)
+        }),
 
       ];    
 
@@ -567,6 +621,7 @@ class ZitiChannel {
     if (!isEqual(conn.state, ZitiEdgeProtocol.conn_state.Closed)) {
 
       let sequence = conn.getAndIncrementSequence();
+      let uuid = uuidv4();
 
       let headers = [
         new Header( ZitiEdgeProtocol.header_id.ConnId, {
@@ -576,7 +631,11 @@ class ZitiChannel {
         new Header( ZitiEdgeProtocol.header_id.SeqHeader, { 
           headerType: ZitiEdgeProtocol.header_type.IntType, 
           headerData: sequence 
-        })
+        }),
+        new Header( ZitiEdgeProtocol.header_id.UUID, { 
+          headerType: ZitiEdgeProtocol.header_type.Uint8ArrayType, 
+          headerData: uuidParse(uuid)
+        })  
       ];
 
       this.sendMessageNoWait( ZitiEdgeProtocol.content_type.Data, headers, data, { conn: conn, sequence: sequence });
@@ -903,17 +962,15 @@ class ZitiChannel {
     let contentType = contentTypeView[0];
 
     let sequenceView = new Int32Array(buffer, 8, 1);
-    this._zitiContext.logger.trace("recv <- contentType[%o] seq[%o]", contentType, sequenceView[0]);
-
     let responseSequence = sequenceView[0];
 
     let headersLengthView = new Int32Array(buffer, 12, 1);
     let headersLength = headersLengthView[0];
-    this._zitiContext.logger.trace("recv <- headersLength[%o]", headersLength);
 
     let bodyLengthView = new Int32Array(buffer, 16, 1);
     let bodyLength = bodyLengthView[0];
-    this._zitiContext.logger.trace("recv <- bodyLength[%o]", bodyLength);
+
+    this._zitiContext.logger.trace("recv <- contentType[%o] seq[%o] hdrLen[%o] bodyLen[%o]", contentType, responseSequence, headersLength, bodyLength);
 
     this._dumpHeaders(' <- ', buffer);
     var bodyView = new Uint8Array(buffer, 20 + headersLength);
@@ -1046,7 +1103,7 @@ class ZitiChannel {
       // 
       let dataCallback = conn.dataCallback;
       if (!isUndefined(dataCallback)) {
-        this._zitiContext.logger.trace("recv <- contentType[%o] seq[%o] passing body to dataCallback", contentType, sequenceView[0]);
+        this._zitiContext.logger.debug("recv <- conn[%o] contentType[%o] seq[%o] passing body to dataCallback", conn.id, contentType, sequenceView[0]);
         dataCallback(conn, bodyView);
       }
     }
@@ -1083,7 +1140,65 @@ class ZitiChannel {
       debugger
     }
   }
-  
+
+  /**
+   * 
+   */
+  _getHeaderIdName(hdrId) {
+    return this._hdrIdNameMap.get(hdrId);
+  }
+  _getHeaderData(hdrId, hdrData) {
+    let buffer = Buffer.from(hdrData);
+    if (isEqual(hdrId, ZitiEdgeProtocol.header_id.ConnId)) {
+      let connId = buffer.readUIntLE(0, 4);
+      return connId;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.ConnectionId)) {
+      let connId = buffer.readUIntLE(0, 4);
+      return connId;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.SeqHeader)) {
+      let seqId = buffer.readUIntLE(0, 4);
+      return seqId;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.ReplyFor)) {
+      let replyFor = buffer.readUIntLE(0, 4);
+      return replyFor;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.ResultSuccess)) {
+      let resultSuccess = buffer.toString('hex');
+      return resultSuccess;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.HelloVersion)) {
+      let helloVersion = buffer.toString('utf8');
+      return helloVersion;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.SessionToken)) {
+      let sessToken = buffer.toString('utf8');
+      return sessToken;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.CallerId)) {
+      let callerId = buffer.toString('utf8');
+      return callerId;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.UUID)) {
+      let uuid = uuidStringify(buffer);
+      return uuid;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.Flags)) {
+      let flags = buffer.toString('hex');
+      return flags;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.PublicKey)) {
+      let flags = buffer.toString('hex');
+      return flags;
+    }
+    else {
+      let val = buffer.toString('utf8');
+      return 'unknown - ' + val;
+    }
+  }
+
   /**
    * 
    */
@@ -1092,6 +1207,7 @@ class ZitiChannel {
     var headersView = new Int32Array(buffer, 12, 1);
 
     let headersLength = headersView[0];
+    this._zitiContext.logger.trace("_dumpHeaders: hdrsLen[%o]", headersLength);
     let headersOffset = 16 + 4;
     let ndx = 0;
 
@@ -1110,13 +1226,7 @@ class ZitiChannel {
       var _headerData = new Uint8Array(buffer, headersOffset + ndx, _headerDataLength);
       ndx += _headerDataLength;
 
-      let connId = 'n/a';
-      if (isEqual(_headerId, ZitiEdgeProtocol.header_id.ConnId)) {
-        let buffer = Buffer.from(_headerData);
-        connId = buffer.readUIntLE(0, _headerDataLength);
-      }
-
-      this._zitiContext.logger.trace("headerId[%d] conn[%d] dataLength[%d] data[%o]", _headerId, connId, _headerDataLength, _headerData);
+      this._zitiContext.logger.trace("hdrId[%d - %s] hdrDataLen[%d] hdrData[%o]", _headerId, this._getHeaderIdName(_headerId), _headerDataLength, this._getHeaderData(_headerId, _headerData));
     }
 
     this._zitiContext.logger.trace("_dumpHeaders: "+pfx+"^^----------------------------------");

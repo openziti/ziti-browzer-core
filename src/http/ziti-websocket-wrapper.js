@@ -793,7 +793,7 @@ async function initAsClient(websocket, address, protocols, options) {
  */
 function zitiConnect(options) {
 
-  // this._zitiContext.logger.info('zitiConnect() entered: %o', options);
+  // this[CONSTANTS.kWebSocket].logger.info('zitiConnect() entered: %o', options);
   
     options.path = undefined;
   
@@ -804,7 +804,7 @@ function zitiConnect(options) {
     const socket = new ZitiSocket(ziti);
     socket.connect(options);
   
-    // logger.info('zitiConnect(): ZitiSocket is now connected to Ziti network: \n%o', socket);
+    // this[CONSTANTS.kWebSocket].logger.info('zitiConnect(): ZitiSocket is now connected to Ziti network: \n%o', socket);
   
     options.socket = socket;
     
@@ -935,7 +935,7 @@ function sendAfterClose(websocket, data, cb) {
    * @private
    */
   function receiverOnFinish() {
-    this.zitiContext.logger.info('receiverOnFinish() entered');
+    this[CONSTANTS.kWebSocket]._zitiContext.logger.info('receiverOnFinish() entered');
     this[CONSTANTS.kWebSocket].emitClose();
   }
   
@@ -946,14 +946,14 @@ function sendAfterClose(websocket, data, cb) {
    * @private
    */
   function receiverOnMessage(data) {
-    // if (typeof data === 'string') {
-      // this.zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting STRING: %o', data);
+    if (typeof data === 'string') {
+      this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting STRING: %o', data);
       this[CONSTANTS.kWebSocket].emit('message', data);
-    // } else {
-      // let blob = new Blob([new Uint8Array(data, 0, data.byteLength)]);
-      // this.zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting BLOB: %o', blob);
-      // this[CONSTANTS.kWebSocket].emit('message', blob);
-    // }
+    } else {
+      let blob = new Blob([new Uint8Array(data, 0, data.byteLength)]);
+      this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting BLOB: %o', blob);
+      this[CONSTANTS.kWebSocket].emit('message', blob);
+    }
   }
   
   /**
@@ -986,7 +986,7 @@ function sendAfterClose(websocket, data, cb) {
  * @private
  */
 function socketOnClose() {
-  this.zitiContext.logger.info('ZitiWebSocketWrapper socketOnClose entered');
+  this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper socketOnClose entered');
   
     const websocket = this[CONSTANTS.kWebSocket];
   
@@ -1031,7 +1031,7 @@ function socketOnClose() {
    * @private
    */
   function socketOnData(chunk) {
-    this.zitiContext.logger.info('ZitiWebSocketWrapper socketOnData entered');
+    this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper socketOnData entered');
   
     if (!this[CONSTANTS.kWebSocket]._receiver.write(chunk)) {
       this.pause();
@@ -1044,7 +1044,7 @@ function socketOnClose() {
    * @private
    */
   function socketOnEnd() {
-    this.zitiContext.logger.debug('ZitiWebSocketWrapper socketOnEnd entered');
+    this[CONSTANTS.kWebSocket]._zitiContext.logger.debug('ZitiWebSocketWrapper socketOnEnd entered');
   
     const websocket = this[CONSTANTS.kWebSocket];
   
@@ -1059,7 +1059,7 @@ function socketOnClose() {
    * @private
    */
   function socketOnError() {
-    this.zitiContext.logger.debug('ZitiWebSocketWrapper socketOnError entered');
+    this[CONSTANTS.kWebSocket]._zitiContext.logger.debug('ZitiWebSocketWrapper socketOnError entered');
   
     const websocket = this[CONSTANTS.kWebSocket];
   
