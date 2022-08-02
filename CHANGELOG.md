@@ -1,3 +1,12 @@
+## [0.16.7](https://github.com/openziti/ziti-browzer-core/compare/v0.16.6...v0.16.7) (2022-08-02)
+
+
+### Bug Fixes
+
+* correct MM channel 'Loading...' issue ([#67](https://github.com/openziti/ziti-browzer-core/issues/67)) ([2698687](https://github.com/openziti/ziti-browzer-core/commit/2698687c15775df66e9f001c6167ca7d1ef714f5))
+
+
+
 ## [0.16.6](https://github.com/openziti/ziti-browzer-core/compare/v0.16.5...v0.16.6) (2022-07-25)
 
 
