@@ -975,9 +975,15 @@ class ZitiContext {
       throw new Error('response contains no data');
     }
 
-    this.logger.info('Controller Version acquired: [%o]', this._controllerVersion);      
+    this.logger.info('Controller Version acquired: [%o]', this._controllerVersion);
+
+    return this._controllerVersion;
   }
-  
+
+  get controllerVersion () {
+    return this._controllerVersion;
+  }
+
 
   get services () {
     return this._services;
