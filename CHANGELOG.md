@@ -1,3 +1,12 @@
+## [0.16.8](https://github.com/openziti/ziti-browzer-core/compare/v0.16.7...v0.16.8) (2022-08-15)
+
+
+### Bug Fixes
+
+* return controller version ([#69](https://github.com/openziti/ziti-browzer-core/issues/69)) ([f4badcd](https://github.com/openziti/ziti-browzer-core/commit/f4badcd6cae0191d3f46b72fae0ad7d0a5e95a40))
+
+
+
 ## [0.16.7](https://github.com/openziti/ziti-browzer-core/compare/v0.16.6...v0.16.7) (2022-08-02)
 
 
