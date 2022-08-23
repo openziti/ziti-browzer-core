@@ -1,3 +1,12 @@
+## [0.16.9](https://github.com/openziti/ziti-browzer-core/compare/v0.16.8...v0.16.9) (2022-08-23)
+
+
+### Bug Fixes
+
+* correct libsodium e2e encryption regression ([#70](https://github.com/openziti/ziti-browzer-core/issues/70)) ([07bf66d](https://github.com/openziti/ziti-browzer-core/commit/07bf66d8b934c822fdaf8493e4efedf7a6ee7cd2))
+
+
+
 ## [0.16.8](https://github.com/openziti/ziti-browzer-core/compare/v0.16.7...v0.16.8) (2022-08-15)
 
 
