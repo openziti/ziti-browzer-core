@@ -1333,9 +1333,45 @@ class ZitiContext {
     let serviceName = await this.getServiceNameByHostNameAndPort(hostname, port).catch(( error ) => {
       throw new Error( error );
     });
+
+    if (isUndefined(serviceName)) {
+
+      serviceName = await this.getServiceNameByHostName(hostname).catch(( error ) => {
+        throw new Error( error );
+      });
+  
+    }
   
     return serviceName;
    
+  }
+
+
+  /**
+   * 
+   * @param {*} hostname 
+   * @param {*} port 
+   * @returns 
+   */
+   async getServiceNameByHostName(hostname) {
+
+    await this._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
+      if (isEqual( this.services.size, 0 )) {
+        await this.fetchServices().catch((error) => {
+          throw new Error(error);
+        });
+      }
+    });
+
+    let serviceName = result(find(this._services, function(obj) {
+
+      if (isEqual( obj.name, hostname )) {
+        return true;
+      }
+
+    }), 'name');
+
+    return serviceName;
   }
 
 
@@ -1392,7 +1428,7 @@ class ZitiContext {
     if (config.hostname !== hostname) {
       return false;
     }
-    if (config.port !== port) {
+    if (!isNull(port) && config.port !== port) {
       return false;
     }
     return true;
@@ -1426,15 +1462,17 @@ class ZitiContext {
       return false;
     }
 
-    let foundPort = result(find(config.portRanges, function(portRange) {
-      if ((port >= portRange.low) && (port <= portRange.high)) {
-        return true;
-      }
-      return false;  
-    }), 'name', 'default');
+    if (!isNull(port)) {
+      let foundPort = result(find(config.portRanges, function(portRange) {
+        if ((port >= portRange.low) && (port <= portRange.high)) {
+          return true;
+        }
+        return false;  
+      }), 'name', 'default');
 
-    if (!foundPort || foundPort === 'default') {
-      return false;
+      if (!foundPort || foundPort === 'default') {
+        return false;
+      }
     }
 
     return true;

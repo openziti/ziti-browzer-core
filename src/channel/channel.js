@@ -499,12 +499,12 @@ class ZitiChannel {
 
     if (conn.state == ZitiEdgeProtocol.conn_state.Connecting) {
 
-      let keypair = conn.keypair();
+      let keypair = conn.keypair;
 
       let results = sodium.crypto_kx_client_session_keys(keypair.publicKey, keypair.privateKey, peerKey);
 
-      conn.setSharedRx(results.sharedRx);
-      conn.setSharedTx(results.sharedTx);
+      conn.sharedRx = (results.sharedRx);
+      conn.sharedTx = (results.sharedTx);
 
     } else {
       this._zitiContext.logger.error("_establish_crypto(): cannot establish crypto while connection is in %d state: ", conn.state);
@@ -531,13 +531,13 @@ class ZitiChannel {
 
     let state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(bodyView, conn.sharedRx);
     
-    conn.setCrypt_i(state_in);
+    conn.crypt_i = (state_in);
 
     // Indicate that subsequent sends on this connection should be encrypted
     conn.encrypted = true;
 
     // Unblock writes to the connection now that we have sent the crypto header
-    conn.setCryptoEstablishComplete(true);
+    conn.cryptoEstablishComplete = true;
 
     this._zitiContext.logger.debug("_recvCryptoResponse(): setCryptoEstablishComplete for conn[%d]", connId);
 
@@ -571,7 +571,7 @@ class ZitiChannel {
 
       let results = sodium.crypto_secretstream_xchacha20poly1305_init_push( conn.sharedTx );
 
-      conn.setCrypt_o(results);
+      conn.crypt_o = (results);
 
       let sequence = conn.getAndIncrementSequence();
       let uuid = uuidv4();
