@@ -74,7 +74,7 @@
     "md5.js": "^1.3.5",
     "mime-types": "^2.1.35",
     "multistream": "^4.1.0",
-    "pkijs": "^2.3.0",
+    "pkijs": "^3.0.8",
     "process": "^0.11.10",
     "promise-controller": "^1.0.0",
     "promise.prototype.finally": "^3.1.3",
