@@ -1,3 +1,12 @@
+## [0.16.10](https://github.com/openziti/ziti-browzer-core/compare/v0.16.9...v0.16.10) (2022-09-13)
+
+
+### Bug Fixes
+
+* don't hang if some wsER's are offline ([#74](https://github.com/openziti/ziti-browzer-core/issues/74)) ([d5bdc43](https://github.com/openziti/ziti-browzer-core/commit/d5bdc43feda3700e582f83f88e9e206223900b37))
+
+
+
 ## [0.16.9](https://github.com/openziti/ziti-browzer-core/compare/v0.16.8...v0.16.9) (2022-08-23)
 
 
