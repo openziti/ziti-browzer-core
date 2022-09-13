@@ -1277,15 +1277,8 @@ class ZitiContext {
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
       this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
   
-      let channelConnects = await Promise.all( pendingChannelConnects );
-      this.logger.trace('channelConnects [%o]', channelConnects);  
-  
-      // Select channel with nearest Edge Router. Heuristic: select one with earliest Hello-handshake completion timestamp
-      let channelConnectWithNearestEdgeRouter = minBy(channelConnects, function(channelConnect) { 
-        return channelConnect.channel.helloCompletedTimestamp;
-      });
-      
-      let channelWithNearestEdgeRouter = channelConnectWithNearestEdgeRouter.channel;
+      let channelWithNearestEdgeRouter = await Promise.race( pendingChannelConnects );
+      channelWithNearestEdgeRouter = channelWithNearestEdgeRouter.channel;
       this.logger.debug('Channel [%d] has nearest Edge Router for conn[%o]', channelWithNearestEdgeRouter.id, conn.id);
       channelWithNearestEdgeRouter._connections._saveConnection(conn);
       conn.channel = channelWithNearestEdgeRouter;
