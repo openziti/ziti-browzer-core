@@ -1,3 +1,12 @@
+## [0.16.11](https://github.com/openziti/ziti-browzer-core/compare/v0.16.10...v0.16.11) (2022-10-18)
+
+
+### Bug Fixes
+
+* channel/ws close handling ([#77](https://github.com/openziti/ziti-browzer-core/issues/77)) ([0c54a95](https://github.com/openziti/ziti-browzer-core/commit/0c54a9536f272633c2b3fa45fafb2ba4602551b6))
+
+
+
 ## [0.16.10](https://github.com/openziti/ziti-browzer-core/compare/v0.16.9...v0.16.10) (2022-09-13)
 
 
