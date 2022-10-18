@@ -889,6 +889,8 @@ class ZitiChannel {
    */
   async _recvClose(data) {
 
+    this._zitiContext.logger.warn('channel._recvClose -> ER[%s]', this._edgeRouterHost);
+
     this._zitiContext.closeChannelByEdgeRouter( this._edgeRouterHost );
 
   }

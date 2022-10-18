@@ -1232,6 +1232,30 @@ class ZitiContext {
     return ch;
   }
  
+
+  /**
+   * 
+   */
+  findChannelByEdgeRouter(edgeRouter) {
+
+    throwIf(isUndefined(edgeRouter), 'edgeRouter not specified');
+
+    let result = {};
+
+    find(Array.from(this._channels), function(obj) {
+      if (isEqual( obj[1]._edgeRouterHost, edgeRouter )) {
+        result.key = obj[0];
+        result.ch = obj[1];
+        return true;
+      }
+    });
+  
+    return result;
+  }
+
+  activeChannelCount() {
+    return this._channels.size;
+  }
  
 
  /**
@@ -1533,8 +1557,12 @@ class ZitiContext {
  
 
   closeChannelByEdgeRouter( edgeRouter ) {
-    this._channels.delete( edgeRouter );  
-    this._channelsById.delete( edgeRouter.id );  
+    let result = this.findChannelByEdgeRouter(edgeRouter);
+    if (result.key && result.ch) {
+      this._channels.delete( result.key );  
+      this._channelsById.delete( result.ch.id );
+      this.logger.warn('channel [%s] id[%d] deleted', result.key, result.ch.id);
+    }
   }
   
   closeAllChannels() {
