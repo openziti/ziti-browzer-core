@@ -1,3 +1,12 @@
+## [0.16.12](https://github.com/openziti/ziti-browzer-core/compare/v0.16.11...v0.16.12) (2022-10-31)
+
+
+### Bug Fixes
+
+* correct a regex scope ([#78](https://github.com/openziti/ziti-browzer-core/issues/78)) ([f3b548f](https://github.com/openziti/ziti-browzer-core/commit/f3b548fe63d63c90ea5be69eab06ecb3e4deac4e))
+
+
+
 ## [0.16.11](https://github.com/openziti/ziti-browzer-core/compare/v0.16.10...v0.16.11) (2022-10-18)
 
 
