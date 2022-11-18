@@ -1032,10 +1032,10 @@
     portfinder "^1.0.21"
     request "^2.88.0"
 
-"@openziti/libcrypto-js@^0.9.0":
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/@openziti/libcrypto-js/-/libcrypto-js-0.9.0.tgz#db883c420a701e3f87ab4e43a7587469d16004b1"
-  integrity sha512-Ol1mKt8/4CsoiR2l2h0eVFfHvONuCbv4qf2ep6DKYH2vEO+KhAuqP6SVn3ElaMec/5UKc4MDZvk2TdlbXpOKWg==
+"@openziti/libcrypto-js@^0.10.0":
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/@openziti/libcrypto-js/-/libcrypto-js-0.10.0.tgz#e5565f4081304d61faa248ddf887d94d996b1d75"
+  integrity sha512-WXm5srDZSp/aHG+APMQ8tL4d/sPpiC5dA92SvE6g3AzdS9yAwWujIlmg/TBNhuaPGt889CdNXUY7YMcU1Kn5PQ==
   dependencies:
     "@types/emscripten" "^1.39.6"
     "@wasmer/wasi" "^1.0.2"
