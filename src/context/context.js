@@ -20,6 +20,7 @@ limitations under the License.
 
 import { PassThrough } from '../http/readable-stream/_stream_passthrough';
 import Cookies from 'js-cookie';
+import { Buffer } from 'buffer/';
 
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
@@ -1648,7 +1649,14 @@ class ZitiContext {
   
           }
           else {
-            req.write( options.body );
+            let buffer;
+            if (options.body.arrayBuffer) {
+              let ab = await options.body.arrayBuffer();
+              buffer = new Buffer(ab)
+            } else {
+              buffer = options.body;
+            }
+            req.write( buffer );
           }
         }
   
