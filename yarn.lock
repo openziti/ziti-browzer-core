@@ -1040,10 +1040,10 @@
     "@types/emscripten" "^1.39.6"
     "@wasmer/wasi" "^1.0.2"
 
-"@openziti/ziti-browzer-edge-client@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.2.0.tgz#9f414de6db431fc4978ae937cdf24295afe8b892"
-  integrity sha512-KBKgA/VkLXVjIlgRre67dpnTF8qJcCjWJySxYX2KhU1tvFNWAb7UXdoFJDy7RoVs65cxo8vfSEco/tmDLs2BGA==
+"@openziti/ziti-browzer-edge-client@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@openziti/ziti-browzer-edge-client/-/ziti-browzer-edge-client-0.6.0.tgz#789993e3772654c14ff613d6757909e3ded41aa2"
+  integrity sha512-ZsIIxxtqaf+HoIF92mLXR9x4tUnZmkqsY0Yqqw+0hsjfy/KaSZvuee9VLySkr0FKxPnpQtslFlZjrvxgJs80vA==
   dependencies:
     superagent "^7.1.3"
 
