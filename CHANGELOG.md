@@ -1,3 +1,12 @@
+## [0.16.13](https://github.com/openziti/ziti-browzer-core/compare/v0.16.12...v0.16.13) (2022-11-18)
+
+
+### Bug Fixes
+
+* better response Body.buffer handling ([#80](https://github.com/openziti/ziti-browzer-core/issues/80)) ([21a1859](https://github.com/openziti/ziti-browzer-core/commit/21a1859708d16949f480661bee438acb23758cb5))
+
+
+
 ## [0.16.12](https://github.com/openziti/ziti-browzer-core/compare/v0.16.11...v0.16.12) (2022-10-31)
 
 
