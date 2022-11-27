@@ -19,6 +19,7 @@ limitations under the License.
  */
 
 import { PassThrough } from '../http/readable-stream/_stream_passthrough';
+import memoize from 'fast-memoize';
 import Cookies from 'js-cookie';
 import { Buffer } from 'buffer/';
 
@@ -1019,30 +1020,42 @@ class ZitiContext {
    * 
    */
   async getNetworkSessionByServiceId(serviceID) {
+
+    let self = this;
+
+    async function _getNetworkSessionByServiceId(serviceID) {
    
-    await this._getNetworkSessionByServiceIdMutex.runExclusive(async () => {
-
-      // if we do NOT have a NetworkSession for this serviceId, then create it
-      if (!this._network_sessions.has(serviceID)) {
-
-        let network_session = await this.createNetworkSession(serviceID)
-        .catch((error) => {
-          this.logger.error(error);
-          throw error;
-        });
-
-        this.logger.debug('getNetworkSessionByServiceId() Created new network_session [%o] ', network_session);
+      await self._getNetworkSessionByServiceIdMutex.runExclusive(async () => {
   
-        this._network_sessions.set(serviceID, network_session);
-      }
+        // if we do NOT have a NetworkSession for this serviceId, then create it
+        if (!self._network_sessions.has(serviceID)) {
+  
+          let network_session = await self.createNetworkSession(serviceID)
+          .catch((error) => {
+            self.logger.error(error);
+            throw error;
+          });
+  
+          self.logger.debug('getNetworkSessionByServiceId() Created new network_session [%o] ', network_session);
     
-    });
+          self._network_sessions.set(serviceID, network_session);
+        }
+      
+      });
+  
+      let netSess = self._network_sessions.get(serviceID);
+  
+      self.logger.debug('getNetworkSessionByServiceId() returning network_session [%o] ', netSess);
+  
+      return netSess;
+    }
+  
+    if (isUndefined( this.memoized_getNetworkSessionByServiceId )) {
+      this.memoized_getNetworkSessionByServiceId = memoize(_getNetworkSessionByServiceId);
+    }
 
-    let netSess = this._network_sessions.get(serviceID);
+    return this.memoized_getNetworkSessionByServiceId(serviceID);
 
-    this.logger.debug('getNetworkSessionByServiceId() returning network_session [%o] ', netSess);
-
-    return netSess;
   }
 
 
@@ -1332,35 +1345,47 @@ class ZitiContext {
   * @param {*} url
   */
   async shouldRouteOverZiti(url) {
+
+    let self = this;
+
+    async function _shouldRouteOverZiti(url) {
    
-    this.logger.debug('shouldRouteOverZiti() entered for url[%o]', url);  
-
-    let parsedURL = new URL(url);
- 
-    let hostname = parsedURL.hostname;
-    let port = parsedURL.port;
+      self.logger.debug('shouldRouteOverZiti() entered for url[%o]', url);  
   
-    if (port === '') {
-      if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
-        port = 443;
-      } else {
-        port = 80;
-      }
-    }
+      let parsedURL = new URL(url);
+   
+      let hostname = parsedURL.hostname;
+      let port = parsedURL.port;
     
-    let serviceName = await this.getServiceNameByHostNameAndPort(hostname, port).catch(( error ) => {
-      throw new Error( error );
-    });
-
-    if (isUndefined(serviceName)) {
-
-      serviceName = await this.getServiceNameByHostName(hostname).catch(( error ) => {
+      if (port === '') {
+        if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
+          port = 443;
+        } else {
+          port = 80;
+        }
+      }
+      
+      let serviceName = await self.getServiceNameByHostNameAndPort(hostname, port).catch(( error ) => {
         throw new Error( error );
       });
   
+      if (isUndefined(serviceName)) {
+  
+        serviceName = await self.getServiceNameByHostName(hostname).catch(( error ) => {
+          throw new Error( error );
+        });
+    
+      }
+    
+      return serviceName;
+     
     }
   
-    return serviceName;
+    if (isUndefined( this.memoized_shouldRouteOverZiti )) {
+      this.memoized_shouldRouteOverZiti = memoize(_shouldRouteOverZiti);
+    }
+
+    return this.memoized_shouldRouteOverZiti(url);
    
   }
 
@@ -1373,23 +1398,34 @@ class ZitiContext {
    */
    async getServiceNameByHostName(hostname) {
 
-    await this._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
-      if (isEqual( this.services.size, 0 )) {
-        await this.fetchServices().catch((error) => {
-          throw new Error(error);
-        });
-      }
-    });
+    let self = this;
 
-    let serviceName = result(find(this._services, function(obj) {
+    async function _getServiceNameByHostName(hostname) {
 
-      if (isEqual( obj.name, hostname )) {
-        return true;
-      }
+      await self._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
+        if (isEqual( self.services.size, 0 )) {
+          await self.fetchServices().catch((error) => {
+            throw new Error(error);
+          });
+        }
+      });
+  
+      let serviceName = result(find(self._services, function(obj) {
+  
+        if (isEqual( obj.name, hostname )) {
+          return true;
+        }
+  
+      }), 'name');
+  
+      return serviceName;
+    }
 
-    }), 'name');
+    if (isUndefined( this.memoized_getServiceNameByHostName )) {
+      this.memoized_getServiceNameByHostName = memoize(_getServiceNameByHostName);
+    }
 
-    return serviceName;
+    return this.memoized_getServiceNameByHostName(hostname);
   }
 
 
@@ -1401,31 +1437,40 @@ class ZitiContext {
    */
   async getServiceNameByHostNameAndPort(hostname, port) {
 
-    if (typeof port === 'string') {
-      port = parseInt(port, 10);
-    }
-
-    await this._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
-      if (isEqual( this.services.size, 0 )) {
-        await this.fetchServices().catch((error) => {
-          throw new Error(error);
-        });
-      }
-    });
-
     let self = this;
 
-    let serviceName = result(find(this._services, function(obj) {
+    async function _getServiceNameByHostNameAndPort(hostname, port) {
 
-      if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
-        return true;
+      if (typeof port === 'string') {
+        port = parseInt(port, 10);
       }
+  
+      await self._getServiceNameByHostNameAndPortMutex.runExclusive(async () => {
+        if (isEqual( self.services.size, 0 )) {
+          await self.fetchServices().catch((error) => {
+            throw new Error(error);
+          });
+        }
+      });
+    
+      let serviceName = result(find(self._services, function(obj) {
+  
+        if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
+          return true;
+        }
+  
+        return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+  
+      }), 'name');
+  
+      return serviceName;
+    }
+  
+    if (isUndefined( this.memoized_getServiceNameByHostNameAndPort )) {
+      this.memoized_getServiceNameByHostNameAndPort = memoize(_getServiceNameByHostNameAndPort);
+    }
 
-      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
-
-    }), 'name');
-
-    return serviceName;
+    return this.memoized_getServiceNameByHostNameAndPort(hostname, port);
   }
 
 
