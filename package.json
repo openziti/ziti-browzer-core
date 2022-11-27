@@ -66,6 +66,7 @@
     "bufferutil": "^4.0.6",
     "chnl": "^1.2.0",
     "events": "^3.3.0",
+    "fast-memoize": "^2.5.2",
     "format-message": "^6.2.4",
     "from2": "^2.3.0",
     "js-cookie": "^3.0.1",
