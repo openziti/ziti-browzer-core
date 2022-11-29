@@ -1,3 +1,12 @@
+## [0.17.1](https://github.com/openziti/ziti-browzer-core/compare/v0.17.0...v0.17.1) (2022-11-29)
+
+
+### Bug Fixes
+
+* handle array of 'Set-Cookie' headers ([#82](https://github.com/openziti/ziti-browzer-core/issues/82)) ([5bdf688](https://github.com/openziti/ziti-browzer-core/commit/5bdf688bd805de75704645f01d197294d0d7bf63))
+
+
+
 # [0.17.0](https://github.com/openziti/ziti-browzer-core/compare/v0.16.13...v0.17.0) (2022-11-27)
 
 
