@@ -273,9 +273,11 @@ HttpHeaders.prototype.set = function(name, value) {
 HttpHeaders.prototype.append = function(name, value) {
 	name = `${name}`;
 	// name = name.toLowerCase();
-	value = `${value}`;
-	validateName(name);
-	validateValue(value);
+	if (!Array.isArray(value)) {
+		value = `${value}`;
+		validateName(name);
+		validateValue(value);
+	}
 	const key = find(this[MAP], name);
 	if (key !== undefined) {
 		this[MAP][key].push(value);
