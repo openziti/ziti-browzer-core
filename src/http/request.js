@@ -127,6 +127,7 @@ limitations under the License.
  
 	 this[INTERNALS] = {
 		 serviceName,
+		 serviceScheme: init.serviceScheme || 'http',
 		 conn,
 		 method,
 		 redirect: init.redirect || input.redirect || 'follow',
@@ -164,7 +165,11 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
  ZitiHttpRequest.prototype.getServiceName = function() {
 	 return this[INTERNALS].serviceName;
  }
- 
+
+ ZitiHttpRequest.prototype.getServiceScheme = function() {
+	return this[INTERNALS].serviceScheme;
+}
+
  ZitiHttpRequest.prototype.getConn = function() {
 	 return this[INTERNALS].conn;
  }
@@ -218,11 +223,11 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
 		 throw new Error('Only HTTP(S) protocols are supported');
 	 }
  
-	 if ((parsedURL.port !== '') && (parsedURL.port !== '80')) {
-		 headers.set('Host', parsedURL.hostname + ":" + parsedURL.port);
-	 } else {
-		 headers.set('Host', parsedURL.hostname);
-	 }
+	//  if ((parsedURL.port !== '') && (parsedURL.port !== '80')) {
+	// 	 headers.set('Host', parsedURL.hostname + ":" + parsedURL.port);
+	//  } else {
+	// 	 headers.set('Host', parsedURL.hostname);
+	//  }
  
 	 let cookieObject = {};
  
@@ -316,6 +321,7 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
 	 let obj = Object.assign({}, {
 		zitiContext: this.getZitiContext(),
 		serviceName: this.getServiceName(),
+		serviceScheme: this.getServiceScheme(),
 		conn: this.getConn(),
 		method: this.getMethod(),
 		headers: headers,

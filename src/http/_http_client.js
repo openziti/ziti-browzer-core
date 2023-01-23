@@ -46,6 +46,7 @@ function urlToOptions(url) {
   const options = {
     zitiContext: url.zitiContext,
     serviceName: url.serviceName,
+    serviceScheme: url.serviceScheme,
     conn: url.conn,
     protocol: url.protocol,
     hostname: typeof url.hostname === 'string' && url.hostname.startsWith('[') ?

@@ -221,10 +221,10 @@ function ZitiXMLZitiHttpRequest () {
 
     let headers;
     
-    if (typeof self.response === "Response") {
-      headers = self.response.headers.entries();
-    } else if (typeof self.response === "HttpResponse") {
-      headers = self.response.headers().entries();
+    if (typeof response === "Response") {
+      headers = response.headers.entries();
+    } else if (typeof response === "HttpResponse") {
+      headers = response.headers().entries();
     }
 
     var result = "";

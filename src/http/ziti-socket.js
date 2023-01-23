@@ -128,17 +128,23 @@ class ZitiSocket extends EventEmitter {
      */
     captureResponseData(conn, data) {
 
-        conn.zitiContext.logger.trace("captureResponseData() <- conn[%d], dataLen: [%o]", conn.id, data.byteLength);
-        conn.zitiContext.logger.trace("captureResponseData() <- conn[%d], (string)data: [%s]", conn.id, Buffer.from(data, 'utf8'));
+        conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d], dataLen: [%o]", conn.id, data.byteLength);
+        conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d], (string)data: [%s]", conn.id, Buffer.from(data, 'utf8'));
 
         let zitiSocket = conn.socket;
 
-        // conn.zitiContext.logger.trace("captureResponseData() <- zitiSocket: [%o]", zitiSocket);
-
-        if (data.byteLength > 0) {
-            zitiSocket.emit('data', data);
+        // If we have an innerTLSsocket, then we need to pass it the data 
+        // so it can be decrypted according to the handshake that was done with
+        // the connected service (i.e. web server listening on TLS)
+        if (!isUndefined(zitiSocket.innerTLSSocket)) {
+            // zitiSocket.innerTLSSocket.captureResponseData(conn, data);
+            zitiSocket.innerTLSSocket.process(data);
         } else {
-            zitiSocket.emit('close', data);
+            if (data.byteLength > 0) {
+                zitiSocket.emit('data', data);
+            } else {
+                zitiSocket.emit('close', data);
+            }
         }
     }
 
@@ -152,8 +158,9 @@ class ZitiSocket extends EventEmitter {
         }
         else if (typeof opts.serviceName == 'string') {
             this.zitiConnection = this.zitiContext.newConnection(opts);
+            this.zitiConnection.socket = this;
             await this.zitiContext.dial(this.zitiConnection, opts.serviceName);
-            this.zitiContext.logger.debug("ZitiSocket: connect: dial(%s) on conn[%d] now complete", opts.serviceName, this.zitiConnection.id);
+            this.zitiContext.logger.debug("ZitiSocket.connect() dial(%s) on conn[%d] now complete", opts.serviceName, this.zitiConnection.id);
         } else {
             throw new Error('no serviceName or conn was provided');
         }
@@ -223,7 +230,14 @@ class ZitiSocket extends EventEmitter {
 
             const conn = await this.getZitiConnection().catch((e) => conn.zitiContext.logger.error('inside ziti-socket.js _write(), Error: ', e.message));
 
-            conn.channel.write(conn, buffer);
+            // If we have an innerTLSsocket, then we need to pass it the chunk 
+            // so it can be encrypted according to the handshake that was done with
+            // the connected service (i.e. web server listening on TLS)
+            if (!isUndefined(this.innerTLSSocket)) {
+                this.innerTLSSocket.write(conn, buffer);
+            } else {
+                conn.channel.write(conn, buffer);
+            }
 
         }
         if (cb) {
