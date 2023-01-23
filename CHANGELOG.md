@@ -1,3 +1,12 @@
+# [0.18.0](https://github.com/openziti/ziti-browzer-core/compare/v0.17.1...v0.18.0) (2023-01-23)
+
+
+### Features
+
+* phase-1 https service support ([#87](https://github.com/openziti/ziti-browzer-core/issues/87)) ([409e565](https://github.com/openziti/ziti-browzer-core/commit/409e565a3e398d6b4d47a768da8998222e1a4481))
+
+
+
 ## [0.17.1](https://github.com/openziti/ziti-browzer-core/compare/v0.17.0...v0.17.1) (2022-11-29)
 
 
