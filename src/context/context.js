@@ -37,13 +37,14 @@ import { ZitiFormData } from '../http/form-data';
 import { BrowserStdout } from '../http/browser-stdout';
 import { http } from '../http/http';
 import { ZitiWebSocketWrapperCtor } from '../http/ziti-websocket-wrapper-ctor';
+import { ZitiWASMFD } from './wasmFD';
 
 
 
 import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout} from 'async-mutex';
-import { isUndefined, isEqual, isNull, result, find, filter, has, minBy } from 'lodash-es';
+import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach } from 'lodash-es';
 
  
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
@@ -91,14 +92,16 @@ class ZitiContext {
     this._services = new Map();
     this._channels = new Map();
     this._channelsById = new Map();
+    this._wasmFDsById = new Map();
     
     /**
      * We start the channel id's at 10 so that they will be well above any 'fd'
      * used by traditional WebAssembly (i.e. stdin, stdout, stderr). In the WebAssembly
      * we have logic that watches for read/write operations to 'fd' values, and
-     * any that target a 'fd' above 10 will route the i/o to the appropriate ZitiChannel.
+     * any that target a 'fd' above 10 will route the i/o to the appropriate ZitiChannel|ZitiTLSSocket.
      */
     this._channelSeq = 10;
+    this._wasmFDSeq  = 10;
     
     this._connSeq = 0;
 
@@ -450,6 +453,7 @@ class ZitiContext {
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
     let sslContext = this._libCrypto.ssl_CTX_new();
+    this.logger.trace('ZitiContext.ssl_CTX_new() _libCrypto.ssl_CTX_new() returned [%o]', sslContext);
 
     await this.ssl_CTX_add_certificate(sslContext);
     this.ssl_CTX_add_private_key(sslContext);
@@ -526,7 +530,7 @@ class ZitiContext {
 
     if (isNull(bio)) throw Error("bio_new_ssl_connect create failure.");
 
-    this.logger.trace('ZitiContext.bio_new_ssl_connect() exiting');
+    this.logger.trace('ZitiContext.bio_new_ssl_connect() exiting, bio[%o]', bio);
 
     return bio;
   }
@@ -542,7 +546,7 @@ class ZitiContext {
 
     if (isNull(ssl)) throw Error("bio_get_ssl failure.");
 
-    this.logger.trace('ZitiContext.bio_get_ssl() exiting');
+    this.logger.trace('ZitiContext.bio_get_ssl() exiting, ssl[%o]', ssl);
 
     return ssl;
   }
@@ -1014,7 +1018,19 @@ class ZitiContext {
     this.logger.trace('service[%s] has encryptionRequired[%o]', name, encryptionRequired);
     return encryptionRequired;
   }
- 
+
+  
+  /**
+   * 
+   */
+   getServiceConfigByName (name) {
+    let config = result(find(this._services, function(obj) {
+      return obj.name === name;
+    }), 'config');
+    this.logger.trace('service[%s] has config[%o]', name, config);
+    return config;
+  }
+
  
   /**
    * 
@@ -1164,7 +1180,7 @@ class ZitiContext {
         });
         self.logger.debug('initiating Hello to [%s] for session[%s]', edgeRouter.urls.ws, conn.networkSessionToken);  
         pendingChannelConnects.push( 
-          ch.hello() 
+          ch.hello(conn) 
         );
 
         if (idx === array.length - 1) {
@@ -1246,6 +1262,20 @@ class ZitiContext {
     return ch;
   }
  
+  /**
+   * 
+   */
+  addWASMFD(socket) {
+
+    let wasmFD = new ZitiWASMFD({
+      id: this.getNextWASMFDId(),
+      socket: socket
+    });
+
+    this._wasmFDsById.set(wasmFD.id, wasmFD);
+
+    return wasmFD.id;
+  }
 
   /**
    * 
@@ -1389,6 +1419,37 @@ class ZitiContext {
    
   }
 
+ /**
+  * Determine if the given URL should be handled via CORS Proxy.
+  * 
+  */
+  shouldRouteOverCORSProxy(url) {
+
+    let parsedURL = new URL(url);
+  
+    let hostname = parsedURL.hostname;
+    let port = parseInt(parsedURL.port, 10);
+  
+    if (port === '') {
+      if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
+        port = 443;
+      } else {
+        port = 80;
+      }
+    }
+  
+    let corsHostsArray = window.zitiBrowzerRuntime.zitiConfig.httpAgent.corsProxy.hosts.split(',');
+  
+    let routeOverCORSProxy = false;
+    forEach(corsHostsArray, function( corsHost ) {
+      let corsHostSplit = corsHost.split(':');
+      if ((hostname === corsHostSplit[0]) && (port === parseInt(corsHostSplit[1], 10))) {
+        routeOverCORSProxy = true;
+      }
+    });
+    return routeOverCORSProxy;
+  }
+ 
 
   /**
    * 
@@ -1412,7 +1473,7 @@ class ZitiContext {
   
       let serviceName = result(find(self._services, function(obj) {
   
-        if (isEqual( obj.name, hostname )) {
+        if (isEqual( obj.name.toLowerCase(), hostname )) {
           return true;
         }
   
@@ -1601,6 +1662,13 @@ class ZitiContext {
     return this._channelSeq;
   }
  
+  /**
+   * 
+   */
+  getNextWASMFDId() {
+    this._wasmFDSeq++;
+    return this._wasmFDSeq;
+  }
 
   closeChannelByEdgeRouter( edgeRouter ) {
     let result = this.findChannelByEdgeRouter(edgeRouter);
@@ -1653,6 +1721,9 @@ class ZitiContext {
       let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
       let options = await request.getRequestOptions();
       // options.domProxyHit = domProxyHit;
+
+      let config = this.getServiceConfigByName (opts.serviceName);
+      // options.headers.set('Host', 'www.google.com');//TEMP
 
       let req;
 

@@ -58,6 +58,12 @@ const defaultOptions = {
    */
   edgeRouterHost: null,
 
+  /**
+   * See {@link Options.socket}
+   *
+   */
+  socket: null,
+
 };
 
 export {

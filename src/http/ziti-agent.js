@@ -16,6 +16,8 @@ limitations under the License.
 
 import url from 'url';
 import { ZitiSocket } from './ziti-socket';
+import { ZitiInnerTLSSocket } from './ziti-inner-tls-socket';
+import { isEqual, isUndefined } from 'lodash-es';
 
 
 
@@ -70,6 +72,7 @@ ZitiAgent.prototype.addRequest = function(req, host, port, localAddress) {
     // create the `ZitiSocket` instance
     const info = {
         serviceName: opts.serviceName,
+        serviceScheme: opts.serviceScheme,
         conn: opts.conn,
         host: opts.hostname || opts.host,
         port: Number(opts.port) || this.defaultPort,
@@ -91,16 +94,57 @@ ZitiAgent.prototype.addRequest = function(req, host, port, localAddress) {
 
 
 /**
- * Creates and returns a `ZitiSocket` instance to use for an HTTP request.
+ * Creates and returns a `ZitiSocket` instance to use for an HTTP request. If
+ * the serviceScheme is 'https', then the socket will also embed a `ZitiInnerTLSSocket` 
+ * instance to facilitate TLS traffic over/within the outer mTLS socket.
  *
  * @api public
  */
 
-ZitiAgent.prototype.createConnection = function(opts, deferredFn) {
+ZitiAgent.prototype.createConnection = async function(opts, deferredFn) {
+    opts.zitiContext.logger.trace(`ZitiAgent.createConnection(): entered serviceScheme=${opts.serviceScheme}`);
+
     this.deferredFn = deferredFn;
-    const onSocketConnect = () => {
+
+    function innerTLSSocketOnData(data) {  
+        let innerTLSSocket = this;
+        let uint8View = new Uint8Array(data);
+        innerTLSSocket.zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnData() emitting data to outer socket`);
+        innerTLSSocket.getOuterSocket().emit('data', uint8View);
+    }
+    function innerTLSSocketOnClose(data) {  
+        let innerTLSSocket = this;
+        innerTLSSocket.zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnClose() emitting data to outer socket`);
+        innerTLSSocket.getOuterSocket().emit('close', data);
+    }
+
+    /**
+     * When this function is called, the mTLS connection to the service has succeeded
+     */
+    const onSocketConnect = async () => {
+        this.proxy.zitiContext.logger.trace(`ZitiAgent.onSocketConnect(): entered`);
+
+        /**
+         * Also create the inner socket IF the service we are connecting to expects TLS traffic (i.e. web server listens on HTTPS).
+         */
+        if (isEqual(this.proxy.serviceScheme, 'https')) {
+
+            this.proxy.zitiContext.logger.trace(`ZitiAgent.onSocketConnect(): creating ZitiInnerTLSSocket`);
+
+            let innerTLSSocket = new ZitiInnerTLSSocket( this.proxy );
+            innerTLSSocket.setWASMFD(this.proxy.zitiContext.addWASMFD(innerTLSSocket));
+            innerTLSSocket.setOuterSocket(this.socket);
+            await innerTLSSocket.pullKeyPair();
+            this.socket.innerTLSSocket = innerTLSSocket;
+            await innerTLSSocket.create();
+            innerTLSSocket.on('data', innerTLSSocketOnData);
+            innerTLSSocket.on('close', innerTLSSocketOnClose);
+
+        }
+
         this.deferredFn(null, this.socket);
     };
+
     this.socket = new ZitiSocket( opts );
     this.socket.connect(opts);
     this.socket.once('connect', onSocketConnect);

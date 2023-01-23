@@ -30,9 +30,20 @@ class ZitiWebSocketWrapperCtor {
 
     // It is assumed that the ziti-browzer-runtime has already initialized before we get here
 
-    let ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
+    // We only want to intercept WebSockets that target the Ziti HTTP Agent
+    var regex = new RegExp( zitiBrowzerRuntime.zitiConfig.httpAgent.self.host, 'g' );
 
-    return ws;
+    if (address.match( regex )) { // the request is targeting the Ziti HTTP Agent
+
+      let ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
+
+      return ws;
+
+    } else {
+
+      return new window._ziti_realWebSocket(address, protocols, options);
+
+    }
 
   }
 }

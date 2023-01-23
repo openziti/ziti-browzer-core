@@ -200,10 +200,10 @@ class ZitiChannel {
     return new Promise((resolve) => {
       (function waitForTLSHandshakeComplete() {
         if (!self._tlsConn.connected) {
-          self._zitiContext.logger.trace('awaitTLSHandshakeComplete() tlsConn for ch[%d] TLS handshake still not complete', self.id);
+          self._zitiContext.logger.trace('ZitiChannel.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake still not complete', self._tlsConn.wasmFD);
           setTimeout(waitForTLSHandshakeComplete, 100);  
         } else {
-          self._zitiContext.logger.trace('tlsConn for ch[%d] TLS handshake is now complete', self.id);
+          self._zitiContext.logger.trace('ZitiChannel.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake is now complete', self._tlsConn.wasmFD);
           // TODO: investigate why this shows 'fail' when in fact it was 'success'
           // let result = self._tlsConn.ssl_get_verify_result();
           // if (result !== 1) {
@@ -219,7 +219,7 @@ class ZitiChannel {
    * Do Hello handshake between this channel and associated Edge Router.
    * 
    */
-  async hello() {
+  async hello(conn) {
 
     this._zitiContext.logger.trace('ZitiChannel.hello entered for ch[%o]', this);
 
@@ -249,8 +249,11 @@ class ZitiChannel {
         zitiContext: this._zitiContext,
         ws: this._zws,
         ch: this,
-        datacb: this._recvFromWireAfterDecrypt
+        datacb: this._recvFromWireAfterDecrypt,
+        socket: conn.socket
       });
+      this._tlsConn.setWASMFD(this._zitiContext.addWASMFD(this._tlsConn));
+
       await this._tlsConn.pullKeyPair();
   
       await this._tlsConn.create();
@@ -716,49 +719,87 @@ class ZitiChannel {
 
     let dataToMarshal = body;
 
-    if (contentType != ZitiEdgeProtocol.content_type.HelloType) {
+    this._zitiContext.logger.trace("_sendMarshaled -> dataToMarshal[%o] ", dataToMarshal);
 
-      let connId;
-      forEach(headers, function(header) {
-        if (header.getId() == ZitiEdgeProtocol.header_id.ConnId) {
-          connId = header.getData();
+    let doSodiumEncryption = true;
+    let doMarshalMessage = true;
+
+    if (this._tlsConn._socket.innerTLSSocket) {
+      this._zitiContext.logger.trace("_sendMarshaled -> innerTLSSocket._connected[%o] ", this._tlsConn._socket.innerTLSSocket._connected);
+      this._zitiContext.logger.trace("_sendMarshaled -> innerTLSSocket._sendingEncryptedData[%o] ", this._tlsConn._socket.innerTLSSocket._sendingEncryptedData);
+      if (this._tlsConn._socket.innerTLSSocket._connected) {
+        doSodiumEncryption = false;   // assume innerTLSSocket hasn't yet done its TLS encryption of the message data
+        doMarshalMessage = false;   // assume innerTLSSocket hasn't yet done its TLS encryption of the message data
+        this._zitiContext.logger.trace(`_sendMarshaled 1 doSodiumEncryption ${doSodiumEncryption}`);
+        if (!isUndefined(this._tlsConn._socket.innerTLSSocket._sendingEncryptedData)) {
+          if (this._tlsConn._socket.innerTLSSocket._sendingEncryptedData) {
+            doSodiumEncryption = true;  // now that innerTLSSocket has done its TLS encryption of the data, allow the sodium encryption to wrap it
+            doMarshalMessage = true;  // now that innerTLSSocket has done its TLS encryption of the data, ensure we marshal the data for xmit to ER
+            this._zitiContext.logger.trace(`_sendMarshaled 2 doSodiumEncryption ${doSodiumEncryption}`);
+          }
         }
-      });
-      throwIf(isUndefined(connId), formatMessage('Cannot find ConnId header', { } ) );
-
-      let conn = this._connections._getConnection(connId);
-      throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
-
-      if (conn.encrypted && conn.cryptoEstablishComplete) {  // if connected to a service that has 'encryptionRequired'
-
-        let [state_out, header] = [conn.crypt_o.state, conn.crypt_o.header];
-
-        let encryptedData = sodium.crypto_secretstream_xchacha20poly1305_push(
-          state_out,
-          body,
-          null,
-          sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE);
-
-        dataToMarshal = encryptedData;
       }
     }
 
-    const wireData = this._marshalMessage(contentType, headers, dataToMarshal, options, messageId);
-    this._zitiContext.logger.trace("_sendMarshaled -> wireDataLen[%o] ", wireData.byteLength);
-
-    this._dumpHeaders(' -> ', wireData);
-
-    // Inject the listener if specified
-    if (options.listener !== undefined) {
-      this._zws.onMessage.addOnceListener(options.listener, this);
+    if (contentType != ZitiEdgeProtocol.content_type.Data) {
+      doMarshalMessage = true;  // we always marshal non-Data msgs
     }
 
-    // If connected to a WS edge router
-    if (isEqual(this._callerId, "ws:")) {
-      this._tlsConn.tls_write(wireData);
+    if (doMarshalMessage) {
+
+      if (contentType != ZitiEdgeProtocol.content_type.HelloType) {
+
+        let connId;
+        forEach(headers, function(header) {
+          if (header.getId() == ZitiEdgeProtocol.header_id.ConnId) {
+            connId = header.getData();
+          }
+        });
+        throwIf(isUndefined(connId), formatMessage('Cannot find ConnId header', { } ) );
+
+        let conn = this._connections._getConnection(connId);
+        throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
+
+        if (conn.encrypted && conn.cryptoEstablishComplete && doSodiumEncryption) {  // if connected to a service that has 'encryptionRequired'
+
+          this._zitiContext.logger.trace("_sendMarshaled doing sodium encryption");
+
+          let [state_out, header] = [conn.crypt_o.state, conn.crypt_o.header];
+
+          let encryptedData = sodium.crypto_secretstream_xchacha20poly1305_push(
+            state_out,
+            body,
+            null,
+            sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE);
+
+          dataToMarshal = encryptedData;
+          this._zitiContext.logger.trace("_sendMarshaled -> encrypted dataToMarshal[%o] ", dataToMarshal);
+        }
+      }
+
+      const wireData = this._marshalMessage(contentType, headers, dataToMarshal, options, messageId);
+      this._zitiContext.logger.trace("_sendMarshaled -> wireDataLen[%o] ", wireData.byteLength);
+
+      this._dumpHeaders(' -> ', wireData);
+
+      // Inject the listener if specified
+      if (options.listener !== undefined) {
+        this._zws.onMessage.addOnceListener(options.listener, this);
+      }
+
+      // If connected to a WS edge router
+      if (isEqual(this._callerId, "ws:")) {
+        this._tlsConn.tls_write(wireData);
+      }
+      else {
+        this._zws.send(wireData);
+      }
     }
     else {
-      this._zws.send(wireData);
+
+      this._zitiContext.logger.trace("_sendMarshaled -> bypassing marshaling until innerTLSSocket completes encryption pass");
+
+      this._tlsConn.tls_write(body.buffer);
     }
   }
 
@@ -859,9 +900,9 @@ class ZitiChannel {
     }
     
     // Put it all together
-    this._zitiContext.logger.trace("_marshalMessage -> buffer_message_section Len[%o] ", buffer_message_section.byteLength);
-    this._zitiContext.logger.trace("_marshalMessage -> buffer_headers_section Len[%o] ", buffer_headers_section.byteLength);
-    this._zitiContext.logger.trace("_marshalMessage -> buffer_body_section Len[%o] ", buffer_body_section.byteLength);
+    // this._zitiContext.logger.trace("_marshalMessage -> buffer_message_section Len[%o] ", buffer_message_section.byteLength);
+    // this._zitiContext.logger.trace("_marshalMessage -> buffer_headers_section Len[%o] ", buffer_headers_section.byteLength);
+    // this._zitiContext.logger.trace("_marshalMessage -> buffer_body_section Len[%o] ", buffer_body_section.byteLength);
     let buffer_combined = appendBuffer(buffer_message_section, buffer_headers_section);
     buffer_combined = appendBuffer(buffer_combined, buffer_body_section);
     let view_combined = new Uint8Array(buffer_combined);
