@@ -1,3 +1,12 @@
+# [0.19.0](https://github.com/openziti/ziti-browzer-core/compare/v0.18.2...v0.19.0) (2023-03-30)
+
+
+### Features
+
+* more nested-TLS support; bump to libcrypto-js v0.13.0 ([#93](https://github.com/openziti/ziti-browzer-core/issues/93)) ([35b34fe](https://github.com/openziti/ziti-browzer-core/commit/35b34fef8947f0de19db2442bd53bfeec3778c84))
+
+
+
 ## [0.18.2](https://github.com/openziti/ziti-browzer-core/compare/v0.18.1...v0.18.2) (2023-03-02)
 
 
