@@ -109,13 +109,14 @@ ZitiAgent.prototype.createConnection = async function(opts, deferredFn) {
     function innerTLSSocketOnData(data) {  
         let innerTLSSocket = this;
         let uint8View = new Uint8Array(data);
-        innerTLSSocket.zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnData() emitting data to outer socket`);
+        innerTLSSocket._zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnData() emitting 'data' to outer socket`);
         innerTLSSocket.getOuterSocket().emit('data', uint8View);
     }
     function innerTLSSocketOnClose(data) {  
         let innerTLSSocket = this;
-        innerTLSSocket.zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnClose() emitting data to outer socket`);
+        innerTLSSocket._zitiContext.logger.trace(`ZitiAgent.innerTLSSocketOnClose() emitting 'close' to outer socket`);
         innerTLSSocket.getOuterSocket().emit('close', data);
+        innerTLSSocket.getOuterSocket().innerTLSSocket = undefined;
     }
 
     /**

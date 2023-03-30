@@ -23,9 +23,7 @@ import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './wasm-tls-connection-options'
 import { isUndefined, isNull } from 'lodash-es';
 import { v4 as uuidv4 } from 'uuid';
-// import { PassThrough } from '../http/readable-stream/_stream_passthrough';
-// import { Duplex } from '../http/readable-stream/_stream_duplex';
-// import { Transform } from '../http/readable-stream/_stream_transform';
+import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 
 
 
@@ -44,7 +42,6 @@ import { v4 as uuidv4 } from 'uuid';
     this._zitiContext = this._options.zitiContext;
 
     this._ws = this._options.ws;
-    this._socket = this._options.socket;
 
     this._ch = this._options.ch;
     this._id = this._ch.id;
@@ -69,6 +66,11 @@ import { v4 as uuidv4 } from 'uuid';
     this._writer = this._writable.getWriter();
     this._readerBuffer = null;
 
+    this._tlsReadLock = withTimeout(new Mutex(), 30 * 1000);
+    this._tlsReadLockRelease = null;
+
+    this._tlsProcessLock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on ZitiWASMTLSConnection._tlsProcessLock'));
+    this._tlsProcessLockRelease = null;
 
     // this._readableZitiStream = new ReadableStream({
     //   type: 'bytes',
@@ -230,17 +232,18 @@ import { v4 as uuidv4 } from 'uuid';
    * 
    */
   read_cb(self, buffer) {
-    self._zitiContext.logger.trace('ZitiWASMTLSConnection.read_cb(): clear data from the ER is ready  <--- len[%d]', buffer.byteLength);
+    self._zitiContext.logger.trace('ZitiWASMTLSConnection.read_cb[%d]: clear data from the ER is ready  <--- len[%d]', this.wasmFD, buffer.byteLength);
     self._datacb(self._ch, buffer); // propagate clear data to the waiting Promise
+    console.log('ZitiWASMTLSConnection._tlsProcessLock released');
+    this._tlsProcessLockRelease();
   }
 
   /**
    * 
    * @param {*} data 
    */
-  process(data) {
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.process() data from the ER arrived  <--- [%o]', data);
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.process() innerTLSSocket [%o]', this._socket.innerTLSSocket);
+  async process(data) {
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.process[%d] data from the ER arrived  <--- [%o]', this.wasmFD, data);
     
     // Push it into the stream that is read by fd_read
     // this._readableZitiStreamController.enqueue( new Uint8Array(data, 0) );
@@ -253,7 +256,11 @@ import { v4 as uuidv4 } from 'uuid';
       // Make sure WASM knows where to callback to once data is ready
       this._read_cb = this.read_cb;
 
-      let buffer = this._zitiContext.tls_read(this._SSL); // TLS-decrypt some data from the stream
+      console.log('ZitiWASMTLSConnection._tlsProcessLock attempting acquire');
+      this._tlsProcessLockRelease = await this._tlsProcessLock.acquire();
+      console.log('ZitiWASMTLSConnection._tlsProcessLock acquired');
+
+      let buffer = await this._zitiContext.tls_read(this._SSL); // TLS-decrypt some data from the stream
 
       // Note that execution returns here _before_ data is actually read from the stream
       if (!isNull(buffer)) {
@@ -278,26 +285,29 @@ import { v4 as uuidv4 } from 'uuid';
    * 
    * @param {*} wireData (not TLS-encrypted yet)
    */
-  tls_write(wireData) {
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write unencrypted data is ready to be sent to the ER  ---> [%o]', wireData);
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write _socket.innerTLSSocket [%o]', this._socket.innerTLSSocket);
+  tls_write(wireData, conn) {
+    this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write unencrypted data is ready to be sent to the ER  ---> len[${wireData.byteLength}]`);
         
-    // If we have an innerTLSsocket, and it has completed its TLS handshake
-    if (!isUndefined(this._socket.innerTLSSocket) && this._socket.innerTLSSocket._connected ) {
+    // If connection has an innerTLSsocket, and it has completed its TLS handshake
+    if (!isUndefined(conn) && !isUndefined(conn._socket.innerTLSSocket) && conn._socket.innerTLSSocket._connected ) {
       // If the innerTLSsocket has already encrypted the wireData...
-      if (this._socket.innerTLSSocket._sendingEncryptedData) {
+      if (conn._socket.innerTLSSocket._sendingEncryptedData) {
         // ...then pass it to the Channel
-        this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write sending encrypted wireData from innerTLSSocket to _zitiContext.tls_write');
-        this._socket.innerTLSSocket._sendingEncryptedData = false; // reset now that we're sending to outer socket
+        this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write sending encrypted wireData from innerTLSSocket to _zitiContext.tls_write`);
+        conn._socket.innerTLSSocket._sendingEncryptedData = false; // reset now that we're sending to outer socket
         this._zitiContext.tls_write(this._SSL, wireData);
       } else {
         // ...otherwise pass it to the innerTLSsocket so it can do the necessary TLS encryption according to the handshake that was completed with
         // the connected service (i.e. web server listening on TLS)
-        this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write sending un-encrypted wireData to innerTLSSocket.tls_write');
-        this._socket.innerTLSSocket.tls_write(wireData);
+        this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write sending un-encrypted wireData to innerTLSSocket.tls_write`);
+        conn._socket.innerTLSSocket.tls_write(wireData);
       }
     } else {
-      this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write no connected innerTLSSocket so sending un-encrypted wireData to _zitiContext.tls_write');
+      // if (!isUndefined(conn._socket.innerTLSSocket)) {
+      //   this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write[${this._id}][${conn._socket._id}] innerTLSSocket[${conn._socket.innerTLSSocket.wasmFD}] not yet connected, so sending un-encrypted wireData to _zitiContext.tls_write`);
+      // } else {
+      //   this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write[${this._id}][${conn._socket._id}] no innerTLSSocket so sending un-encrypted wireData to _zitiContext.tls_write`);
+      // }
       this._zitiContext.tls_write(this._SSL, wireData);
     }
   }
@@ -341,35 +351,35 @@ import { v4 as uuidv4 } from 'uuid';
     let targetLength = targetBuffer.byteLength;
     let targetBufferOffset = 0;
 
-    this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 1 targetLength[${targetLength}]`);
+    // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 1 targetLength[${targetLength}]`);
 
     while (targetBufferOffset < targetLength) {
 
-      this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 2 targetBufferOffset[${targetBufferOffset}] targetLength[${targetLength}]`);
+      // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 2 targetBufferOffset[${targetBufferOffset}] targetLength[${targetLength}]`);
 
       if (this._readerBuffer !== null) {
 
         let bytesCopied = this._readFromReaderBuffer(targetBuffer, targetBufferOffset, targetLength);
         this._readerBufferOffset += bytesCopied;
-        this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 3 _readerBuffer len [${this._readerBuffer.byteLength}] _readerBufferOffset [${this._readerBufferOffset}]`);
+        // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 3 _readerBuffer len [${this._readerBuffer.byteLength}] _readerBufferOffset [${this._readerBufferOffset}]`);
         targetBufferOffset += bytesCopied;
         if (this._readerBufferOffset === this._readerBuffer.byteLength) { // if we consumed everything
           this._readerBuffer = null;
-          this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 4 _readerBuffer reset to NULL`);
+          // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 4 _readerBuffer reset to NULL`);
         }
 
       } else {
 
-        this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 5 now doing await of this._reader.read()`);
+        // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 5 now doing await of this._reader.read()`);
         const { value: view, done } = await this._reader.read();
         this._readerBuffer = view.buffer;
         this._readerBufferOffset = 0;
-        this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 6 returned from await of this._reader.read(), this._readerBuffer.byteLength is [${this._readerBuffer.byteLength}]`);
+        // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 6 returned from await of this._reader.read(), this._readerBuffer.byteLength is [${this._readerBuffer.byteLength}]`);
       }
 
     }
 
-    this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 7 exiting`);
+    // this._zitiContext.logger.trace(`ZitiWASMTLSConnection._readInto[${this._id}]: 7 exiting`);
 
     return targetBuffer;
 
@@ -396,6 +406,18 @@ import { v4 as uuidv4 } from 'uuid';
     // return buffer;
   }
   
+  /**
+   * 
+   */
+  async acquireTLSReadLock() {
+    this._zitiContext.logger.trace(`ZitiWASMTLSConnection.acquireTLSReadLock() [${this.wasmFD}] trying to acquire _tlsReadLock`);
+    this._tlsReadLockRelease = await this._tlsReadLock.acquire();
+    this._zitiContext.logger.trace(`ZitiWASMTLSConnection.acquireTLSReadLock() [${this.wasmFD}] successfully acquired _tlsReadLock`);
+  }
+  releaseTLSReadLock() {
+      this._zitiContext.logger.trace(`ZitiWASMTLSConnection.releaseTLSReadLock() [${this.wasmFD}] releasing _tlsReadLock`);
+      this._tlsReadLockRelease();
+  }
 
 
 }

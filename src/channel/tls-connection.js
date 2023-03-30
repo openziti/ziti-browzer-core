@@ -124,7 +124,7 @@ import { v4 as uuidv4 } from 'uuid';
       },
 
       connected: function(connection) {
-        self._zitiContext.logger.debug('TLS handshake completed successfully');
+        self._zitiContext.logger.debug('TLS handshake complete');
 
         self._connected = true;
 
