@@ -342,7 +342,6 @@ class ZitiWebSocket {
   }
 
   _handleMessage(event) {
-    this._zitiContext.logger.debug('zws: _handleMessage: event[%o]', event);
     const data = this._options.extractMessageData(event);
     this._zitiContext.logger.debug('zws: _handleMessage: recv <- data[%o]', data);
     this._onMessage.dispatchAsync(data);

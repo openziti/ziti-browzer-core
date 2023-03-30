@@ -203,7 +203,7 @@ class ZitiChannel {
           self._zitiContext.logger.trace('ZitiChannel.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake still not complete', self._tlsConn.wasmFD);
           setTimeout(waitForTLSHandshakeComplete, 100);  
         } else {
-          self._zitiContext.logger.trace('ZitiChannel.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake is now complete', self._tlsConn.wasmFD);
+          self._zitiContext.logger.trace('ZitiChannel.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake complete', self._tlsConn.wasmFD);
           // TODO: investigate why this shows 'fail' when in fact it was 'success'
           // let result = self._tlsConn.ssl_get_verify_result();
           // if (result !== 1) {
@@ -219,7 +219,7 @@ class ZitiChannel {
    * Do Hello handshake between this channel and associated Edge Router.
    * 
    */
-  async hello(conn) {
+  async hello() {
 
     this._zitiContext.logger.trace('ZitiChannel.hello entered for ch[%o]', this);
 
@@ -249,8 +249,7 @@ class ZitiChannel {
         zitiContext: this._zitiContext,
         ws: this._zws,
         ch: this,
-        datacb: this._recvFromWireAfterDecrypt,
-        socket: conn.socket
+        datacb: this._recvFromWireAfterDecrypt
       });
       this._tlsConn.setWASMFD(this._zitiContext.addWASMFD(this._tlsConn));
 
@@ -264,7 +263,7 @@ class ZitiChannel {
 
       await this.awaitTLSHandshakeComplete();
 
-      this._zitiContext.logger.debug('TLS handshake completed');
+      this._zitiContext.logger.debug('TLS handshake complete');
 
     }
 
@@ -699,7 +698,8 @@ class ZitiChannel {
     this._zitiContext.logger.debug("send (no wait) -> conn[%o] seq[%o] contentType[%o] bodyLen[%o] ", 
       (options.conn ? options.conn.id : 'n/a'), 
       messageId, contentType, 
-      (body ? body.length : 'n/a'),
+      (body ? body.length : 'n/a')
+      ,
       (body ? body.toString() : 'n/a')
       );
 
@@ -719,22 +719,24 @@ class ZitiChannel {
 
     let dataToMarshal = body;
 
-    this._zitiContext.logger.trace("_sendMarshaled -> dataToMarshal[%o] ", dataToMarshal);
+    // this._zitiContext.logger.trace("_sendMarshaled -> dataToMarshal[%o] ", dataToMarshal);
 
     let doSodiumEncryption = true;
     let doMarshalMessage = true;
 
-    if (this._tlsConn._socket.innerTLSSocket) {
-      this._zitiContext.logger.trace("_sendMarshaled -> innerTLSSocket._connected[%o] ", this._tlsConn._socket.innerTLSSocket._connected);
-      this._zitiContext.logger.trace("_sendMarshaled -> innerTLSSocket._sendingEncryptedData[%o] ", this._tlsConn._socket.innerTLSSocket._sendingEncryptedData);
-      if (this._tlsConn._socket.innerTLSSocket._connected) {
+    let conn = options.conn;
+
+    if (!isUndefined(conn) && conn._socket.innerTLSSocket) {
+      this._zitiContext.logger.trace("_sendMarshaled -> conn._socket.innerTLSSocket._connected[%o] ", conn._socket.innerTLSSocket._connected);
+      this._zitiContext.logger.trace("_sendMarshaled -> conn._socket.innerTLSSocket._sendingEncryptedData[%o] ", conn._socket.innerTLSSocket._sendingEncryptedData);
+      if (conn._socket.innerTLSSocket._connected) {
         doSodiumEncryption = false;   // assume innerTLSSocket hasn't yet done its TLS encryption of the message data
-        doMarshalMessage = false;   // assume innerTLSSocket hasn't yet done its TLS encryption of the message data
+        doMarshalMessage = false;     // assume innerTLSSocket hasn't yet done its TLS encryption of the message data
         this._zitiContext.logger.trace(`_sendMarshaled 1 doSodiumEncryption ${doSodiumEncryption}`);
-        if (!isUndefined(this._tlsConn._socket.innerTLSSocket._sendingEncryptedData)) {
-          if (this._tlsConn._socket.innerTLSSocket._sendingEncryptedData) {
+        if (!isUndefined(conn._socket.innerTLSSocket._sendingEncryptedData)) {
+          if (conn._socket.innerTLSSocket._sendingEncryptedData) {
             doSodiumEncryption = true;  // now that innerTLSSocket has done its TLS encryption of the data, allow the sodium encryption to wrap it
-            doMarshalMessage = true;  // now that innerTLSSocket has done its TLS encryption of the data, ensure we marshal the data for xmit to ER
+            doMarshalMessage = true;    // now that innerTLSSocket has done its TLS encryption of the data, ensure we marshal the data for xmit to ER
             this._zitiContext.logger.trace(`_sendMarshaled 2 doSodiumEncryption ${doSodiumEncryption}`);
           }
         }
@@ -773,14 +775,14 @@ class ZitiChannel {
             sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE);
 
           dataToMarshal = encryptedData;
-          this._zitiContext.logger.trace("_sendMarshaled -> encrypted dataToMarshal[%o] ", dataToMarshal);
+          this._zitiContext.logger.trace("_sendMarshaled -> encrypted dataToMarshal len[%o] ", dataToMarshal.byteLength);
         }
       }
 
       const wireData = this._marshalMessage(contentType, headers, dataToMarshal, options, messageId);
       this._zitiContext.logger.trace("_sendMarshaled -> wireDataLen[%o] ", wireData.byteLength);
 
-      this._dumpHeaders(' -> ', wireData);
+      // this._dumpHeaders(' -> ', wireData);
 
       // Inject the listener if specified
       if (options.listener !== undefined) {
@@ -789,7 +791,7 @@ class ZitiChannel {
 
       // If connected to a WS edge router
       if (isEqual(this._callerId, "ws:")) {
-        this._tlsConn.tls_write(wireData);
+        this._tlsConn.tls_write(wireData, options.conn);
       }
       else {
         this._zws.send(wireData);
@@ -799,7 +801,7 @@ class ZitiChannel {
 
       this._zitiContext.logger.trace("_sendMarshaled -> bypassing marshaling until innerTLSSocket completes encryption pass");
 
-      this._tlsConn.tls_write(body.buffer);
+      this._tlsConn.tls_write(body.buffer, options.conn);
     }
   }
 
@@ -918,7 +920,7 @@ class ZitiChannel {
   async _recvSend(data) {
     if (!isUndefined(this._zws)) {
       if (!isNull(this._zws._ws)) {
-        this._zitiContext.logger.debug('_recvSend -> data[%o] sentLen[%o] bufferedLen[%o]', data, data.byteLength, this._zws._ws.bufferedAmount);
+        this._zitiContext.logger.debug('_recvSend -> sentLen[%o] bufferedLen[%o]', data.byteLength, this._zws._ws.bufferedAmount);
       }
     }
   }
@@ -944,7 +946,7 @@ class ZitiChannel {
   async _recvFromWire(data) {
     let buffer = await data.arrayBuffer();
     this._zitiContext.logger.debug("_recvFromWire <- data len[%o]", buffer.byteLength);
-    this._tlsConn.process(buffer);
+    await this._tlsConn.process(buffer);
   }
 
   /**
@@ -1015,7 +1017,7 @@ class ZitiChannel {
 
     this._zitiContext.logger.trace("recv <- contentType[%o] seq[%o] hdrLen[%o] bodyLen[%o]", contentType, responseSequence, headersLength, bodyLength);
 
-    this._dumpHeaders(' <- ', buffer);
+    // this._dumpHeaders(' <- ', buffer);
     var bodyView = new Uint8Array(buffer, 20 + headersLength);
 
     let connId;
@@ -1053,23 +1055,27 @@ class ZitiChannel {
       if (!isUndefined(result)) {
 
         replyForView = new DataView( result.data.buffer.slice(result.data.byteOffset, result.data.byteLength + result.data.byteOffset) );
-        responseSequence = replyForView.getInt32(0, true); // second parameter truethy == want little endian;
+        responseSequence = replyForView.getInt32(0, true); // second parameter truthy == want little endian;
         this._zitiContext.logger.trace("recv <- ReplyFor[%o]", responseSequence);
 
       } else {
 
         if ( isEqual(contentType, ZitiEdgeProtocol.content_type.Data) && isEqual(bodyLength, 0) ) {
 
-          let result = await this._messageGetBytesHeader(data, ZitiEdgeProtocol.header_id.SeqHeader);
-          replyForView = new Int32Array(result.data, 0, 1);
-          responseSequence = replyForView[0];
-          this._zitiContext.logger.trace("recv <- Close Response For [%o]", responseSequence);  
+          // let result = await this._messageGetBytesHeader(data, ZitiEdgeProtocol.header_id.SeqHeader);
+          // replyForView = new Int32Array(result.data, 0, 1);
+          // responseSequence = replyForView[0];
+          this._zitiContext.logger.trace("recv <- bodyLength of ZERO for [%o]", responseSequence);
+
+          // this._zitiContext.logger.trace("recv <- ReplyFor[%o]", 'n/a');  
+          responseSequence--;
+          // this._zitiContext.logger.trace("reducing seq by 1 to [%o]", responseSequence);
   
         } else {
 
-          this._zitiContext.logger.trace("recv <- ReplyFor[%o]", 'n/a');  
+          // this._zitiContext.logger.trace("recv <- ReplyFor[%o]", 'n/a');  
           responseSequence--;
-          this._zitiContext.logger.trace("reducing seq by 1 to [%o]", responseSequence);
+          // this._zitiContext.logger.trace("reducing seq by 1 to [%o]", responseSequence);
 
         }
       }

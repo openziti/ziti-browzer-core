@@ -43,7 +43,7 @@ import { ZitiWASMFD } from './wasmFD';
 
 import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
-import {Mutex, withTimeout} from 'async-mutex';
+import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach } from 'lodash-es';
 
  
@@ -93,6 +93,8 @@ class ZitiContext {
     this._channels = new Map();
     this._channelsById = new Map();
     this._wasmFDsById = new Map();
+    this._readLockBySSL = new Map();
+    this._tls_read_ctr = 0;
     
     /**
      * We start the channel id's at 10 so that they will be well above any 'fd'
@@ -111,6 +113,8 @@ class ZitiContext {
     this._isCertExpiredMutex = withTimeout(new Mutex(), 3 * 1000);
 
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
+
+    this._fetchSemaphore = new Semaphore( 8 );
 
     this._pkey = null;
     this._privateKeyPEM = null;
@@ -680,13 +684,32 @@ class ZitiContext {
   /**
    * 
    */
-  tls_read(ssl) {
+  async tls_read(ssl) {
 
-    this.logger.trace('ZitiContext.tls_read() entered');
+    let tls_read_ctr = this._tls_read_ctr++;
 
-    let result = this._libCrypto.tls_read(ssl);
+    this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] entered', ssl, tls_read_ctr);
 
-    this.logger.trace('ZitiContext.tls_read() exiting with: ', result);
+    // let lock = this._readLockBySSL.get(ssl);
+    // if (isUndefined( lock )) {
+    //   lock = withTimeout(new Mutex(), 3 * 1000);
+    //   this._readLockBySSL.set(ssl, lock);
+    //   this.logger.trace('ZitiContext.tls_read(%d) created new _tlsReadLock[%o]', ssl, lock);
+    // }
+
+    let result;
+
+    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] trying to acquire _tlsReadLock', ssl, tls_read_ctr);
+
+    // let release = await lock.acquire();
+
+    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] successfully acquired _tlsReadLock', ssl, tls_read_ctr);
+
+    result = await this._libCrypto.tls_read(ssl);
+  
+    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] now releasing _tlsReadLock', ssl, tls_read_ctr);
+
+    // release();
 
     return result;
   }
@@ -1023,12 +1046,34 @@ class ZitiContext {
   /**
    * 
    */
-   getServiceConfigByName (name) {
+   async getServiceConfigByName (name) {
+    if (isEqual( this.services.size, 0 )) {
+      await this.fetchServices();
+    }
     let config = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'config');
     this.logger.trace('service[%s] has config[%o]', name, config);
     return config;
+  }
+
+  /**
+   * 
+   */
+  async getConfigHostByServiceName (name) {
+    let config = await this.getServiceConfigByName(name);
+    let host = 'unknown';
+    if (isUndefined(config)) {
+      return host;
+    }
+    if (config['intercept.v1']) {
+      host = config['intercept.v1'].addresses[0];
+    } else {
+      if (config['ziti-tunneler-client.v1']) {
+        host = config['ziti-tunneler-client.v1'].hostname;
+      }
+    }
+    return host;
   }
 
  
@@ -1180,7 +1225,7 @@ class ZitiContext {
         });
         self.logger.debug('initiating Hello to [%s] for session[%s]', edgeRouter.urls.ws, conn.networkSessionToken);  
         pendingChannelConnects.push( 
-          ch.hello(conn) 
+          ch.hello() 
         );
 
         if (idx === array.length - 1) {
@@ -1704,13 +1749,19 @@ class ZitiContext {
   /**
    * 
    * @param {*} options 
-   * @returns Promise
+   * @returns Response
    */
    async httpFetch (url, opts) {
 
     let self = this;
 
-    return new Promise( async (resolve, reject) => {
+    const [value, release] = await self._fetchSemaphore.acquire();
+
+    let ret;
+
+    try {
+
+    let fetchPromise = new Promise( async (resolve, reject) => {
 
       /**
        * ------------ Now Routing over Ziti -----------------
@@ -1722,8 +1773,7 @@ class ZitiContext {
       let options = await request.getRequestOptions();
       // options.domProxyHit = domProxyHit;
 
-      let config = this.getServiceConfigByName (opts.serviceName);
-      // options.headers.set('Host', 'www.google.com');//TEMP
+      options.headers.set('Host', await this.getConfigHostByServiceName (opts.serviceName));
 
       let req;
 
@@ -1850,7 +1900,14 @@ class ZitiContext {
       });
   
     });
+
+    ret = await fetchPromise;
   
+    } finally {
+      release();
+    }
+
+    return ret;
   }
 
 }

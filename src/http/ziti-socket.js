@@ -18,6 +18,8 @@ import EventEmitter from 'events';
 import { isUndefined } from 'lodash-es';
 import { Buffer } from 'buffer';
 
+var zitiSocketCounter = 0;
+
 class ZitiSocket extends EventEmitter {
 
     constructor(opts) {
@@ -66,6 +68,11 @@ class ZitiSocket extends EventEmitter {
          * 
          */
         this._writable = false;
+
+        /**
+         * 
+         */
+        this._id = zitiSocketCounter++; // debugging
     }
 
 
@@ -189,7 +196,7 @@ class ZitiSocket extends EventEmitter {
 
 
     /**
-     * Returna a Promise that will resolve _only_ after a Ziti connection has been established for this instance of ZitiSocket.
+     * Returns a Promise that will resolve _only_ after a Ziti connection has been established for this instance of ZitiSocket.
      */
     getZitiConnection() {
         const self = this;
