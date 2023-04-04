@@ -1,3 +1,12 @@
+# [0.20.0](https://github.com/openziti/ziti-browzer-core/compare/v0.19.0...v0.20.0) (2023-04-04)
+
+
+### Features
+
+* emit idpAuthHealthEvent ([#94](https://github.com/openziti/ziti-browzer-core/issues/94)) ([50bed9d](https://github.com/openziti/ziti-browzer-core/commit/50bed9d66cff12be30d57d79fb6ba708788ddfd1))
+
+
+
 # [0.19.0](https://github.com/openziti/ziti-browzer-core/compare/v0.18.2...v0.19.0) (2023-03-30)
 
 
