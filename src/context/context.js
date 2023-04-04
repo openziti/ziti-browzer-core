@@ -45,6 +45,7 @@ import { LibCrypto, EVP_PKEY_EC, EVP_PKEY_RSA } from '@openziti/libcrypto-js'
 import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach } from 'lodash-es';
+import EventEmitter from 'events';
 
  
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
@@ -54,12 +55,14 @@ const EXPIRE_WINDOW = 2.0
 /**
  *    ZitiContext
  */
-class ZitiContext {
+class ZitiContext extends EventEmitter {
 
   /**
    * 
    */
   constructor(options) {
+
+    super();
 
     this._initialized = false;
 
@@ -903,24 +906,49 @@ class ZitiContext {
 
     self.logger.trace('ZitiContext.apiSessionHeartbeat(): response:', res);
 
+    let idpAuthHealthEvent = {
+      expired: false    // default is to assume JWT is NOT expired
+    };
+
     if (!isUndefined(res.error)) {
+
       self.logger.error(res.error.message);
-      throw new Error(res.error.message);
+
+      if (!isUndefined( self._apiSession )) {
+        self._apiSession.token = null;
+      }
+
+      idpAuthHealthEvent.expired = true;
+    
+    } else {
+
+      self._apiSession = res.data;
+      if (isUndefined( self._apiSession )) {
+        self.logger.warn('ZitiContext.apiSessionHeartbeat(): response contains no data:', res);
+        idpAuthHealthEvent.expired = true;
+      }
+
+      if (isUndefined( self._apiSession.token )) {
+        self.logger.warn('ZitiContext.apiSessionHeartbeat(): response contains no token:', res);
+        idpAuthHealthEvent.expired = true;
+      }
+
+      if (Array.isArray( res.data.authQueries )) {
+        forEach( res.data.authQueries, function( authQueryElement ) {
+          if (isEqual(authQueryElement.type, 'EXT-JWT')) {
+            idpAuthHealthEvent.expired = true;
+          }
+        });
+      }
+
+      // Set the token header on behalf of all subsequent Controller API calls
+      self._zitiBrowzerEdgeClient.setApiKey(self._apiSession.token, 'zt-session', false);
+
+      self.logger.trace('ZitiContext.apiSessionHeartbeat() exiting; token is: ', self._apiSession.token);
     }
 
-    self._apiSession = res.data;
-    if (isUndefined( self._apiSession )) {
-      throw new Error('response contains no data');
-    }
-
-    if (isUndefined( self._apiSession.token )) {
-      throw new Error('response contains no token');
-    }
-
-    // Set the token header on behalf of all subsequent Controller API calls
-    self._zitiBrowzerEdgeClient.setApiKey(self._apiSession.token, 'zt-session', false);
-
-    self.logger.trace('ZitiContext.apiSessionHeartbeat() exiting; token is: ', self._apiSession.token);
+    // Let any listeners know the current IdP Auth health status
+    self.emit('idpAuthHealthEvent', idpAuthHealthEvent);
 
     setTimeout(self.apiSessionHeartbeat, self.getApiSessionHeartbeatTime(), self );
 
