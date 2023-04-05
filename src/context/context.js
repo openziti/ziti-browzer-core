@@ -935,7 +935,7 @@ class ZitiContext extends EventEmitter {
 
       if (Array.isArray( res.data.authQueries )) {
         forEach( res.data.authQueries, function( authQueryElement ) {
-          if (isEqual(authQueryElement.type, 'EXT-JWT')) {
+          if (isEqual(authQueryElement.typeId, 'EXT-JWT')) {
             idpAuthHealthEvent.expired = true;
           }
         });
