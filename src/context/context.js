@@ -1101,6 +1101,16 @@ class ZitiContext extends EventEmitter {
         host = config['ziti-tunneler-client.v1'].hostname;
       }
     }
+    if (isEqual(host, 'unknown')) {
+      this.logger.warn('service[%s] has no config', name);
+
+      // Let any listeners know there are no configs associated with the given service,
+      // which is most likely a condition of a misconfigured network
+      this.emit('noConfigForServiceEvent', {
+        serviceName: name
+      });
+    }
+
     return host;
   }
 
@@ -1559,7 +1569,7 @@ class ZitiContext extends EventEmitter {
       this.memoized_getServiceNameByHostName = memoize(_getServiceNameByHostName);
     }
 
-    return this.memoized_getServiceNameByHostName(hostname);
+    return await this.memoized_getServiceNameByHostName(hostname);
   }
 
 
@@ -1604,7 +1614,7 @@ class ZitiContext extends EventEmitter {
       this.memoized_getServiceNameByHostNameAndPort = memoize(_getServiceNameByHostNameAndPort);
     }
 
-    return this.memoized_getServiceNameByHostNameAndPort(hostname, port);
+    return await this.memoized_getServiceNameByHostNameAndPort(hostname, port);
   }
 
 
@@ -1648,26 +1658,20 @@ class ZitiContext extends EventEmitter {
     if (isUndefined(config)) {
       return false;
     }
-    let foundAddress = result(find(config.addresses, function(address) {
-      if (address !== hostname) {
-        return false;
-      }
-      return true;  
-    }), 'name', 'default');
+    let foundAddress = find(config.addresses, function(address) {
+      return isEqual(address, hostname);  
+    });
 
-    if (!foundAddress || foundAddress === 'default') {
-      return false;
+    if (!foundAddress) {
+        return false;
     }
 
     if (!isNull(port)) {
-      let foundPort = result(find(config.portRanges, function(portRange) {
-        if ((port >= portRange.low) && (port <= portRange.high)) {
-          return true;
-        }
-        return false;  
-      }), 'name', 'default');
+      let foundPort = find(config.portRanges, function(portRange) {
+        return ((port >= portRange.low) && (port <= portRange.high));
+      });
 
-      if (!foundPort || foundPort === 'default') {
+      if (!foundPort) {
         return false;
       }
     }
