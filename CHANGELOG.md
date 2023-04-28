@@ -1,3 +1,12 @@
+## [0.20.2](https://github.com/openziti/ziti-browzer-core/compare/v0.20.1...v0.20.2) (2023-04-28)
+
+
+### Bug Fixes
+
+* add noConfigForServiceEvent; fix intercept-config lookup bug ([#96](https://github.com/openziti/ziti-browzer-core/issues/96)) ([39d1633](https://github.com/openziti/ziti-browzer-core/commit/39d163301b9b0fde0d112f675dd5d113f101e65b))
+
+
+
 ## [0.20.1](https://github.com/openziti/ziti-browzer-core/compare/v0.20.0...v0.20.1) (2023-04-05)
 
 
