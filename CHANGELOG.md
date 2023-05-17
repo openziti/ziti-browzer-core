@@ -1,3 +1,12 @@
+# [0.21.0](https://github.com/openziti/ziti-browzer-core/compare/v0.20.2...v0.21.0) (2023-05-17)
+
+
+### Features
+
+* TLSDataQueue ([#97](https://github.com/openziti/ziti-browzer-core/issues/97)) ([9a74989](https://github.com/openziti/ziti-browzer-core/commit/9a74989bb3392ae6fcfa2e9b2889d28bdf34fe51))
+
+
+
 ## [0.20.2](https://github.com/openziti/ziti-browzer-core/compare/v0.20.1...v0.20.2) (2023-04-28)
 
 
