@@ -941,7 +941,7 @@ class ZitiChannel {
   /**
    * Receives a message from the Edge Router.
    * 
-   * @param {*} data 
+   * @param {*} data //Blob
    */
   async _recvFromWire(data) {
     let buffer = await data.arrayBuffer();
@@ -976,6 +976,12 @@ class ZitiChannel {
     let msgLength = ( 20 + headersLength + bodyLength );
 
     if (isEqual(msgLength, buffer.byteLength)) {  // if entire edge message is present, proceed with unmarshaling effort
+
+      ch._partialMessage = undefined;
+      
+      ch._tryUnmarshal(buffer);
+
+    } else if (msgLength < buffer.byteLength) {  // if entire edge message is present, proceed with unmarshaling effort
 
       ch._partialMessage = undefined;
       
