@@ -150,6 +150,7 @@ class ZitiSocket extends EventEmitter {
             if (data.byteLength > 0) {
                 zitiSocket.emit('data', data);
             } else {
+                conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d] emitting 'close' event", conn.id);
                 zitiSocket.emit('close', data);
             }
         }

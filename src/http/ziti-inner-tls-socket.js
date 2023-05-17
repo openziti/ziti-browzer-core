@@ -25,7 +25,7 @@ class Queue {
       this.elements = {};
       this.head = 0;
       this.tail = 0;
-      this.mutex = withTimeout(new Mutex(), 1 * 1000);
+      this.mutex = withTimeout(new Mutex(), 1 * 1000, new Error('timeout on Queue mutex'));
     }
     async enqueue(element) {
         this.logger.trace(`Queue.enqueue() entered: `, element);
@@ -215,7 +215,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
             (function waitForTLSHandshakeComplete() {
                 if (!self._connected) {
                     self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake still not complete', self.wasmFD);
-                    setTimeout(waitForTLSHandshakeComplete, 100);  
+                    setTimeout(waitForTLSHandshakeComplete, 10);  
                 } else {
                     self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() wasmFD[%d] TLS handshake complete', self.wasmFD);
                     return resolve();
@@ -231,12 +231,16 @@ class ZitiInnerTLSSocket extends EventEmitter {
     handshake_cb(self, rc) {
         self._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake_cb(): entered rc=%d ', rc );
 
+        if (rc < 0) {
+            throw new Error(`TLS handshake failed for fd[${self.wasmFD}]`);
+        }
+
         // Let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
         // before we turn loose any writes to the connection
         setTimeout((tlsConn, rc) => {
             self._zitiContext.logger.trace("ZitiInnerTLSSocket.handshake_cb(): after timeout");
             self._connected = true;
-        }, 500, self, rc)
+        }, 5, self, rc)
     }
 
     /**
@@ -247,8 +251,9 @@ class ZitiInnerTLSSocket extends EventEmitter {
         // Make sure WASM knows where to callback to once handshake is complete
         this._connected_cb = this.handshake_cb;
 
+        this._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake(): fd[%d] calling ssl_do_handshake()', this.wasmFD );
         let result = this._zitiContext.ssl_do_handshake( this._SSL );
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake(): back from ssl_do_handshake() for %o:  result=%d (now awaiting cb)', this._id, result );
+        this._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake(): fd[%d] back from ssl_do_handshake() for %o:  result=%d (now awaiting cb)', this.wasmFD,  this._id, result );
     }
 
     /**
@@ -277,15 +282,8 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // Make sure WASM knows where to callback to once data is ready
                 self._read_cb = self.read_cb;
 
-                let buffer = self._zitiContext.tls_read(self._SSL); // TLS-decrypt some data from the stream
+                self._zitiContext.tls_read(self._SSL); // TLS-decrypt some data from the queue
 
-                conn._zitiContext.logger.trace("ZitiInnerTLSSocket.captureResponseData() <- tls_read (string)data: [%s]", buffer);
-
-                // Note that execution returns here _before_ data is actually read from the stream
-                if (!isNull(buffer)) {
-                    self._zitiContext.logger.trace('ZitiInnerTLSSocket.captureResponseData() clear data from the server is ready  <--- ' );
-                    self._datacb(self._ch, buffer); // propagate clear data to the waiting Promise
-                }
             } else {
                 conn._zitiContext.logger.trace("ZitiInnerTLSSocket.captureResponseData() handshake not yet completed [%d]", conn.id);
             }
@@ -357,17 +355,17 @@ class ZitiInnerTLSSocket extends EventEmitter {
     /**
      * 
      */
-    async fd_read( len ) {
-        this._fd_read_depth++;
-        // await this.acquireTLSReadLock();
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: entered with len [%o] _fd_read_depth[%d]', len, this._fd_read_depth);
-        let buffer = new ArrayBuffer( len );
-        buffer = await this._readInto( buffer );
-        this._fd_read_depth--;
-        // this.releaseTLSReadLock();
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: returning buffer [%o]', buffer);
-        return buffer;
-    }
+    // async fd_read( len ) {
+    //     this._fd_read_depth++;
+    //     // await this.acquireTLSReadLock();
+    //     this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: entered with len [%o] _fd_read_depth[%d]', len, this._fd_read_depth);
+    //     let buffer = new ArrayBuffer( len );
+    //     buffer = await this._readInto( buffer );
+    //     this._fd_read_depth--;
+    //     // this.releaseTLSReadLock();
+    //     this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: returning buffer [%o]', buffer);
+    //     return buffer;
+    // }
 
     // _readFromReaderBuffer(targetBuffer, targetStart, targetLength) {
     //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readFromReaderBuffer[${this.wasmFD}]: targetBuffer[${targetBuffer}] targetStart[${targetStart}] targetLength[${targetLength}]`);
@@ -493,66 +491,55 @@ class ZitiInnerTLSSocket extends EventEmitter {
      * 
      */
     read_cb(self, buffer) {
-        // If WASM passed an undefined buffer it means that there was a zero-length read from the socket, so just release the mutex
+        self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%o]', buffer);
+        // If WASM passed an undefined buffer it means that there was a zero-length read from the socket
         if (isUndefined(buffer)) {
-            console.log('ZitiInnerTLSSocket._tlsProcessLock released (zero-length read)');
-            this._tlsProcessLockRelease();
+            console.log('ZitiInnerTLSSocket.read_cb(): emitting "close"');
+            self.emit('close', buffer);
         } 
-        // Otherwise, emit the data to the listener, then release the mutex
+        // // Otherwise, emit the data to the listener
         else {
-            self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%o]', buffer);
-            self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%s]', String.fromCharCode.apply(null, new Uint8Array(buffer)));
+        //     // self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%o]', buffer);
+            self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): emitting "data" from outer socket  <--- [%s]', String.fromCharCode.apply(null, new Uint8Array(buffer)));
             self.emit('data', buffer);
-            console.log('ZitiInnerTLSSocket._tlsProcessLock released');
-            this._tlsProcessLockRelease();
         }
-    }
+        // this._tlsProcessLockRelease();
+    }    
 
 
     /**
      * 
-     * @param {*} data 
+     * @param {*} arrayBuffer // ArrayBuffer
      */
-    async process(data) {
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.process() data from outer socket arrived  <--- [%o]', data.byteLength);
-        
-        if (data.byteLength > 0) {
+    async process(arrayBuffer) {
+        this._zitiContext.logger.trace('ZitiInnerTLSSocket.process() fd[%d] encrypted data from outer socket arrived  <--- [%o]', this.wasmFD, arrayBuffer.byteLength);
 
-            // Push it into the stream that is read by fd_read
-            // this._readableZitiStreamController.enqueue( new Uint8Array(data, 0) );
-            this._writer.write( new Uint8Array(data, 0) );
+        if (arrayBuffer.byteLength === 0) {
+
+            // If the TLS handshake has completed, and we get a zero-length buffer...
+            if (this._connected) {
+                // ...then emit the 'close' event
+                this._zitiContext.logger.trace("ZitiInnerTLSSocket.process() fd[%d] emitting 'close' event", this.wasmFD);
+                this.emit('close', undefined);
+            }
+
+        } else {
+
+            await this._zitiContext.tls_enqueue(this.wasmFD, arrayBuffer); // enqueue the encrypted data
             
             // If the TLS handshake has completed, we'll need to do TLS-decrypt of the data, 
             // and then propagate it to the Promise that is waiting for it.
             if (this._connected) {
 
                 // Make sure WASM knows where to callback to once data is ready
-                this._read_cb = this.read_cb;
+                // this._read_cb = this.read_cb;
 
-                console.log('ZitiInnerTLSSocket._tlsProcessLock atempting acquire');
-                this._tlsProcessLockRelease = await this._tlsProcessLock.acquire();
-                console.log('ZitiInnerTLSSocket._tlsProcessLock acquired');
+                let decryptedData = this._zitiContext.tls_read(this._SSL); // TLS-decrypt some data from the queue
 
-                let buffer = await this._zitiContext.tls_read(this._SSL); // TLS-decrypt some data from the stream
-
-                // Note that execution returns here _before_ data is actually read from the stream
-                // if (!isNull(buffer)) {
-                //     this._zitiContext.logger.trace('ZitiInnerTLSSocket.process() clear data from the server is ready  <--- ' );
-                //     this._datacb(this._ch, buffer); // propagate clear data to the waiting Promise
-                // }
+                this._zitiContext.logger.trace('ZitiInnerTLSSocket.process[%d]: clear data from the outer socket is ready  <--- len[%d]', this.wasmFD, decryptedData.byteLength);
+                this._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): emitting "data" from outer socket  <--- [%s]', String.fromCharCode.apply(null, new Uint8Array(decryptedData)));
+                this.emit('data', decryptedData.buffer);
             }
-        } else {
-            //TEMP
-            if (this._connected) {
-                let buffer = new Buffer.alloc( 0 );
-                this.emit('data', buffer);
-                console.log('_tlsProcessLock.release from ZitiInnerTLSSocket.process()');
-                this._tlsProcessLockRelease();  
-            }
-    
-            // this.emit('close', data);
-            // this._connected_cb = null;
-            // this._connected = false;
         }
     }
 

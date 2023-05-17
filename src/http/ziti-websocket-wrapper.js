@@ -560,17 +560,12 @@ async function initAsClient(websocket, address, protocols, options) {
 
             opts.createConnection = zitiConnect;    // We're going over Ziti
 
-            newUrl.protocol = "http:";
-            opts.href = newUrl.protocol + '//' + newUrl.host.toLowerCase() + newUrl.pathname + newUrl.search;
-            opts.origin = "http://" + (websocket._zitiConfig.httpAgent.target.service).toLowerCase();
-            if (websocket._zitiConfig.httpAgent.target.port !== '80') {
-              if (websocket._zitiConfig.httpAgent.target.port === '443') {
-                opts.origin = "https://" + (websocket._zitiConfig.httpAgent.target.service).toLowerCase();
-              } else {
-                opts.origin += ":" + websocket._zitiConfig.httpAgent.target.port;
-              }
-            }
-            opts.host = websocket._zitiConfig.httpAgent.target.service + ":" + websocket._zitiConfig.httpAgent.target.port;
+            let configHostAndPort = await websocket._zitiContext.getConfigHostAndPortByServiceName (serviceName);
+
+            newUrl.protocol = websocket._zitiConfig.httpAgent.target.scheme + ":";
+            opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
+            opts.origin = websocket._zitiConfig.httpAgent.target.scheme + "://" + configHostAndPort.host.toLowerCase(); // + ":" + configHostAndPort.port;
+            opts.host = serviceName;
         }
 
     } else {  // the request is targeting the raw internet

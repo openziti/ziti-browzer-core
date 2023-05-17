@@ -96,8 +96,7 @@ class ZitiContext extends EventEmitter {
     this._channels = new Map();
     this._channelsById = new Map();
     this._wasmFDsById = new Map();
-    this._readLockBySSL = new Map();
-    this._tls_read_ctr = 0;
+    this._lockByFD = new Map();
     
     /**
      * We start the channel id's at 10 so that they will be well above any 'fd'
@@ -117,6 +116,7 @@ class ZitiContext extends EventEmitter {
 
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
 
+    // this._fetchSemaphore = new Semaphore( 8 );
     this._fetchSemaphore = new Semaphore( 8 );
 
     this._pkey = null;
@@ -672,12 +672,51 @@ class ZitiContext extends EventEmitter {
 
   /**
    * 
+   * @param {*} wasmFD      // id of socket
+   * @param {*} arrayBuffer // ArrayBuffer
    */
-   tls_write(ssl, wireData) {
+  async tls_enqueue(wasmFD, arrayBuffer) {
+
+    this.logger.trace('ZitiContext.tls_enqueue(%d) [%o] entered', wasmFD, arrayBuffer);
+
+    // let lock = this._lockByFD.get( wasmFD );
+    // if (isUndefined(lock)) {
+    //   lock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on _lockByFD'));
+    //   this._lockByFD.set(wasmFD, lock);
+    // }
+
+    // this.logger.trace('ZitiContext.tls_enqueue() attempting to acquire _lockByFD [%o]', wasmFD);
+    // const release = await lock.acquire();
+    // this.logger.trace('ZitiContext.tls_enqueue() acquired _lockByFD [%o]', wasmFD);
+
+    this._libCrypto.tls_enqueue(wasmFD, arrayBuffer);
+  
+    // this.logger.trace('ZitiContext.tls_enqueue() releasing _lockByFD [%o]', wasmFD);
+    // release();
+
+  }
+  
+  /**
+   * 
+   */
+   async tls_write(ssl, wireData) {
 
     this.logger.trace('ZitiContext.tls_write() entered');
 
+    // let lock = this._lockByFD.get( ssl );
+    // if (isUndefined(lock)) {
+    //   lock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on _lockByFD'));
+    //   this._lockByFD.set(ssl, lock);
+    // }
+
+    // this.logger.trace('ZitiContext.tls_write() attempting to acquire _lockByFD [%o]', ssl);
+    // const release = await lock.acquire();
+    // this.logger.trace('ZitiContext.tls_write() acquired _lockByFD [%o]', ssl);
+
     let result = this._libCrypto.tls_write(ssl, wireData);
+
+    // this.logger.trace('ZitiContext.tls_write() releasing _lockByFD [%o]', ssl);
+    // release();
 
     this.logger.trace('ZitiContext.tls_write() exiting with: ', result);
 
@@ -687,31 +726,23 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  async tls_read(ssl) {
+  tls_read(ssl) {
 
-    let tls_read_ctr = this._tls_read_ctr++;
+    this.logger.trace('ZitiContext.tls_read(%d) entered', ssl);
 
-    this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] entered', ssl, tls_read_ctr);
-
-    // let lock = this._readLockBySSL.get(ssl);
-    // if (isUndefined( lock )) {
-    //   lock = withTimeout(new Mutex(), 3 * 1000);
-    //   this._readLockBySSL.set(ssl, lock);
-    //   this.logger.trace('ZitiContext.tls_read(%d) created new _tlsReadLock[%o]', ssl, lock);
+    // let lock = this._lockByFD.get( ssl );
+    // if (isUndefined(lock)) {
+    //   lock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on _lockByFD'));
+    //   this._lockByFD.set(ssl, lock);
     // }
 
-    let result;
+    // this.logger.trace('ZitiContext.tls_read() attempting to acquire _lockByFD [%o]', ssl);
+    // const release = await lock.acquire();
+    // this.logger.trace('ZitiContext.tls_read() acquired _lockByFD [%o]', ssl);
 
-    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] trying to acquire _tlsReadLock', ssl, tls_read_ctr);
-
-    // let release = await lock.acquire();
-
-    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] successfully acquired _tlsReadLock', ssl, tls_read_ctr);
-
-    result = await this._libCrypto.tls_read(ssl);
+    let result = this._libCrypto.tls_read(ssl);
   
-    // this.logger.trace('ZitiContext.tls_read(%d) _tls_read_ctr[%d] now releasing _tlsReadLock', ssl, tls_read_ctr);
-
+    // this.logger.trace('ZitiContext.tls_read() releasing _lockByFD [%o]', ssl);
     // release();
 
     return result;
@@ -1112,6 +1143,41 @@ class ZitiContext extends EventEmitter {
     }
 
     return host;
+  }
+
+  /**
+   * 
+   */
+   async getConfigHostAndPortByServiceName (name) {
+    let config = await this.getServiceConfigByName(name);
+    let ret = undefined;
+    if (!isUndefined(config)) {
+      if (config['intercept.v1']) {
+        ret = {
+          host: config['intercept.v1'].addresses[0],
+          port: config['intercept.v1'].portRanges[0].high,
+        }
+      } else {
+        if (config['ziti-tunneler-client.v1']) {
+          host = config['ziti-tunneler-client.v1'].hostname;
+          ret = {
+            host: config['ziti-tunneler-client.v1'].hostname,
+            port: config['ziti-tunneler-client.v1'].port,
+          }
+        }
+      }
+    }
+    if (isUndefined(ret)) {
+      this.logger.warn('service[%s] has no config', name);
+
+      // Let any listeners know there are no configs associated with the given service,
+      // which is most likely a condition of a misconfigured network
+      this.emit('noConfigForServiceEvent', {
+        serviceName: name
+      });
+    }
+
+    return ret;
   }
 
  
