@@ -1,3 +1,12 @@
+## [0.21.1](https://github.com/openziti/ziti-browzer-core/compare/v0.21.0...v0.21.1) (2023-05-17)
+
+
+### Bug Fixes
+
+* eliminate stray code in 'getConfigHostAndPortByServiceName' ([#98](https://github.com/openziti/ziti-browzer-core/issues/98)) ([1757128](https://github.com/openziti/ziti-browzer-core/commit/17571283518be3ab3be974c8310a6406d38af740))
+
+
+
 # [0.21.0](https://github.com/openziti/ziti-browzer-core/compare/v0.20.2...v0.21.0) (2023-05-17)
 
 
