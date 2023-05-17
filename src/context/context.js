@@ -1159,7 +1159,6 @@ class ZitiContext extends EventEmitter {
         }
       } else {
         if (config['ziti-tunneler-client.v1']) {
-          host = config['ziti-tunneler-client.v1'].hostname;
           ret = {
             host: config['ziti-tunneler-client.v1'].hostname,
             port: config['ziti-tunneler-client.v1'].port,
