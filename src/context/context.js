@@ -772,7 +772,8 @@ class ZitiContext extends EventEmitter {
 
         configTypes: [
           'ziti-tunneler-client.v1',
-          'intercept.v1'
+          'intercept.v1',
+          'host.v1',
         ],
 
         envInfo: {
@@ -1130,6 +1131,10 @@ class ZitiContext extends EventEmitter {
     } else {
       if (config['ziti-tunneler-client.v1']) {
         host = config['ziti-tunneler-client.v1'].hostname;
+      } else {
+        if (config['host.v1']) {
+          host = config['host.v1'].allowedAddresses[0];
+        }
       }
     }
     if (isEqual(host, 'unknown')) {
@@ -1162,6 +1167,13 @@ class ZitiContext extends EventEmitter {
           ret = {
             host: config['ziti-tunneler-client.v1'].hostname,
             port: config['ziti-tunneler-client.v1'].port,
+          }
+        } else {
+          if (config['host.v1']) {
+            ret = {
+              host: config['host.v1'].allowedAddresses[0],
+              port: config['host.v1'].allowedPortRanges[0].high,
+            }
           }
         }
       }
