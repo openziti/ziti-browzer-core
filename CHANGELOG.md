@@ -1,3 +1,12 @@
+# [0.22.0](https://github.com/openziti/ziti-browzer-core/compare/v0.21.1...v0.22.0) (2023-05-23)
+
+
+### Features
+
+* advanced services support ([#100](https://github.com/openziti/ziti-browzer-core/issues/100)) ([85cb792](https://github.com/openziti/ziti-browzer-core/commit/85cb7925ceee4a4ec024aae4b290b03f1e604051))
+
+
+
 ## [0.21.1](https://github.com/openziti/ziti-browzer-core/compare/v0.21.0...v0.21.1) (2023-05-17)
 
 
