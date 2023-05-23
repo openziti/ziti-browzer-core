@@ -128,6 +128,7 @@ limitations under the License.
 	 this[INTERNALS] = {
 		 serviceName,
 		 serviceScheme: init.serviceScheme || 'http',
+		 serviceConnectAppData: init.serviceConnectAppData,
 		 conn,
 		 method,
 		 redirect: init.redirect || input.redirect || 'follow',
@@ -168,6 +169,10 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
 
  ZitiHttpRequest.prototype.getServiceScheme = function() {
 	return this[INTERNALS].serviceScheme;
+}
+
+ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
+	return this[INTERNALS].serviceConnectAppData;
 }
 
  ZitiHttpRequest.prototype.getConn = function() {
@@ -322,6 +327,7 @@ ZitiHttpRequest.prototype.getZitiContext = function() {
 		zitiContext: this.getZitiContext(),
 		serviceName: this.getServiceName(),
 		serviceScheme: this.getServiceScheme(),
+		serviceConnectAppData: this.getServiceConnectAppData(),
 		conn: this.getConn(),
 		method: this.getMethod(),
 		headers: headers,

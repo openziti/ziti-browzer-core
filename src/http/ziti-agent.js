@@ -73,6 +73,7 @@ ZitiAgent.prototype.addRequest = function(req, host, port, localAddress) {
     const info = {
         serviceName: opts.serviceName,
         serviceScheme: opts.serviceScheme,
+        serviceConnectAppData: opts.serviceConnectAppData,
         conn: opts.conn,
         host: opts.hostname || opts.host,
         port: Number(opts.port) || this.defaultPort,
