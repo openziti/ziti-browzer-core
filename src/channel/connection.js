@@ -75,6 +75,10 @@ limitations under the License.
     return this._id;
   }
 
+  get appData() {
+    return this._data.serviceConnectAppData;
+  }
+
   getAndIncrementSequence() {
     let seq = this._edgeMsgSeq;
     this._edgeMsgSeq++;

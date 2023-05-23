@@ -352,7 +352,19 @@ class ZitiChannel {
     
         );
       }
-  
+
+      if (!isUndefined(conn.appData)) {  // if serviceConnectAppData is present
+
+        headers.push(
+        
+          new Header( ZitiEdgeProtocol.header_id.AppData, { 
+            headerType: ZitiEdgeProtocol.header_type.StringType, 
+            headerData: JSON.stringify(conn.appData)
+          })
+    
+        );
+      }
+
       conn.state = (ZitiEdgeProtocol.conn_state.Connecting);
   
       self._zitiContext.logger.debug('about to send Connect to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
@@ -1247,6 +1259,10 @@ class ZitiChannel {
     else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.PublicKey)) {
       let flags = buffer.toString('hex');
       return flags;
+    }
+    else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.AppData)) {
+      let val = buffer.toString('utf8');
+      return val;
     }
     else {
       let val = buffer.toString('utf8');

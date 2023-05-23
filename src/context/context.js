@@ -46,6 +46,7 @@ import { ZitiBrowzerEdgeClient } from '@openziti/ziti-browzer-edge-client'
 import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach } from 'lodash-es';
 import EventEmitter from 'events';
+import {isIP} from 'is-ip';
 
  
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
@@ -1143,6 +1144,30 @@ class ZitiContext extends EventEmitter {
     }
 
     return host;
+  }
+
+  /**
+   * 
+   */
+  async getConnectAppDataByServiceName (name) {
+    let config = await this.getServiceConfigByName(name);
+    if (isUndefined(config)) {
+      return undefined;
+    }
+    if (!config['intercept.v1']) {
+      return undefined;
+    }
+    let appData = {
+      dst_protocol: config['intercept.v1'].protocols[0],
+      dst_port:     config['intercept.v1'].portRanges[0].high.toString(),
+    };
+    if (isIP(config['intercept.v1'].addresses[0])) {
+      appData.dst_ip = config['intercept.v1'].addresses[0];
+    } else {
+      appData.dst_hostname = config['intercept.v1'].addresses[0];
+    }
+    this.logger.trace('getConnectAppDataByServiceName returning: ', appData);
+    return appData;
   }
 
   /**
