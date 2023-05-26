@@ -1328,6 +1328,11 @@ class ZitiContext extends EventEmitter {
 
   };
 
+  getEdgeRouterURL(edgeRouter) {
+    if (edgeRouter.urls.ws) return edgeRouter.urls.ws;
+    if (edgeRouter.urls.wss) return edgeRouter.urls.wss;
+    throw new Error( 'edgeRouter does not contain any browZer-compatible URLs' );
+  }
 
  /**
   * Connect specified ZitiConnection to the nearest Edge Router.
@@ -1351,7 +1356,7 @@ class ZitiContext extends EventEmitter {
           self.logger.error( err );  
           throw new Error( err );
         });
-        self.logger.debug('initiating Hello to [%s] for session[%s]', edgeRouter.urls.ws, conn.networkSessionToken);  
+        self.logger.debug('initiating Hello to [%s] for session[%s]', self.getEdgeRouterURL(edgeRouter), conn.networkSessionToken);  
         pendingChannelConnects.push( 
           ch.hello() 
         );
@@ -1500,7 +1505,9 @@ class ZitiContext extends EventEmitter {
     conn.networkSessionToken = networkSession.token;
   
     // Get list of all Edge Router URLs where the Edge Router has a WS binding
-    let edgeRouters = filter(networkSession.edgeRouters, function(o) { return has(o, 'urls.ws'); });
+    let edgeRouters = filter(networkSession.edgeRouters, function(o) { 
+      return (has(o, 'urls.ws') || has(o, 'urls.wss')); 
+    });
     this.logger.trace('edgeRouters [%o]', edgeRouters);  
 
     // Something is wrong if we have no ws-enabled edge routers
