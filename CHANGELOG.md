@@ -1,3 +1,12 @@
+# [0.23.0](https://github.com/openziti/ziti-browzer-core/compare/v0.22.0...v0.23.0) (2023-05-26)
+
+
+### Features
+
+* support both 'ws' and 'wss' ER bindings ([#101](https://github.com/openziti/ziti-browzer-core/issues/101)) ([516f6be](https://github.com/openziti/ziti-browzer-core/commit/516f6be41508d65c0d0a484a01f6e55fa11ffe7f))
+
+
+
 # [0.22.0](https://github.com/openziti/ziti-browzer-core/compare/v0.21.1...v0.22.0) (2023-05-23)
 
 
