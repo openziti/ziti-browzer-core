@@ -88,7 +88,7 @@ class ZitiChannel {
 
     this._connections = new ZitiConnections();
 
-    this._zws = new ZitiWebSocket( this._edgeRouter.urls.ws + '/ws' , { 
+    this._zws = new ZitiWebSocket( this._zitiContext.getEdgeRouterURL(this._edgeRouter) + '/ws' , { 
       zitiContext: this._zitiContext,
     });
     this._callerId = "ws:";
