@@ -29,6 +29,7 @@ import { flatOptions } from '../utils/flat-options'
 import { Requests } from './requests';
 import { defaultOptions } from './options'
 import throwIf from '../utils/throwif';
+import { ZITI_CONSTANTS } from '../constants';
 
 // see: https://developer.mozilla.org/en-US/docs/Web/API/WebSocket#Ready_state_constants
 const STATE = {
@@ -273,6 +274,13 @@ class ZitiWebSocket {
       this._ws.send(data);
       this._onSend.dispatchAsync(data);
     }
+
+    // Let listeners know we transmitted data
+    this._zitiContext.emit(ZITI_CONSTANTS.ZITI_EVENT_XGRESS, {
+      type: ZITI_CONSTANTS.ZITI_EVENT_XGRESS_TX,
+      len: data.byteLength
+    });
+
   }
 
   /**
@@ -345,6 +353,13 @@ class ZitiWebSocket {
     const data = this._options.extractMessageData(event);
     this._zitiContext.logger.debug('zws: _handleMessage: recv <- data[%o]', data);
     this._onMessage.dispatchAsync(data);
+
+    // Let listeners know we received data
+    this._zitiContext.emit(ZITI_CONSTANTS.ZITI_EVENT_XGRESS, {
+      type: ZITI_CONSTANTS.ZITI_EVENT_XGRESS_RX,
+      len: data.size
+    });
+    
     this._tryUnpack(data);
   }
 

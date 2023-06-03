@@ -93,6 +93,12 @@ const ZITI_CONSTANTS =
      */
     'ZITI_DEFAULT_TIMEOUT': 10000,
 
+    /**
+     * Name of event indicating data send|recv to|from the wsER
+     */
+    'ZITI_EVENT_XGRESS': 'xgressEvent',
+    'ZITI_EVENT_XGRESS_TX': 'tx',
+    'ZITI_EVENT_XGRESS_RX': 'rx',
 
 };
 
