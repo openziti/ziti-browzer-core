@@ -20,4 +20,5 @@ export { HttpResponse }     from './http/response';
 export { ZitiFormData }     from './http/form-data';
 export { BrowserStdout }    from './http/browser-stdout';
 export { http }             from './http/http';
+export { ZITI_CONSTANTS }   from './constants';
 
