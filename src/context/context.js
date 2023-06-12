@@ -1640,6 +1640,7 @@ class ZitiContext extends EventEmitter {
    async getServiceNameByHostName(hostname) {
 
     let self = this;
+    hostname = decodeURIComponent(hostname);
 
     async function _getServiceNameByHostName(hostname) {
 
@@ -1679,6 +1680,7 @@ class ZitiContext extends EventEmitter {
   async getServiceNameByHostNameAndPort(hostname, port) {
 
     let self = this;
+    hostname = decodeURIComponent(hostname);
 
     async function _getServiceNameByHostNameAndPort(hostname, port) {
 
