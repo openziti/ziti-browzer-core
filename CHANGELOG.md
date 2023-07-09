@@ -1,3 +1,12 @@
+# [0.25.0](https://github.com/openziti/ziti-browzer-core/compare/v0.24.1...v0.25.0) (2023-07-09)
+
+
+### Features
+
+* split WASM ([#104](https://github.com/openziti/ziti-browzer-core/issues/104)) ([c21abcd](https://github.com/openziti/ziti-browzer-core/commit/c21abcd03081b3b8f6c33c68a5a945922821073a))
+
+
+
 ## [0.24.1](https://github.com/openziti/ziti-browzer-core/compare/v0.24.0...v0.24.1) (2023-06-12)
 
 
