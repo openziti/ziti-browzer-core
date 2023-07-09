@@ -47,7 +47,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
     this._id = this._ch.id;
     this._datacb = this._options.datacb;
 
-    this._connected_cb = null;
+    // this._connected_cb = null;
     this._connected = false;
 
     this._read_cb = null;
@@ -98,7 +98,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    */
   async pullKeyPair() {
 
-    this._privateKeyPEM = this._zitiContext.privateKeyPEM;
+    this._privateKeyPEM = this._zitiContext.get_privateKeyPEM();
 
     this._certPEM = await this._zitiContext.getCertPEM();
 
@@ -123,17 +123,21 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    */
   async create() {
 
-    this._sslContext = await this._zitiContext.ssl_CTX_new();
+    this._wasmInstance = await this._zitiContext.getInstance_OuterWASM();
 
-    this._BIO = this._zitiContext.bio_new_ssl_connect(this._sslContext);
+    this._sslContext = await this._zitiContext.ssl_CTX_new( this._wasmInstance );
 
-    this._SSL = this._zitiContext.bio_get_ssl(this._BIO);
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.create() _zitiContext.ssl_CTX_new() returned [%o]', this._sslContext);
+
+    this._BIO = this._zitiContext.bio_new_ssl_connect(this._wasmInstance, this._sslContext);
+
+    this._SSL = this._zitiContext.bio_get_ssl(this._wasmInstance, this._BIO);
 
 
     // Tie the WASM-based SSL object back to this ZitiWASMTLSConnection so that later when
-    // the low-level WASM code does fd-level i/o, our WAS-JS will intercept it, and
+    // the low-level WASM code does fd-level i/o, our WASM-JS will intercept it, and
     // interface with this connection, so we can route traffic over the WebSocket to the ER
-    this._zitiContext.ssl_set_fd( this._SSL, this._ch.id );
+    this._zitiContext.ssl_set_fd( this._wasmInstance, this._SSL, this._ch.id );
 
   }
 
@@ -174,46 +178,59 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
   /**
    * 
    */
-  handshake_cb(self, rc) {
-    self._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake_cb(): entered rc=%d ', rc );
+  // handshake_cb(self, rc) {
+  //   self._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake_cb(): entered rc=%d ', rc );
 
-    // Let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
-    // before we turn loose any writes to the connection
-    setTimeout((tlsConn, rc) => {
-      self._zitiContext.logger.trace("ZitiWASMTLSConnection.handshake_cb(): after timeout");
-      self._connected = true;
-    }, 500, self, rc)
-  }
+  //   // Let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
+  //   // before we turn loose any writes to the connection
+  //   setTimeout((tlsConn, rc) => {
+  //     self._zitiContext.logger.trace("ZitiWASMTLSConnection.handshake_cb(): after timeout");
+  //     self._connected = true;
+  //   }, 500, self, rc)
+  // }
 
   /**
    * 
    */
-  handshake() {
+  async handshake() {
 
     // Make sure WASM knows where to callback to once handshake is complete
-    this._connected_cb = this.handshake_cb;
-
-    
+    // this._connected_cb = this.handshake_cb;
 
     this._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake(): fd[%d] calling ssl_do_handshake()', this.wasmFD );
-    let result = this._zitiContext.ssl_do_handshake( this._SSL );
+    let result = this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
     this._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake(): fd[%d] back from ssl_do_handshake() for %o:  result=%d (now awaiting cb)', this.wasmFD, this._id, result );
   }
 
-  ssl_get_verify_result() {
-    let result = this._zitiContext.ssl_get_verify_result( this._SSL );
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.ssl_get_verify_result(): for: %o:  result: ', this._id, result );
-    return result;
-  }
+  // ssl_get_verify_result() {
+  //   let result = this._zitiContext.ssl_get_verify_result( this._SSL );
+  //   this._zitiContext.logger.trace('ZitiWASMTLSConnection.ssl_get_verify_result(): for: %o:  result: ', this._id, result );
+  //   return result;
+  // }
 
   /**
    * 
    */
   get connected() {
-    return this._connected;
-  }
-  set connected(state) {
-    this._connected = state;
+
+    // If we already did the work, and are fully connected, take a quick exit
+    if (this._connected) return true;
+
+    // Ask the SSL if its handshake has completed yet
+    let _connected = this._zitiContext.ssl_is_init_finished(this._wasmInstance, this._SSL);
+
+    // If SSL indicates handshake has completed, let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
+    // before we turn loose any writes to the connection
+    if (_connected) {
+
+      setTimeout((self) => {
+        self._zitiContext.logger.trace("ZitiWASMTLSConnection.connected(): after timeout");
+        self._connected = true;
+      }, 100, this);
+
+    }
+
+    return this._connected
   }
 
 
@@ -246,16 +263,16 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
   async process(arrayBuffer) {
     this._zitiContext.logger.trace('ZitiWASMTLSConnection.process[%d] encrypted data from the ER arrived  <--- [%o]', this.wasmFD, arrayBuffer);
 
-    await this._zitiContext.tls_enqueue(this.wasmFD, arrayBuffer); // enqueue the encrypted data (place it in WASM memory)
+    await this._zitiContext.tls_enqueue(this._wasmInstance, this.wasmFD, arrayBuffer); // enqueue the encrypted data (place it in WASM memory)
     
     // If the TLS handshake has completed, we'll need to do TLS-decrypt of the data, 
     // and then propagate it to the Promise that is waiting for it.
-    if (this._connected) {
+    if (this.connected) {
 
       // Make sure WASM knows where to callback when decrypted data is ready
       // this._read_cb = this.read_cb;
 
-      let decryptedData = this._zitiContext.tls_read(this._SSL); // TLS-decrypt some data from the queue (bring back from WASM memory into JS memory)
+      let decryptedData = this._zitiContext.tls_read(this._wasmInstance, this._SSL); // TLS-decrypt some data from the queue (bring back from WASM memory into JS memory)
 
       this._zitiContext.logger.trace('ZitiWASMTLSConnection.process[%d]: clear data from the ER is ready  <--- len[%d]', this.wasmFD, decryptedData.byteLength);
       this._datacb(this._ch, decryptedData.buffer); // propagate clear data to the waiting Promise
@@ -277,7 +294,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    * 
    * @param {*} wireData (not TLS-encrypted yet)
    */
-  tls_write(wireData, conn) {
+  async tls_write(wireData, conn) {
     this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write unencrypted data is ready to be sent to the ER  ---> len[${wireData.byteLength}]`);
         
     // If connection has an innerTLSsocket, and it has completed its TLS handshake
@@ -287,7 +304,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
         // ...then pass it to the Channel
         this._zitiContext.logger.trace(`ZitiWASMTLSConnection.tls_write sending encrypted wireData from innerTLSSocket to _zitiContext.tls_write`);
         conn._socket.innerTLSSocket._sendingEncryptedData = false; // reset now that we're sending to outer socket
-        this._zitiContext.tls_write(this._SSL, wireData);
+        this._zitiContext.tls_write(this._wasmInstance, this._SSL, wireData);
       } else {
         // ...otherwise pass it to the innerTLSsocket so it can do the necessary TLS encryption according to the handshake that was completed with
         // the connected service (i.e. web server listening on TLS)
@@ -295,7 +312,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
         conn._socket.innerTLSSocket.tls_write(wireData);
       }
     } else {
-      this._zitiContext.tls_write(this._SSL, wireData);
+      this._zitiContext.tls_write(this._wasmInstance, this._SSL, wireData);
     }
   }
 
@@ -303,10 +320,10 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    * 
    * @param {*} wireData (TLS-encrypted at the innerTLS level, but not TLS-encrypted at mTLS level yet)
    */
-  tls_write_outer(wireData) {
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write_outer[%o] unencrypted data is ready to be sent to the ER  ---> [%o]', this._uuid, wireData);
-    this._zitiContext.tls_write(this._SSL, wireData.buffer);
-  }
+  // tls_write_outer(wireData) {
+  //   this._zitiContext.logger.trace('ZitiWASMTLSConnection.tls_write_outer[%o] unencrypted data is ready to be sent to the ER  ---> [%o]', this._uuid, wireData);
+  //   this._zitiContext.tls_write(this._SSL, wireData.buffer);
+  // }
   
   /**
    * 

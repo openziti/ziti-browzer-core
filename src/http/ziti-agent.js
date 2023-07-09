@@ -136,7 +136,6 @@ ZitiAgent.prototype.createConnection = async function(opts, deferredFn) {
             let innerTLSSocket = new ZitiInnerTLSSocket( this.proxy );
             innerTLSSocket.setWASMFD(this.proxy.zitiContext.addWASMFD(innerTLSSocket));
             innerTLSSocket.setOuterSocket(this.socket);
-            await innerTLSSocket.pullKeyPair();
             this.socket.innerTLSSocket = innerTLSSocket;
             await innerTLSSocket.create();
             innerTLSSocket.on('data', innerTLSSocketOnData);

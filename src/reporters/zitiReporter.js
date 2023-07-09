@@ -71,7 +71,7 @@ export default class ZitiReporter {
 
       const style = logObj.type === 'success' ? successStyle : normalStyle
   
-      const badge = logObj.type === 'success' ? `%cZiti` : `%cZiti${suffix}-${[tag, type].filter(Boolean).join(':')}`
+      const badge = logObj.type === 'success' ? `%cZiti` : `%c${suffix}-${[tag, type].filter(Boolean).join(':')}`
 
       // Log to the console
       if (typeof logObj.args[0] === 'string') {

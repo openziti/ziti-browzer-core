@@ -236,15 +236,6 @@ class ZitiChannel {
 
     if (isEqual(this._callerId, "ws:")) {
 
-      // this._zitiContext.ssl_CTX_new();
-      // // this._zitiContext.bio_new_ssl_connect();
-      // // this._zitiContext.bio_set_conn_hostname('www.google.com:443');
-      // // this._zitiContext.bio_do_connect();
-  
-      // this._zitiContext.ssl_new();
-      // this._zitiContext.ssl_set_fd( this.id );
-      // this._zitiContext.ssl_connect();
-
       this._tlsConn = new ZitiWASMTLSConnection({
         zitiContext: this._zitiContext,
         ws: this._zws,
@@ -259,7 +250,7 @@ class ZitiChannel {
 
       this._zitiContext.logger.debug('initiating TLS handshake');
 
-      this._tlsConn.handshake();
+      await this._tlsConn.handshake();
 
       await this.awaitTLSHandshakeComplete();
 
@@ -1045,6 +1036,8 @@ class ZitiChannel {
 
     const release = await this._mutex.acquire();
 
+    let zeroByteData = false;
+
     /**
      *  First Data msg for a new connection needs special handling
      */
@@ -1080,6 +1073,8 @@ class ZitiChannel {
 
         if ( isEqual(contentType, ZitiEdgeProtocol.content_type.Data) && isEqual(bodyLength, 0) ) {
 
+          zeroByteData = true;
+
           // let result = await this._messageGetBytesHeader(data, ZitiEdgeProtocol.header_id.SeqHeader);
           // replyForView = new Int32Array(result.data, 0, 1);
           // responseSequence = replyForView[0];
@@ -1104,74 +1099,79 @@ class ZitiChannel {
       let connId = await this._messageGetConnId(data);
       throwIf(isUndefined(connId), formatMessage('Cannot find ConnId header', { } ) );
       conn = this._connections._getConnection(connId);
-      throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
+      if (!zeroByteData) {
+        throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
+      }
     }
-
+    
     /**
      *  Data msgs might need to be decrypted before passing along
      */
     if (contentType == ZitiEdgeProtocol.content_type.Data) {
 
-      if (bodyLength > 0) {
+      if (!isUndefined(conn)) {
 
-        if (conn.encrypted && conn.cryptoEstablishComplete) {  // if connected to a service that has 'encryptionRequired'
+        if (bodyLength > 0) {
 
-          let unencrypted_data = sodium.crypto_secretstream_xchacha20poly1305_pull(conn.crypt_i, bodyView);
+          if (conn.encrypted && conn.cryptoEstablishComplete) {  // if connected to a service that has 'encryptionRequired'
 
-          if (!unencrypted_data) {
-            this._zitiContext.logger.error("crypto_secretstream_xchacha20poly1305_pull failed. bodyLength[%d]", bodyLength);
-          }
+            let unencrypted_data = sodium.crypto_secretstream_xchacha20poly1305_pull(conn.crypt_i, bodyView);
 
-          try {
-            let [m1, tag1] = [sodium.to_string(unencrypted_data.message), unencrypted_data.tag];
-            let len = m1.length;
+            if (!unencrypted_data) {
+              this._zitiContext.logger.error("crypto_secretstream_xchacha20poly1305_pull failed. bodyLength[%d]", bodyLength);
+            }
+
+            try {
+              let [m1, tag1] = [sodium.to_string(unencrypted_data.message), unencrypted_data.tag];
+              let len = m1.length;
+              if (len > 2000) {
+                len = 2000;
+              }
+              // this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): %s", m1.substring(0, len));
+
+              //
+              // let dbgStr = m1.substring(0, len);
+              // this._zitiContext.logger.trace("recv <- data (first 2000): %s", dbgStr);
+
+            } catch (e) {   }
+
+            bodyView = unencrypted_data.message;
+          } else {
+            /* debug...
+            let len = bodyView.length;
             if (len > 2000) {
               len = 2000;
             }
-            // this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): %s", m1.substring(0, len));
+            let dbgStr = String.fromCharCode.apply(null, bodyView).substring(0, len);
+            this._zitiContext.logger.debug("recv <- data (first 2000): %s", dbgStr);
+            */
 
-            //
-            // let dbgStr = m1.substring(0, len);
-            // this._zitiContext.logger.trace("recv <- data (first 2000): %s", dbgStr);
+            //temp debugging
+            // if (dbgStr.includes("var openMe = (window.parent")) {
 
-          } catch (e) {   }
+            //   let str = String.fromCharCode.apply(null, bodyView).substring(0, bodyView.length);
 
-          bodyView = unencrypted_data.message;
-        } else {
-          /* debug...
-          let len = bodyView.length;
-          if (len > 2000) {
-            len = 2000;
+            //   // str = str.replace('var openMe = (window.parent', 'debugger; var openMe = (window.parent');
+
+            //   if (str.indexOf( '/api/extplugins/config' ) !== -1) {
+            //     debugger
+            //   }
+
+            //   this._zitiContext.logger.debug("============== DEBUG INJECT: %s", str);
+
+            //   bodyView = new TextEncoder("utf-8").encode(str);
+            
+            // }
+
           }
-          let dbgStr = String.fromCharCode.apply(null, bodyView).substring(0, len);
-          this._zitiContext.logger.debug("recv <- data (first 2000): %s", dbgStr);
-          */
-
-          //temp debugging
-          // if (dbgStr.includes("var openMe = (window.parent")) {
-
-          //   let str = String.fromCharCode.apply(null, bodyView).substring(0, bodyView.length);
-
-          //   // str = str.replace('var openMe = (window.parent', 'debugger; var openMe = (window.parent');
-
-          //   if (str.indexOf( '/api/extplugins/config' ) !== -1) {
-          //     debugger
-          //   }
-
-          //   this._zitiContext.logger.debug("============== DEBUG INJECT: %s", str);
-
-          //   bodyView = new TextEncoder("utf-8").encode(str);
-          
-          // }
-
         }
-      }
 
-      // 
-      let dataCallback = conn.dataCallback;
-      if (!isUndefined(dataCallback)) {
-        this._zitiContext.logger.debug("recv <- conn[%o] contentType[%o] seq[%o] passing body to dataCallback", conn.id, contentType, sequenceView[0]);
-        dataCallback(conn, bodyView);
+        // 
+        let dataCallback = conn.dataCallback;
+        if (!isUndefined(dataCallback)) {
+          this._zitiContext.logger.debug("recv <- conn[%o] contentType[%o] seq[%o] passing body to dataCallback", conn.id, contentType, sequenceView[0]);
+          dataCallback(conn, bodyView);
+        }
       }
     }
     
