@@ -692,7 +692,7 @@ function tickOnSocket(req, socket) {
   parser.outgoing = req;
   req.parser = parser;
 
-  socket.parser = parser;
+  socket.parser = req.parser;
   socket._httpMessage = req;
 
   // Propagate headers limit from request object to parser

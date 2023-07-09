@@ -634,7 +634,12 @@ class Readable extends Stream {
       if (nOrig !== n && state.ended) endReadable(this);
     }
 
-    if (ret !== null) this.emit('data', ret);
+    if (ret !== null) {
+      this.emit('data', ret);
+    }
+    if (ret === null) {
+      // this.emit('end');
+    }
     return ret;
   };
 

@@ -66,6 +66,7 @@ class ZitiContext extends EventEmitter {
     super();
 
     this._initialized = false;
+    this._initializedInnerWASM = false;
 
     let _options = flatOptions(options, defaultOptions);
 
@@ -117,8 +118,10 @@ class ZitiContext extends EventEmitter {
 
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
 
-    // this._fetchSemaphore = new Semaphore( 8 );
+    this._tlsHandshakeLock = withTimeout(new Mutex(), 5 * 1000, new Error('timeout on _tlsHandshakeLock'));
+
     this._fetchSemaphore = new Semaphore( 8 );
+    // this._fetchSemaphore = new Semaphore( 1 );
 
     this._pkey = null;
     this._privateKeyPEM = null;
@@ -164,19 +167,23 @@ class ZitiContext extends EventEmitter {
 
     if (options.loadWASM) {
 
-      this.logger.trace(`libCrypto.initialize starting`);
+      this.logger.trace(`libCrypto.initialize_OuterWASM starting`);
 
       let _real_Date_now = Date.now;  // work around an Emscripten issue
 
-      await this._libCrypto.initialize();
+      await this._libCrypto.initialize_OuterWASM();
 
       Date.now = _real_Date_now;      // work around an Emscripten issue
 
-      this.logger.trace(`libCrypto.initialize completed; WASM is now available`);
+      this.logger.trace(`libCrypto.initialize_OuterWASM completed; outer WASM is now available`);
+
+      if (isEqual(options.target.scheme, 'https')) {
+        this.initialize_InnerWASM();
+      }
 
     } else {
 
-      this.logger.trace(`libCrypto.initialize bypassed (options.loadWASM is false)`);
+      this.logger.trace(`libCrypto.initialize_OuterWASM bypassed (options.loadWASM is false)`);
 
     }
 
@@ -189,6 +196,48 @@ class ZitiContext extends EventEmitter {
 
   }
 
+  /**
+   * 
+   */
+  async initialize_InnerWASM() {
+
+    if (this._initializedInnerWASM) throw Error("Already initialized; Cannot call .initialize_InnerWASM() twice on instance.");
+
+    this.logger.trace(`libCrypto.initialize_InnerWASM starting`);
+
+    let _real_Date_now = Date.now;  // work around an Emscripten issue
+
+    await this._libCrypto.initialize_InnerWASM();
+
+    Date.now = _real_Date_now;      // work around an Emscripten issue
+
+    this.logger.trace(`libCrypto.initialize_InnerWASM completed; Inner WASM is now available`);
+
+    this._initializedInnerWASM = true;    
+
+  }
+
+  /**
+   * 
+   */
+  async getInstance_OuterWASM() {
+  
+    let instance_outerWASM = await this._libCrypto.getInstance_OuterWASM();
+      
+    return instance_outerWASM;
+  
+  }
+  
+  /**
+   * 
+   */
+   async getInstance_InnerWASM() {
+  
+    let instance_innerWASM = await this._libCrypto.getInstance_InnerWASM();
+      
+    return instance_innerWASM;
+  
+  }
 
   /**
    * 
@@ -227,13 +276,13 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-   generateRSAKey() {
+   async generateRSAKey() {
 
     this.logger.trace('ZitiContext.generateRSAKey() entered');
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._pkey = this._libCrypto.generateKey({});
+    this._pkey = this._libCrypto.generateKey( await this.getInstance_OuterWASM() );
 
     this.logger.trace('ZitiContext.generateRSAKey() exiting');
 
@@ -243,15 +292,17 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  generateECKey() {
+  async generateECKey() {
 
     this.logger.trace('ZitiContext.generateECKey() entered');
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._pkey = this._libCrypto.generateECKey({});
+    let wasmInstance = await this.getInstance_OuterWASM();
 
-    this.logger.trace('ZitiContext.generateECKey() exiting');
+    this._pkey = this._libCrypto.generateECKey( wasmInstance );
+
+    this.logger.trace(`ZitiContext.generateECKey() exiting, pkey[${this._pkey}]`);
 
     return this._pkey;
   }
@@ -259,21 +310,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  freeECKey(pkey) {
+  async getPrivateKeyPEM(pkey) {
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._libCrypto.freeECKey(pkey);
-  }
-
-  /**
-   * 
-   */
-  getPrivateKeyPEM(pkey) {
-
-    if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
-
-    this._privateKeyPEM = this._libCrypto.getPrivateKeyPEM(pkey);
+    this._privateKeyPEM = this._libCrypto.getPrivateKeyPEM(await this.getInstance_OuterWASM(), pkey);
 
     return this._privateKeyPEM;
   }
@@ -281,11 +322,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  getPublicKeyPEM(pkey) {
+  async getPublicKeyPEM(pkey) {
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._publicKeyPEM = this._libCrypto.getPublicKeyPEM(pkey);
+    this._publicKeyPEM = this._libCrypto.getPublicKeyPEM(await this.getInstance_OuterWASM(), pkey);
 
     return this._publicKeyPEM;
   }
@@ -293,7 +334,7 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  createCertificateSigningRequest({
+  createCertificateSigningRequest(wasmInstance, {
     key = null,
     curve = this._libCrypto.NID_secp521r1,
     compressed = this._libCrypto.POINT_CONVERSION_UNCOMPRESSED,
@@ -309,13 +350,16 @@ class ZitiContext extends EventEmitter {
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    this._csrPEM = this._libCrypto.createCertificateSigningRequest({
-      key: key,
-      curve: curve,
-      compressed: compressed,
-      version: version,
-      name: name
-    });
+    this._csrPEM = this._libCrypto.createCertificateSigningRequest(
+      wasmInstance,
+      {
+        key: key,
+        curve: curve,
+        compressed: compressed,
+        version: version,
+        name: name
+      }
+    );
 
     return this._csrPEM;
   }
@@ -324,11 +368,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-   get rsaKey () {
+   async get_rsaKey () {
 
     if (isNull(this._pkey)) {
       this.logger.trace('ZitiContext.get rsaKey() needs to genetrate a new key');
-      this._pkey = this.generateRSAKey({});      
+      this._pkey = await this.generateRSAKey();      
     }
 
     return this._pkey;
@@ -337,11 +381,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  get ecKey () {
+  async get_ecKey() {
 
     if (isNull(this._pkey)) {
-      this.logger.trace('ZitiContext.get ecKey() needs to genetrate a new key');
-      this._pkey = this.generateECKey({});      
+      this.logger.trace('ZitiContext.get ecKey() needs to generate a new key');
+      this._pkey = await this.generateECKey();      
     }
 
     return this._pkey;
@@ -350,7 +394,7 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  get pKey () {
+  async get_pKey () {
 
     if (isNull(this._pkey)) {
 
@@ -358,13 +402,13 @@ class ZitiContext extends EventEmitter {
 
         case EVP_PKEY_RSA:
           {
-            this._pkey = this.rsaKey;
+            this._pkey = this.get_rsaKey();
           }
           break;
   
         case EVP_PKEY_EC:
           {
-            this._pkey = this.ecKey;
+            this._pkey = await this.get_ecKey();
           }
           break;
   
@@ -380,17 +424,17 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  get privateKeyPEM () {
+  async get_privateKeyPEM () {
 
     switch(this._keyType) {
 
       case EVP_PKEY_RSA:
         {
           if (isNull(this._pkey)) {
-            this._pkey = this.generateRSAKey({});
+            this._pkey = await this.generateRSAKey();
           }
           if (isNull(this._privateKeyPEM)) {
-            this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+            this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
           }
         }
         break;
@@ -398,10 +442,10 @@ class ZitiContext extends EventEmitter {
       case EVP_PKEY_EC:
         {
           if (isNull(this._pkey)) {
-            this._pkey = this.generateECKey({});
+            this._pkey = await this.generateECKey();
           }
           if (isNull(this._privateKeyPEM)) {
-            this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+            this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
           }      
         }
         break;
@@ -416,17 +460,17 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  get publicKeyPEM () {
+  async get_publicKeyPEM () {
 
     switch(this._keyType) {
 
       case EVP_PKEY_RSA:
         {
           if (isNull(this._pkey)) {
-            this._pkey = this.generateRSAKey({});
+            this._pkey = await this.generateRSAKey();
           }
           if (isNull(this._publicKeyPEM)) {
-            this._publicKeyPEM = this.getPublicKeyPEM(this._pkey);
+            this._publicKeyPEM = await this.getPublicKeyPEM(this._pkey);
           }      
         }
         break;
@@ -434,10 +478,10 @@ class ZitiContext extends EventEmitter {
       case EVP_PKEY_EC:
         {
           if (isNull(this._pkey)) {
-            this._pkey = this.generateECKey({});
+            this._pkey = await this.generateECKey();
           }
           if (isNull(this._publicKeyPEM)) {
-            this._publicKeyPEM = this.getPublicKeyPEM(this._pkey);
+            this._publicKeyPEM = await this.getPublicKeyPEM(this._pkey);
           }      
         }
         break;
@@ -454,18 +498,18 @@ class ZitiContext extends EventEmitter {
    * 
    * @returns 
    */
-  async ssl_CTX_new() {
+  async ssl_CTX_new( wasmInstance ) {
 
     this.logger.trace('ZitiContext.ssl_CTX_new() entered');
 
     if (!this._initialized) throw Error("Not initialized; Must call .initialize() on instance.");
 
-    let sslContext = this._libCrypto.ssl_CTX_new();
+    let sslContext = this._libCrypto.ssl_CTX_new( wasmInstance );
     this.logger.trace('ZitiContext.ssl_CTX_new() _libCrypto.ssl_CTX_new() returned [%o]', sslContext);
 
-    await this.ssl_CTX_add_certificate(sslContext);
-    this.ssl_CTX_add_private_key(sslContext);
-    this.ssl_CTX_verify_certificate_and_key(sslContext);
+    await this.ssl_CTX_add_certificate(wasmInstance, sslContext);
+    await this.ssl_CTX_add_private_key(wasmInstance, sslContext);
+    this.ssl_CTX_verify_certificate_and_key(wasmInstance, sslContext);
 
     this.logger.trace('ZitiContext.ssl_CTX_new() exiting');
 
@@ -476,11 +520,13 @@ class ZitiContext extends EventEmitter {
    * 
    * @returns 
    */
-  ssl_CTX_add_private_key(sslContext) {
+  async ssl_CTX_add_private_key(wasmInstance, sslContext) {
 
     this.logger.trace('ZitiContext.ssl_CTX_add_private_key() entered');
 
-    sslContext = this._libCrypto.ssl_CTX_add_private_key(sslContext, this.pKey);
+    let pKey = await this.get_pKey();
+
+    sslContext = this._libCrypto.ssl_CTX_add_private_key(wasmInstance, sslContext, pKey);
 
     if (isNull(sslContext)) throw Error("SSL Context failure.");
 
@@ -493,16 +539,16 @@ class ZitiContext extends EventEmitter {
    * 
    * @returns 
    */
-  async ssl_CTX_add_certificate(sslContext) {
+  async ssl_CTX_add_certificate(wasmInstance, sslContext) {
 
     this.logger.trace('ZitiContext.ssl_CTX_add_certificate() entered');
 
     // Add client cert
-    sslContext = this._libCrypto.ssl_CTX_add_certificate(sslContext, await this.getCertPEM());
+    sslContext = this._libCrypto.ssl_CTX_add_certificate(wasmInstance, sslContext, await this.getCertPEM());
     if (isNull(sslContext)) throw Error("SSL Context failure.");
 
     // Add CAs
-    sslContext = this._libCrypto.ssl_CTX_add1_to_CA_list(sslContext, await this.getCasPEM());
+    sslContext = this._libCrypto.ssl_CTX_add1_to_CA_list(wasmInstance, sslContext, await this.getCasPEM());
     if (isNull(sslContext)) throw Error("SSL Context failure.");
 
     this.logger.trace('ZitiContext.ssl_CTX_add_certificate() exiting');
@@ -514,15 +560,15 @@ class ZitiContext extends EventEmitter {
    * 
    * @returns 
    */
-  ssl_CTX_verify_certificate_and_key(sslContext) {
+  ssl_CTX_verify_certificate_and_key(wasmInstance, sslContext) {
 
     this.logger.trace('ZitiContext.ssl_CTX_verify_certificate_and_key() entered');
 
-    sslContext = this._libCrypto.ssl_CTX_verify_certificate_and_key(sslContext);
+    sslContext = this._libCrypto.ssl_CTX_verify_certificate_and_key(wasmInstance, sslContext);
 
     if (isNull(sslContext)) throw Error("SSL Context failure.");
 
-    this.logger.trace('ZitiContext.ssl_CTX_add_private_key() exiting');
+    this.logger.trace('ZitiContext.ssl_CTX_verify_certificate_and_key() exiting');
 
     return sslContext;
   }
@@ -530,11 +576,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  bio_new_ssl_connect(sslContext) {
+  bio_new_ssl_connect(wasmInstance, sslContext) {
 
-    this.logger.trace('ZitiContext.bio_new_ssl_connect() entered');
+    this.logger.trace('ZitiContext.bio_new_ssl_connect() entered, sslContext: ', sslContext);
 
-    let bio = this._libCrypto.bio_new_ssl_connect(sslContext);
+    let bio = this._libCrypto.bio_new_ssl_connect(wasmInstance, sslContext);
 
     if (isNull(bio)) throw Error("bio_new_ssl_connect create failure.");
 
@@ -546,11 +592,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-   bio_get_ssl(bio) {
+   bio_get_ssl(wasmInstance, bio) {
 
     this.logger.trace('ZitiContext.bio_get_ssl() entered');
 
-    let ssl = this._libCrypto.bio_get_ssl(bio);
+    let ssl = this._libCrypto.bio_get_ssl(wasmInstance, bio);
 
     if (isNull(ssl)) throw Error("bio_get_ssl failure.");
 
@@ -562,77 +608,83 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  bio_do_connect() {
+  // bio_do_connect() {
 
-    this.logger.trace('ZitiContext.bio_do_connect() entered');
+  //   this.logger.trace('ZitiContext.bio_do_connect() entered');
 
-    if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
-    if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
+  //   if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
+  //   if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
 
-    let result = this._libCrypto.bio_do_connect(this._SSL_BIO);
+  //   let result = this._libCrypto.bio_do_connect(this._SSL_BIO);
 
-    this.logger.trace('ZitiContext.bio_do_connect() exiting');
+  //   this.logger.trace('ZitiContext.bio_do_connect() exiting');
 
-    return result;
-  }
-
-  /**
-   * 
-   */
-   bio_set_conn_hostname(hostname) {
-
-    this.logger.trace('ZitiContext.bio_set_conn_hostname() entered');
-
-    if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
-    if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
-
-    let result = this._libCrypto.bio_set_conn_hostname(this._SSL_BIO, hostname);
-
-    this.logger.trace('ZitiContext.bio_set_conn_hostname() exiting');
-
-    return result;
-  }
+  //   return result;
+  // }
 
   /**
    * 
    */
-  ssl_do_handshake(ssl) {
+  // bio_set_conn_hostname(hostname) {
+
+  //   this.logger.trace('ZitiContext.bio_set_conn_hostname() entered');
+
+  //   if (!this._sslContext) throw Error("No SSL Context exists; Must call .ssl_CTX_new() on instance.");
+  //   if (!this._SSL_BIO) throw Error("No SSL_BIO exists; Must call .bio_new_ssl_connect() on instance.");
+
+  //   let result = this._libCrypto.bio_set_conn_hostname(this._SSL_BIO, hostname);
+
+  //   this.logger.trace('ZitiContext.bio_set_conn_hostname() exiting');
+
+  //   return result;
+  // }
+
+  /**
+   * 
+   */
+  ssl_do_handshake(wasmInstance, ssl) {
 
     this.logger.trace('ZitiContext.ssl_do_handshake() entered');
 
-    let result = this._libCrypto.ssl_do_handshake(ssl);
+    let result = this._libCrypto.ssl_do_handshake(wasmInstance, ssl);
 
     this.logger.trace('ZitiContext.ssl_do_handshake() exiting, result=', result);
 
     return result;
+  }
+
+  ssl_is_init_finished(wasmInstance, ssl) {
+
+    return this._libCrypto.ssl_is_init_finished(wasmInstance, ssl);
+
   }
   
   /**
    * 
    * @returns 
    */
-  ssl_new(sslContext) {
+  // ssl_new(sslContext) {
 
-    this.logger.trace('ZitiContext.ssl_new() entered');
+  //   this.logger.trace('ZitiContext.ssl_new() entered');
 
-    let ssl = this._libCrypto.ssl_new(sslContext);
+  //   let ssl = this._libCrypto.ssl_new(sslContext);
 
-    if (isNull(ssl)) throw Error("SSL create failure.");
+  //   if (isNull(ssl)) throw Error("SSL create failure.");
 
-    this.logger.trace('ZitiContext.ssl_new() exiting');
+  //   this.logger.trace('ZitiContext.ssl_new() exiting');
 
-    return ssl;
-  }
+  //   return ssl;
+  // }
 
   /**
    * 
    * @returns 
    */
-  ssl_set_fd(ssl, fd) {
+  ssl_set_fd(wasmInstance, ssl, fd) {
 
     this.logger.trace('ZitiContext.ssl_set_fd() entered');
 
-    let result = this._libCrypto.ssl_set_fd(ssl, fd);
+    let result = this._libCrypto.ssl_set_fd(wasmInstance, ssl, fd);
 
     if (result !== 1) throw Error("ssl_set_fd failure.");
 
@@ -645,38 +697,56 @@ class ZitiContext extends EventEmitter {
    * 
    * @returns 
    */
-  ssl_connect(ssl) {
+  // ssl_connect(ssl) {
 
-    this.logger.trace('ZitiContext.ssl_connect() entered');
+  //   this.logger.trace('ZitiContext.ssl_connect() entered');
 
-    let result = this._libCrypto.ssl_connect(ssl);
+  //   let result = this._libCrypto.ssl_connect(ssl);
 
-    this.logger.trace('ZitiContext.ssl_connect() exiting');
+  //   this.logger.trace('ZitiContext.ssl_connect() exiting');
 
-    return result;
-  }
+  //   return result;
+  // }
 
   /**
    * 
    */
-   ssl_get_verify_result(ssl) {
+  // ssl_get_verify_result(ssl) {
 
-    this.logger.trace('ZitiContext.ssl_get_verify_result() entered');
+  //   this.logger.trace('ZitiContext.ssl_get_verify_result() entered');
 
-    let result = this._libCrypto.ssl_get_verify_result(ssl);
+  //   let result = this._libCrypto.ssl_get_verify_result(ssl);
 
-    this.logger.trace('ZitiContext.ssl_get_verify_result() exiting with: ', result);
+  //   this.logger.trace('ZitiContext.ssl_get_verify_result() exiting with: ', result);
 
-    return result;
+  //   return result;
 
+  // }
+
+  /**
+   * 
+   */
+  async acquireTLSHandshakeLock(fd) {
+    this.logger.trace(`ZitiContext.acquireTLSHandshakeLock() [${fd}] trying to acquire _tlsHandshakeLock`);
+    this._tlsHandshakeLockRelease = await this._tlsHandshakeLock.acquire();
+    this._tlsHandshakeLockFD = fd;
+    this.logger.trace(`ZitiContext.acquireTLSHandshakeLock() [${fd}] successfully acquired _tlsHandshakeLock`);
   }
+  releaseTLSHandshakeLock(fd) {
+    if (isEqual(this._tlsHandshakeLockFD, fd)) {
+      this.logger.trace(`ZitiContext.releaseTLSHandshakeLock() [${fd}] releasing _tlsHandshakeLock`);
+      this._tlsHandshakeLockFD = undefined;
+      this._tlsHandshakeLockRelease();
+    }
+  }
+
 
   /**
    * 
    * @param {*} wasmFD      // id of socket
    * @param {*} arrayBuffer // ArrayBuffer
    */
-  async tls_enqueue(wasmFD, arrayBuffer) {
+  async tls_enqueue(wasmInstance, wasmFD, arrayBuffer) {
 
     this.logger.trace('ZitiContext.tls_enqueue(%d) [%o] entered', wasmFD, arrayBuffer);
 
@@ -690,7 +760,7 @@ class ZitiContext extends EventEmitter {
     // const release = await lock.acquire();
     // this.logger.trace('ZitiContext.tls_enqueue() acquired _lockByFD [%o]', wasmFD);
 
-    this._libCrypto.tls_enqueue(wasmFD, arrayBuffer);
+    this._libCrypto.tls_enqueue(wasmInstance, wasmFD, arrayBuffer);
   
     // this.logger.trace('ZitiContext.tls_enqueue() releasing _lockByFD [%o]', wasmFD);
     // release();
@@ -700,9 +770,9 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-   async tls_write(ssl, wireData) {
+   async tls_write(wasmInstance, ssl, wireData) {
 
-    this.logger.trace('ZitiContext.tls_write() entered');
+    this.logger.trace('ZitiContext.tls_write() entered, ssl, wireData: ', ssl, wireData);
 
     // let lock = this._lockByFD.get( ssl );
     // if (isUndefined(lock)) {
@@ -714,7 +784,7 @@ class ZitiContext extends EventEmitter {
     // const release = await lock.acquire();
     // this.logger.trace('ZitiContext.tls_write() acquired _lockByFD [%o]', ssl);
 
-    let result = this._libCrypto.tls_write(ssl, wireData);
+    let result = this._libCrypto.tls_write(wasmInstance, ssl, wireData);
 
     // this.logger.trace('ZitiContext.tls_write() releasing _lockByFD [%o]', ssl);
     // release();
@@ -727,7 +797,7 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  tls_read(ssl) {
+  tls_read(wasmInstance, ssl) {
 
     this.logger.trace('ZitiContext.tls_read(%d) entered', ssl);
 
@@ -741,7 +811,7 @@ class ZitiContext extends EventEmitter {
     // const release = await lock.acquire();
     // this.logger.trace('ZitiContext.tls_read() acquired _lockByFD [%o]', ssl);
 
-    let result = this._libCrypto.tls_read(ssl);
+    let result = this._libCrypto.tls_read(wasmInstance, ssl);
   
     // this.logger.trace('ZitiContext.tls_read() releasing _lockByFD [%o]', ssl);
     // release();
@@ -882,10 +952,10 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-   async getCasPEM () {
+  async getCasPEM () {
 
     if (isNull(this._privateKeyPEM)) {
-      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+      this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
     }
     if (isNull(this._certPEM)) {
       await this.enroll()
@@ -900,7 +970,7 @@ class ZitiContext extends EventEmitter {
   async getCertPEM () {
 
     if (isNull(this._privateKeyPEM)) {
-      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+      this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
     }
     if (isNull(this._certPEM)) {
       await this.enroll()
@@ -915,7 +985,7 @@ class ZitiContext extends EventEmitter {
   async getCertPEMExpiryTime () {
 
     if (isNull(this._privateKeyPEM)) {
-      this._privateKeyPEM = this.getPrivateKeyPEM(this._pkey)
+      this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
     }
     if (isNull(this._certPEM)) {
       await this.enroll()
@@ -1610,7 +1680,7 @@ class ZitiContext extends EventEmitter {
     let hostname = parsedURL.hostname;
     let port = parseInt(parsedURL.port, 10);
   
-    if (port === '') {
+    if ((port === '') || (parsedURL.port === '')) {
       if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
         port = 443;
       } else {

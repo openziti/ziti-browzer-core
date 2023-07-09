@@ -42,7 +42,7 @@ import { isUndefined, isNull } from 'lodash-es';
 
     let _options = flatOptions(options, defaultOptions);
 
-    this.zitiContext = _options.zitiContext;
+    this._zitiContext = _options.zitiContext;
     this.logger = _options.logger;
 
   }
@@ -64,14 +64,14 @@ import { isUndefined, isNull } from 'lodash-es';
   async enroll() {
 
     // Don't proceed until we have successfully logged in to Controller and have established an API session
-    let token = await this.zitiContext.ensureAPISession();
+    let token = await this._zitiContext.ensureAPISession();
 
     if (isUndefined(token) || isNull(token)) {
       this.logger.trace('ZitiEnroller.enroll(): ensureAPISession returned null');
       return false;
     }
   
-    this.generateCSR();
+    await this.generateCSR( await this._zitiContext.getInstance_OuterWASM() );
 
     let result = await this.createEphemeralCert();
 
@@ -82,10 +82,12 @@ import { isUndefined, isNull } from 'lodash-es';
   /**
    * 
    */
-  generateCSR() {
+  async generateCSR(wasmInstance) {
 
-    this._csr = this.zitiContext.createCertificateSigningRequest({
-      key: this.zitiContext.pKey,
+    let pKey = await this._zitiContext.get_pKey();
+
+    this._csr = this._zitiContext.createCertificateSigningRequest(wasmInstance, {
+      key: pKey,
     })
     
   }
@@ -96,7 +98,7 @@ import { isUndefined, isNull } from 'lodash-es';
    */
   async createEphemeralCert() {
   
-    let res = await this.zitiContext._zitiBrowzerEdgeClient.createCurrentApiSessionCertificate({
+    let res = await this._zitiContext._zitiBrowzerEdgeClient.createCurrentApiSessionCertificate({
       sessionCertificate: { 
         csr:  this._csr
       }

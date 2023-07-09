@@ -286,6 +286,7 @@ function ZitiXMLZitiHttpRequest () {
       self.responseBodyText = await blob.text();
       self.responseText = self.responseBodyText;
       self.response = self.responseBodyText;
+      self.responseXML = self.responseBodyText;
       sendFlag = false;
       setState(self.DONE);
     });
