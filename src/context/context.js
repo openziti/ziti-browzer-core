@@ -819,7 +819,65 @@ class ZitiContext extends EventEmitter {
     return result;
   }
 
+  /**
+   * 
+   */
+  async doAuthenticate() {
 
+    let self = this;
+
+    return new Promise( async (resolve, reject) => {
+
+      // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
+      let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
+      self.logger.trace('ZitiContext.getFreshAPISession(): method:', method);
+
+      // Get an API session with Controller
+      let res = await self._zitiBrowzerEdgeClient.authenticate({
+
+        method: method,
+
+        auth: { 
+
+          username: self.updbUser,
+          password: self.updbPswd,
+
+          configTypes: [
+            'ziti-tunneler-client.v1',
+            'intercept.v1'
+          ],
+
+          envInfo: {
+
+            // e.g.:  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36'
+            arch: (typeof _ziti_realFetch !== 'undefined') ? window.navigator.userAgent : 'n/a',
+
+            // e.g.:  'macOS', 'Linux', 'Windows'
+            os: (typeof _ziti_realFetch !== 'undefined') ? (typeof navigator.userAgentData !== 'undefined' ? navigator.userAgentData.platform : 'n/a') : 'n/a'
+          },
+            
+          sdkInfo: {
+            type: self.sdkType,
+            version: self.sdkVersion,
+            branch: self.sdkBranch,
+            revision: self.sdkRevision,
+          },   
+              
+        }
+      }).catch((error) => {
+        self.logger.error( error );
+      });
+
+      return resolve( res );
+
+    });
+
+  }
+
+  delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
+  }
+  
   /**
    * 
    */
@@ -827,68 +885,65 @@ class ZitiContext extends EventEmitter {
   
     this.logger.trace('ZitiContext.getFreshAPISession() entered');
 
-    // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
-    let method = (isNull(this.access_token)) ? 'password' : 'ext-jwt';
-    this.logger.trace('ZitiContext.getFreshAPISession(): method:', method);
+    let authenticated = false;
+    let retry = 5;
 
-    // Get an API session with Controller
-    let res = await this._zitiBrowzerEdgeClient.authenticate({
+    do {
 
-      method: method,
+      let res = await this.doAuthenticate();
 
-      auth: { 
+      this.logger.trace('ZitiContext.getFreshAPISession(): response:', res);
 
-        username: this.updbUser,
-        password: this.updbPswd,
+      if (isUndefined(res)) {
 
-        configTypes: [
-          'ziti-tunneler-client.v1',
-          'intercept.v1'
-        ],
+        this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+        await this.delay(1000);
+        retry--;
 
-        envInfo: {
-
-          // e.g.:  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36'
-          arch: (typeof _ziti_realFetch !== 'undefined') ? window.navigator.userAgent : 'n/a',
-
-          // e.g.:  'macOS', 'Linux', 'Windows'
-          os: (typeof _ziti_realFetch !== 'undefined') ? (typeof navigator.userAgentData !== 'undefined' ? navigator.userAgentData.platform : 'n/a') : 'n/a'
-        },
-          
-        sdkInfo: {
-          type: this.sdkType,
-          version: this.sdkVersion,
-          branch: this.sdkBranch,
-          revision: this.sdkRevision,
-        },   
-            
       }
-    }).catch((error) => {
-      throw error;
-    });
+      else if (!isUndefined(res.error)) {
 
-    this.logger.trace('ZitiContext.getFreshAPISession(): response:', res);
+        this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+        await this.delay(1000);
+        retry--;
 
-    if (!isUndefined(res.error)) {
-      this.logger.error(res.error.message);
-      return null;
+      } else {
+
+        this._apiSession = res.data;
+        if (isUndefined( this._apiSession )) {
+
+          this.logger.error('response contains no data');
+          this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+          await this.delay(1000);
+          retry--;
+
+        } 
+        else if (isUndefined( this._apiSession.token )) {
+
+          this.logger.error('response contains no token');
+          this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+          await this.delay(1000);
+          retry--;
+
+        }
+        else {
+
+          // Set the token header on behalf of all subsequent Controller API calls
+          this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
+
+          setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
+
+          authenticated = true;
+
+        }
+
+      }
+
+    } while (!authenticated && retry > 0);
+
+    if (!authenticated) {
+      throw Error(`cannot authenticate`);
     }
-
-    this._apiSession = res.data;
-    if (isUndefined( this._apiSession )) {
-      this.logger.error('response contains no data');
-      return null;
-    }
-
-    if (isUndefined( this._apiSession.token )) {
-      this.logger.error('response contains no token');
-      return null;
-    }
-
-    // Set the token header on behalf of all subsequent Controller API calls
-    this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
-
-    setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
 
     this.logger.trace('ZitiContext.getFreshAPISession() exiting; token is: ', this._apiSession.token);
 
