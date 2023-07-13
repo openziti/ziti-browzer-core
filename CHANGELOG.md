@@ -1,3 +1,12 @@
+## [0.25.1](https://github.com/openziti/ziti-browzer-core/compare/v0.25.0...v0.25.1) (2023-07-13)
+
+
+### Bug Fixes
+
+* use retry on /authenticate failures ([#105](https://github.com/openziti/ziti-browzer-core/issues/105)) ([090e6e8](https://github.com/openziti/ziti-browzer-core/commit/090e6e8baf3bc253f482a3dc0394d9d10a812208))
+
+
+
 # [0.25.0](https://github.com/openziti/ziti-browzer-core/compare/v0.24.1...v0.25.0) (2023-07-09)
 
 
