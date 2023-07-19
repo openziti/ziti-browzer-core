@@ -1,3 +1,12 @@
+# [0.26.0](https://github.com/openziti/ziti-browzer-core/compare/v0.25.1...v0.26.0) (2023-07-19)
+
+
+### Features
+
+* emit troubleshooting events ([#106](https://github.com/openziti/ziti-browzer-core/issues/106)) ([3a3ca59](https://github.com/openziti/ziti-browzer-core/commit/3a3ca59fb49f218d0e67a1fb8c7d02d83ab08f08))
+
+
+
 ## [0.25.1](https://github.com/openziti/ziti-browzer-core/compare/v0.25.0...v0.25.1) (2023-07-13)
 
 
