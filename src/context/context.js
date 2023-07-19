@@ -47,6 +47,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach } from 'lodash-es';
 import EventEmitter from 'events';
 import {isIP} from 'is-ip';
+import jwt_decode from 'jwt-decode';
 
  
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
@@ -903,9 +904,17 @@ class ZitiContext extends EventEmitter {
       }
       else if (!isUndefined(res.error)) {
 
-        this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
-        await this.delay(1000);
-        retry--;
+        retry = 0;
+
+        var decoded_access_token = jwt_decode(this.access_token);
+
+        this.logger.error(`ZitiContext.getFreshAPISession(): user [${decoded_access_token.email}] authentication request failed`);
+
+        // Let any listeners know the given JWT is not authorized to access the network,
+        // which is most likely a condition where the Identity was not provisioned
+        this.emit('invalidAuthEvent', {
+          email: decoded_access_token.email
+        });
 
       } else {
 
@@ -942,7 +951,7 @@ class ZitiContext extends EventEmitter {
     } while (!authenticated && retry > 0);
 
     if (!authenticated) {
-      throw Error(`cannot authenticate`);
+      this.logger.error(`cannot authenticate`);
     }
 
     this.logger.trace('ZitiContext.getFreshAPISession() exiting; token is: ', this._apiSession.token);
@@ -1232,13 +1241,38 @@ class ZitiContext extends EventEmitter {
    * 
    */
    async getServiceConfigByName (name) {
-    if (isEqual( this.services.size, 0 )) {
+    if (isEqual( this._services.size, 0 )) {
       await this.fetchServices();
     }
+
+    let serviceList = [];
+    let foundService = find(this._services, function(service) {
+      serviceList.push(service.name);
+      return isEqual(service.name, name);  
+    });
+    if (!foundService) {
+      // Let any listeners know the given service is not present,
+      // which is most likely a condition of a misconfigured network
+      this.emit('noServiceEvent', {
+        serviceName: name,
+        serviceList: serviceList
+      });
+      return undefined;
+    }
+
     let config = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'config');
     this.logger.trace('service[%s] has config[%o]', name, config);
+
+    if (isUndefined(config)) {
+      // Let any listeners know there are no configs associated with the given service,
+      // which is most likely a condition of a misconfigured network
+      this.emit('noConfigForServiceEvent', {
+        serviceName: name
+      });
+    }
+
     return config;
   }
 
@@ -1392,7 +1426,15 @@ class ZitiContext extends EventEmitter {
 
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
-      throw new Error(res.error.message);
+
+      // Let any listeners know there is most likely a condition of a misconfigured network
+      this.emit('sessionCreationErrorEvent', {
+        error: res.error.message
+      });
+        
+      this.logger.error(`ZitiContext.createSession(): ${res.error.message}`);
+
+      return undefined;
     }
 
     let network_session = res.data;
