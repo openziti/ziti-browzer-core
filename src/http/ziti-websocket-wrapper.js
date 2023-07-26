@@ -538,14 +538,14 @@ async function initAsClient(websocket, address, protocols, options) {
 
     // await loadCookies(parsedUrl.hostname);
 
-    // We only want to intercept fetch requests that target the Ziti HTTP Agent
-    var regex = new RegExp( websocket._zitiConfig.httpAgent.self.host, 'g' );
+    // We only want to intercept fetch requests that target the Ziti BrowZer Bootstrapper
+    var regex = new RegExp( websocket._zitiConfig.browzer.bootstrapper.self.host, 'g' );
 
-    if (address.match( regex )) { // the request is targeting the Ziti HTTP Agent
+    if (address.match( regex )) { // the request is targeting the Ziti BrowZer Bootstrapper
 
         var newUrl = new URL( address );
-        newUrl.hostname = websocket._zitiConfig.httpAgent.target.service;
-        newUrl.port = websocket._zitiConfig.httpAgent.target.port;
+        newUrl.hostname = websocket._zitiConfig.browzer.bootstrapper.target.service;
+        newUrl.port = websocket._zitiConfig.browzer.bootstrapper.target.port;
         websocket._zitiContext.logger.debug( 'ZitiWebSocketWrapper: transformed URL: ', newUrl.toString());
 
         serviceName = await websocket._zitiContext.shouldRouteOverZiti( newUrl );
@@ -562,9 +562,9 @@ async function initAsClient(websocket, address, protocols, options) {
 
             let configHostAndPort = await websocket._zitiContext.getConfigHostAndPortByServiceName (serviceName);
 
-            newUrl.protocol = websocket._zitiConfig.httpAgent.target.scheme + ":";
+            newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
             opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
-            opts.origin = websocket._zitiConfig.httpAgent.target.scheme + "://" + configHostAndPort.host.toLowerCase(); // + ":" + configHostAndPort.port;
+            opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase(); // + ":" + configHostAndPort.port;
             opts.host = serviceName;
         }
 
@@ -642,7 +642,7 @@ async function initAsClient(websocket, address, protocols, options) {
     }
 
     opts.serviceName = serviceName;
-    opts.serviceScheme = websocket._zitiConfig.httpAgent.target.scheme;
+    opts.serviceScheme = websocket._zitiConfig.browzer.bootstrapper.target.scheme;
     opts.serviceConnectAppData = await websocket._zitiContext.getConnectAppDataByServiceName(serviceName);
   
     // build HTTP request object

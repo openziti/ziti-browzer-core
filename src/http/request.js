@@ -200,7 +200,7 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	 const headers = this[INTERNALS].headers;
  
 	 // Transform all occurances of the HTTP Agent hostname back to the target service name
-	 var replace = this.getZitiContext().httpAgentTargetService;
+	 var replace = this.getZitiContext().bootstrapperTargetService;
 	 var re = new RegExp(replace,"i");
 	 parsedURL.href = parsedURL.href.replace(re, replace);
 	 parsedURL.search = parsedURL.search.replace(re, replace);

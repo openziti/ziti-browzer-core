@@ -89,7 +89,7 @@ class ZitiContext extends EventEmitter {
     this.apiSessionHeartbeatTimeMin  = _options.apiSessionHeartbeatTimeMin;
     this.apiSessionHeartbeatTimeMax = _options.apiSessionHeartbeatTimeMax;
 
-    this.httpAgentTargetService = _options.httpAgentTargetService;
+    this.bootstrapperTargetService = _options.bootstrapperTargetService;
 
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
@@ -1785,7 +1785,7 @@ class ZitiContext extends EventEmitter {
       }
     }
   
-    let corsHostsArray = window.zitiBrowzerRuntime.zitiConfig.httpAgent.corsProxy.hosts.split(',');
+    let corsHostsArray = window.zitiBrowzerRuntime.zitiConfig.browzer.bootstrapper.corsProxy.hosts.split(',');
   
     let routeOverCORSProxy = false;
     forEach(corsHostsArray, function( corsHost ) {

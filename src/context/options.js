@@ -85,10 +85,10 @@ const defaultOptions = {
     apiSessionHeartbeatTimeMax: (5),
 
     /**
-     * See {@link Options.httpAgentTargetService}
+     * See {@link Options.bootstrapperTargetService}
      * 
      */
-     httpAgentTargetService: 'unknown',
+     bootstrapperTargetService: 'unknown',
 
 };
 
