@@ -226,7 +226,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
       setTimeout((self) => {
         self._zitiContext.logger.trace("ZitiWASMTLSConnection.connected(): after timeout");
         self._connected = true;
-      }, 100, this);
+      }, 500, this);
 
     }
 
