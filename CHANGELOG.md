@@ -1,3 +1,12 @@
+## [0.27.1](https://github.com/openziti/ziti-browzer-core/compare/v0.27.0...v0.27.1) (2023-08-01)
+
+
+### Bug Fixes
+
+* pause for TLS cipher suite negotiation completion ([#108](https://github.com/openziti/ziti-browzer-core/issues/108)) ([456ccb4](https://github.com/openziti/ziti-browzer-core/commit/456ccb44694b4724b3315b087e6496655b70df67))
+
+
+
 # [0.27.0](https://github.com/openziti/ziti-browzer-core/compare/v0.26.0...v0.27.0) (2023-07-26)
 
 
