@@ -1,3 +1,12 @@
+# [0.28.0](https://github.com/openziti/ziti-browzer-core/compare/v0.27.1...v0.28.0) (2023-08-02)
+
+
+### Features
+
+* emit channelConnectFailEvent ([#109](https://github.com/openziti/ziti-browzer-core/issues/109)) ([ab1eef5](https://github.com/openziti/ziti-browzer-core/commit/ab1eef5f45673c9bd5b5e8c2c646a8c47b1ac381))
+
+
+
 ## [0.27.1](https://github.com/openziti/ziti-browzer-core/compare/v0.27.0...v0.27.1) (2023-08-01)
 
 
