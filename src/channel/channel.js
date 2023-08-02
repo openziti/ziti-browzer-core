@@ -452,6 +452,10 @@ class ZitiChannel {
 
         this._zitiContext.logger.warn("conn[%d] failed to connect on ch[%d]", conn.id, this.id);
         conn.state = (ZitiEdgeProtocol.conn_state.Closed);
+
+        this._zitiContext.emit('channelConnectFailEvent', {
+          serviceName: expectedConn.data.serviceName
+        });
         break;
 
       case ZitiEdgeProtocol.content_type.StateConnected:
