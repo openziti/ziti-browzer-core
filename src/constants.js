@@ -96,9 +96,16 @@ const ZITI_CONSTANTS =
     /**
      * Name of event indicating data send|recv to|from the wsER
      */
-    'ZITI_EVENT_XGRESS': 'xgressEvent',
-    'ZITI_EVENT_XGRESS_TX': 'tx',
-    'ZITI_EVENT_XGRESS_RX': 'rx',
+    'ZITI_EVENT_XGRESS':                    'xgressEvent',
+    'ZITI_EVENT_XGRESS_TX':                 'tx',
+    'ZITI_EVENT_XGRESS_RX':                 'rx',
+    'ZITI_EVENT_INVALID_AUTH':              'invalidAuthEvent',
+    'ZITI_EVENT_NO_SERVICE':                'noServiceEvent',
+    'ZITI_EVENT_NO_CONFIG_FOR_SERVICE':     'noConfigForServiceEvent',
+    'ZITI_EVENT_SESSION_CREATION_ERROR':    'sessionCreationErrorEvent',
+    'ZITI_EVENT_NO_WSS_ROUTERS':            'noWSSEnabledEdgeRoutersEvent',
+    'ZITI_EVENT_IDP_AUTH_HEALTH':           'idpAuthHealthEvent',
+    'ZITI_EVENT_CHANNEL_CONNECT_FAIL':      'channelConnectFailEvent',
 
 };
 

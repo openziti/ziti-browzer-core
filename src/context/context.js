@@ -912,7 +912,7 @@ class ZitiContext extends EventEmitter {
 
         // Let any listeners know the given JWT is not authorized to access the network,
         // which is most likely a condition where the Identity was not provisioned
-        this.emit('invalidAuthEvent', {
+        this.emit(ZITI_CONSTANTS.ZITI_EVENT_INVALID_AUTH, {
           email: decoded_access_token.email
         });
 
@@ -1114,7 +1114,7 @@ class ZitiContext extends EventEmitter {
     }
 
     // Let any listeners know the current IdP Auth health status
-    self.emit('idpAuthHealthEvent', idpAuthHealthEvent);
+    self.emit(ZITI_CONSTANTS.ZITI_EVENT_IDP_AUTH_HEALTH, idpAuthHealthEvent);
 
     setTimeout(self.apiSessionHeartbeat, self.getApiSessionHeartbeatTime(), self );
 
@@ -1253,7 +1253,7 @@ class ZitiContext extends EventEmitter {
     if (!foundService) {
       // Let any listeners know the given service is not present,
       // which is most likely a condition of a misconfigured network
-      this.emit('noServiceEvent', {
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
         serviceName: name,
         serviceList: serviceList
       });
@@ -1268,7 +1268,7 @@ class ZitiContext extends EventEmitter {
     if (isUndefined(config)) {
       // Let any listeners know there are no configs associated with the given service,
       // which is most likely a condition of a misconfigured network
-      this.emit('noConfigForServiceEvent', {
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_CONFIG_FOR_SERVICE, {
         serviceName: name
       });
     }
@@ -1297,7 +1297,7 @@ class ZitiContext extends EventEmitter {
 
       // Let any listeners know there are no configs associated with the given service,
       // which is most likely a condition of a misconfigured network
-      this.emit('noConfigForServiceEvent', {
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_CONFIG_FOR_SERVICE, {
         serviceName: name
       });
     }
@@ -1355,7 +1355,7 @@ class ZitiContext extends EventEmitter {
 
       // Let any listeners know there are no configs associated with the given service,
       // which is most likely a condition of a misconfigured network
-      this.emit('noConfigForServiceEvent', {
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_CONFIG_FOR_SERVICE, {
         serviceName: name
       });
     }
@@ -1428,7 +1428,7 @@ class ZitiContext extends EventEmitter {
       this.logger.error(res.error.message);
 
       // Let any listeners know there is most likely a condition of a misconfigured network
-      this.emit('sessionCreationErrorEvent', {
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_SESSION_CREATION_ERROR, {
         error: res.error.message
       });
         
@@ -1656,19 +1656,7 @@ class ZitiContext extends EventEmitter {
   async connect(conn, networkSession) {
    
     this.logger.debug('connect() entered for conn[%o] networkSession[%o]', conn.id, networkSession);  
-  
-    // If we were not given a networkSession, it most likely means something (an API token, Cert, etc) expired,
-    // so we need to purge them and re-acquire
-    // if (isNull(networkSession) || isUndefined( networkSession )) {
-  
-    //   this.logger.debug('ctx.connect invoked with undefined networkSession');  
     
-    //   await this._awaitIdentityLoadComplete().catch((err) => {
-    //     self.logger.error( err );  
-    //     throw new Error( err );
-    //   });
-    // }
-  
     conn.networkSessionToken = networkSession.token;
   
     // Get list of all Edge Router URLs where the Edge Router has a WS binding
@@ -1679,6 +1667,8 @@ class ZitiContext extends EventEmitter {
 
     // Something is wrong if we have no ws-enabled edge routers
     if (isEqual(edgeRouters.length, 0)) {
+      // Let any listeners know we have no ws-enabled edge routers in the network
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_WSS_ROUTERS, {} );
       throw new Error('No Edge Routers with ws: binding were found');
     }
   
