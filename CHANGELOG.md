@@ -1,3 +1,12 @@
+## [0.29.2](https://github.com/openziti/ziti-browzer-core/compare/v0.29.1...v0.29.2) (2023-08-21)
+
+
+### Bug Fixes
+
+* adjust servicePath ([#112](https://github.com/openziti/ziti-browzer-core/issues/112)) ([f825fd8](https://github.com/openziti/ziti-browzer-core/commit/f825fd8a26f733a777a4f0c35515f0ea85ccf842))
+
+
+
 ## [0.29.1](https://github.com/openziti/ziti-browzer-core/compare/v0.29.0...v0.29.1) (2023-08-08)
 
 
