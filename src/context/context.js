@@ -2054,6 +2054,12 @@ class ZitiContext extends EventEmitter {
       /**
        * ------------ Now Routing over Ziti -----------------
        */
+      let parsedURL = new URL(url);
+      if (isEqual(parsedURL.pathname, '/')) {
+        parsedURL.pathname = opts.servicePath;
+        url = parsedURL.toString();
+      }
+
       self.logger.debug('httpFetch starting for [%s]', url);
 
       // build HTTP request object
