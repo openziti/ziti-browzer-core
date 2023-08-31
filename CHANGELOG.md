@@ -1,3 +1,12 @@
+## [0.29.3](https://github.com/openziti/ziti-browzer-core/compare/v0.29.2...v0.29.3) (2023-08-31)
+
+
+### Bug Fixes
+
+* don't force port when matching Service with Config ([#113](https://github.com/openziti/ziti-browzer-core/issues/113)) ([3a6c01f](https://github.com/openziti/ziti-browzer-core/commit/3a6c01fd79277077223d92d40dffce4657687f28))
+
+
+
 ## [0.29.2](https://github.com/openziti/ziti-browzer-core/compare/v0.29.1...v0.29.2) (2023-08-21)
 
 
