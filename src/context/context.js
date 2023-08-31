@@ -1728,7 +1728,7 @@ class ZitiContext extends EventEmitter {
         if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
           port = 443;
         } else {
-          port = 80;
+          port = null;
         }
       }
       
