@@ -58,7 +58,8 @@ function urlToOptions(url) {
     search: url.search,
     pathname: url.pathname,
     path: `${url.pathname || ''}${url.search || ''}`,
-    href: url.href
+    href: url.href,
+    method: url.method
   };
   if (url.port !== '') {
     options.port = Number(url.port);
