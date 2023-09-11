@@ -1,3 +1,12 @@
+## [0.29.4](https://github.com/openziti/ziti-browzer-core/compare/v0.29.3...v0.29.4) (2023-09-11)
+
+
+### Bug Fixes
+
+* don't drop METHOD when building ClientRequest ([#114](https://github.com/openziti/ziti-browzer-core/issues/114)) ([c0b8bdd](https://github.com/openziti/ziti-browzer-core/commit/c0b8bddf0d91a909bec535a8cc49203dd775952b))
+
+
+
 ## [0.29.3](https://github.com/openziti/ziti-browzer-core/compare/v0.29.2...v0.29.3) (2023-08-31)
 
 
