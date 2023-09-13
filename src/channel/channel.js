@@ -300,7 +300,6 @@ class ZitiChannel {
   async connect(conn) {
 
     const self = this;
-    return new Promise( async (resolve, reject) => {
     
       self._zitiContext.logger.debug('initiating Connect to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
@@ -370,9 +369,6 @@ class ZitiChannel {
 
       await self._recvConnectResponse(msg.data, conn);
     
-      resolve();
-  
-    });
   }
 
   /**
