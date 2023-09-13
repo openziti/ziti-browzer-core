@@ -1,3 +1,12 @@
+## [0.29.5](https://github.com/openziti/ziti-browzer-core/compare/v0.29.4...v0.29.5) (2023-09-13)
+
+
+### Bug Fixes
+
+* eliminate unnecessary Promise wrapper ([#115](https://github.com/openziti/ziti-browzer-core/issues/115)) ([4c39fd4](https://github.com/openziti/ziti-browzer-core/commit/4c39fd4e2bbe018858afbc9a7973b13d96ee5240))
+
+
+
 ## [0.29.4](https://github.com/openziti/ziti-browzer-core/compare/v0.29.3...v0.29.4) (2023-09-11)
 
 
