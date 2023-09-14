@@ -1186,15 +1186,6 @@ class ZitiChannel {
    */
   _tryHandleResponse(conn, responseSequence, data) {
 
-    if (!isUndefined(conn)) {
-      let socket = conn.socket;
-      if (!isUndefined(socket)) {
-        if (socket.isWebSocket) {
-          return;
-        }
-      }
-    }
-
 
     let messagesQueue = this._messages;
     if (!isUndefined(conn)) {
