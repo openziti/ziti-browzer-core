@@ -1,3 +1,12 @@
+## [0.29.6](https://github.com/openziti/ziti-browzer-core/compare/v0.29.5...v0.29.6) (2023-09-14)
+
+
+### Bug Fixes
+
+* correct problem with intercepted WebSocket msg handling ([#116](https://github.com/openziti/ziti-browzer-core/issues/116)) ([6d621c2](https://github.com/openziti/ziti-browzer-core/commit/6d621c2ee0d439c66dd022ceb4f22ff978bae629))
+
+
+
 ## [0.29.5](https://github.com/openziti/ziti-browzer-core/compare/v0.29.4...v0.29.5) (2023-09-13)
 
 
