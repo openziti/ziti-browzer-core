@@ -91,7 +91,15 @@ limitations under the License.
 		 parsedURL = new URL(input.url);
 	 }
  
-	 let method = init.method || input.method || 'GET';
+	 let method = init.method || input.method;
+	 if (isUndefined(method)) {
+		if (init.urlObj instanceof Request) {
+			method = init.urlObj.method;
+		}
+		else {
+			method = 'GET';
+		}
+	 }
  
 	 method = method.toUpperCase();
  
@@ -106,6 +114,11 @@ limitations under the License.
 		 isRequest(input) && input.body !== null ?
 			 clone(input) :
 			 null;
+	 if (inputBody === null) {
+		if (init.urlObj instanceof Request) {
+			inputBody = init.urlObj.body;
+		}
+	 }
  
 	 HttpBody.call(this, inputBody, {
 		 timeout: init.timeout || input.timeout || 0,
@@ -113,6 +126,12 @@ limitations under the License.
 	 });
  
 	 const headers = new HttpHeaders(init.headers || input.headers || {});
+
+	 if (init.urlObj instanceof Request) {
+		for (var pair of init.urlObj.headers.entries()) {
+			headers.append(pair[0], pair[1]);
+		}	  
+	 }
  
 	 if (this.body instanceof ZitiFormData) {
 		 inputBody = this.body;
@@ -199,7 +218,7 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	 const parsedURL = this[INTERNALS].parsedURL;
 	 const headers = this[INTERNALS].headers;
  
-	 // Transform all occurances of the HTTP Agent hostname back to the target service name
+	 // Transform all occurrences of the HTTP Agent hostname back to the target service name
 	 var replace = this.getZitiContext().bootstrapperTargetService;
 	 var re = new RegExp(replace,"i");
 	 parsedURL.href = parsedURL.href.replace(re, replace);

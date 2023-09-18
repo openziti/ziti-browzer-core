@@ -60,6 +60,20 @@ function HttpBody(body, init = {
 		body = Buffer.from(body.buffer, body.byteOffset, body.byteLength);
 	} else if (body instanceof Stream) {
 		// body is stream
+	} else if (body instanceof ReadableStream) {
+		async function toBuffer(stream) {
+			const list = []
+			const reader = stream.getReader()
+			while (true) {
+			  const { value, done } = await reader.read()
+			  if (value)
+				list.push(value)
+			  if (done)
+				break
+			}
+			return Buffer.concat(list)
+		}
+		body = toBuffer(body);
 	// } else if (typeof body.getBoundary === 'function') {
 	// 	// detect form data input from form-data module
 	// 	// return `multipart/form-data;boundary=${body.getBoundary()}`;
