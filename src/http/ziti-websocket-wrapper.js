@@ -155,7 +155,7 @@ class ZitiWebSocketWrapper extends EventEmitter {
    * @private
    */
   setSocket(socket, head, maxPayload) {
-    this._zitiContext.logger.info('setSocket() entered, socket: %o', socket);
+    this._zitiContext.logger.info('setSocket() entered, socket[%o]', socket._id);
 
     const receiver = new Receiver(
       this._binaryType,
@@ -653,7 +653,7 @@ async function initAsClient(websocket, address, protocols, options) {
     // Send request
     let req = (websocket._req = get(req_options));
   
-    websocket._zitiContext.logger.info('WebSocket handshake request has been sent: %o', websocket._req);
+    websocket._zitiContext.logger.info('WebSocket handshake request has been sent');
   
     if (opts.timeout) {
       req.on('timeout', () => {
@@ -678,7 +678,7 @@ async function initAsClient(websocket, address, protocols, options) {
     });
   
     req.on('response', (res) => {
-      websocket._zitiContext.logger.info('req.on.response %o', res);
+      websocket._zitiContext.logger.info('req.on.response');
   
         const location = res.headers.location;
         const statusCode = res.statusCode;
@@ -710,7 +710,7 @@ async function initAsClient(websocket, address, protocols, options) {
     });
   
     req.on('upgrade', (res, socket, head) => {
-      websocket._zitiContext.logger.info('WebSocket handshake on.upgrade \nsocket=[%o] \nHTTP Response=[%o]', socket, res);
+      websocket._zitiContext.logger.info('WebSocket handshake on.upgrade socket=[%o]', socket._id);
   
         websocket.emit('upgrade', res);
   

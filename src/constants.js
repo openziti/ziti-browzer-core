@@ -107,6 +107,11 @@ const ZITI_CONSTANTS =
     'ZITI_EVENT_IDP_AUTH_HEALTH':           'idpAuthHealthEvent',
     'ZITI_EVENT_CHANNEL_CONNECT_FAIL':      'channelConnectFailEvent',
 
+    /**
+     * Name of event indicating encrypted data for a nestedTLS connection has arrived and needs decryption
+     */
+    'ZITI_EVENT_XGRESS_RX_NESTED_TLS':      'xgressEventNestedTLS',
+
 };
 
   

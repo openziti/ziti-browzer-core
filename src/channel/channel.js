@@ -221,14 +221,14 @@ class ZitiChannel {
    */
   async hello() {
 
-    this._zitiContext.logger.trace('ZitiChannel.hello entered for ch[%o]', this);
+    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] entered', this._id);
 
     await this._zws.open();
 
-    this._zitiContext.logger.trace('ZitiChannel.hello _zws.open completed for ch[%o]', this);
+    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] _zws.open completed', this._id);
 
     if (this.isHelloCompleted) {
-      this._zitiContext.logger.trace('Hello handshake was previously completed');
+      this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] Hello handshake was previously completed', this._id);
       return new Promise( async (resolve) => {
         resolve( {channel: this, data: null});
       });
@@ -248,17 +248,17 @@ class ZitiChannel {
   
       await this._tlsConn.create();
 
-      this._zitiContext.logger.debug('initiating TLS handshake');
+      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] initiating TLS handshake', this._id);
 
       await this._tlsConn.handshake();
 
       await this.awaitTLSHandshakeComplete();
 
-      this._zitiContext.logger.debug('TLS handshake complete');
+      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] TLS handshake complete', this._id);
 
     }
 
-    this._zitiContext.logger.debug('initiating message: ZitiEdgeProtocol.content_type.HelloType: ', ZitiEdgeProtocol.header_type.StringType);
+    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] initiating message: ZitiEdgeProtocol.content_type.HelloType: ', this._id, ZitiEdgeProtocol.header_type.StringType);
     let uuid = uuidv4();
 
     let headers = [
@@ -285,7 +285,7 @@ class ZitiChannel {
     this._helloCompletedTimestamp = Date.now();
     this._helloCompleted = true;
     this.state = (ZitiEdgeProtocol.conn_state.Connected);
-    this._zitiContext.logger.debug('ch[%d] Hello handshake to Edge Router [%s] completed at timestamp[%o]', this._id, this._edgeRouterHost, this._helloCompletedTimestamp);
+    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] Hello handshake to Edge Router [%s] completed at timestamp[%o]', this._id, this._edgeRouterHost, this._helloCompletedTimestamp);
 
     return new Promise( async (resolve) => {
       resolve( {channel: this, data: null});
@@ -406,13 +406,13 @@ class ZitiChannel {
     
       self._zitiContext.logger.debug('about to send Close to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
   
-      let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.StateClosed, headers, self._network_session_token, { 
+      self.sendMessageNoWait( ZitiEdgeProtocol.content_type.StateClosed, headers, self._network_session_token, { 
           conn: conn,
           sequence: sequence,
         } 
       );
 
-      self._zitiContext.logger.debug('close() completed with response[%o]', msg);
+      // self._zitiContext.logger.debug('close() completed with response[%o]', msg);
 
       conn.state = (ZitiEdgeProtocol.conn_state.Closed);
     
@@ -698,7 +698,8 @@ class ZitiChannel {
     //   contentType, 
     //   (body ? body.toString() : 'n/a'));
 
-    this._zitiContext.logger.debug("send (no wait) -> conn[%o] seq[%o] contentType[%o] bodyLen[%o] ", 
+    this._zitiContext.logger.debug("send (no wait) -> ch[%o] conn[%o] seq[%o] contentType[%o] bodyLen[%o] ",
+      this._id,
       (options.conn ? options.conn.id : 'n/a'), 
       messageId, contentType, 
       (body ? body.length : 'n/a')
@@ -1100,7 +1101,11 @@ class ZitiChannel {
       throwIf(isUndefined(connId), formatMessage('Cannot find ConnId header', { } ) );
       conn = this._connections._getConnection(connId);
       if (!zeroByteData) {
-        throwIf(isUndefined(conn), formatMessage('Conn not found. Seeking connId { actual }', { actual: connId}) );
+        if (isUndefined(conn)) {
+          this._zitiContext.logger.warn("contentType [%d] received for unknown conn.id[%d]", contentType, connId);
+          release();
+          return;
+        }
       }
     }
     

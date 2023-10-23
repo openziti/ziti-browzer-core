@@ -147,6 +147,7 @@ ZitiAgent.prototype.createConnection = async function(opts, deferredFn) {
     };
 
     this.socket = new ZitiSocket( opts );
+    opts.zitiContext.logger.trace(`ZitiAgent.createConnection(): socket created[${this.socket._id}]`);
     this.socket.connect(opts);
     this.socket.once('connect', onSocketConnect);
 };
