@@ -1,3 +1,12 @@
+# [0.30.0](https://github.com/openziti/ziti-browzer-core/compare/v0.29.7...v0.30.0) (2023-10-23)
+
+
+### Features
+
+* JSPI ([#118](https://github.com/openziti/ziti-browzer-core/issues/118)) ([2149b5a](https://github.com/openziti/ziti-browzer-core/commit/2149b5a57582d5b1b1facdc9d4aa4310e881b72e))
+
+
+
 ## [0.29.7](https://github.com/openziti/ziti-browzer-core/compare/v0.29.6...v0.29.7) (2023-09-18)
 
 
