@@ -534,6 +534,7 @@ function statusIsInformational(status) {
 function parserOnIncomingClient(res, shouldKeepAlive) {
   const socket = this.socket;
   const req = socket._httpMessage;
+  // console.log(`parserOnIncomingClient() entered req.path[${req.path}] res: `, res);
 
   // debug('AGENT incoming response!');
 

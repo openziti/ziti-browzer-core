@@ -54,7 +54,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
 
     this._uuid = uuidv4();
 
-    this._zitiContext.logger.trace('ZitiWASMTLSConnection.ctor: %o, _ws: %o', this._uuid, this._ws);
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.ctor: %s', this._uuid);
 
     /**
      * This stream is where we'll put any data arriving from an ER
@@ -137,7 +137,8 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
     // Tie the WASM-based SSL object back to this ZitiWASMTLSConnection so that later when
     // the low-level WASM code does fd-level i/o, our WASM-JS will intercept it, and
     // interface with this connection, so we can route traffic over the WebSocket to the ER
-    this._zitiContext.ssl_set_fd( this._wasmInstance, this._SSL, this._ch.id );
+    this.setWASMFD(this._zitiContext.addWASMFD(this));
+    this._zitiContext.ssl_set_fd( this._wasmInstance, this._SSL, this.getWASMFD() );
 
   }
 
@@ -198,7 +199,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
     // this._connected_cb = this.handshake_cb;
 
     this._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake(): fd[%d] calling ssl_do_handshake()', this.wasmFD );
-    let result = this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
+    let result = await this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
     this._zitiContext.logger.trace('ZitiWASMTLSConnection.handshake(): fd[%d] back from ssl_do_handshake() for %o:  result=%d (now awaiting cb)', this.wasmFD, this._id, result );
   }
 
@@ -272,7 +273,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
       // Make sure WASM knows where to callback when decrypted data is ready
       // this._read_cb = this.read_cb;
 
-      let decryptedData = this._zitiContext.tls_read(this._wasmInstance, this._SSL); // TLS-decrypt some data from the queue (bring back from WASM memory into JS memory)
+      let decryptedData = await this._zitiContext.tls_read(this._wasmInstance, this._SSL); // TLS-decrypt some data from the queue (bring back from WASM memory into JS memory)
 
       this._zitiContext.logger.trace('ZitiWASMTLSConnection.process[%d]: clear data from the ER is ready  <--- len[%d]', this.wasmFD, decryptedData.byteLength);
       this._datacb(this._ch, decryptedData.buffer); // propagate clear data to the waiting Promise
@@ -330,7 +331,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    * @param {*} wireData (already TLS-encrypted)
    */
   fd_write(wireData) {
-    // this._zitiContext.logger.trace('ZitiWASMTLSConnection.fd_write[%o] encrypted data is being sent to the ER  ---> [%o]', this._uuid, wireData); 
+    this._zitiContext.logger.trace('ZitiWASMTLSConnection.fd_write[%o] encrypted data is being sent to the ER  ---> [%o]', this._uuid, wireData); 
     this._ws.send(wireData);
   }
 
