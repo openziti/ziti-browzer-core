@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
   "scripts": {
-    "rollup": "rimraf dist/esm/ziti-browzer-core-*.js && rollup -c ./rollup.config.js",
+    "rollup": "rimraf dist/esm/*.js && rollup -c ./rollup.config.js",
     "build": "yarn rollup && yarn gulp",
     "gulp": "gulp clean build",
     "test": "karma start karma.conf.cjs",
@@ -57,7 +57,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.16.1",
+    "@openziti/libcrypto-js": "^0.18.2",
     "@openziti/ziti-browzer-edge-client": "^0.6.2",
     "asn1js": "^2.4.0",
     "assert": "^2.0.0",
@@ -66,6 +66,7 @@
     "buffer": "^6.0.3",
     "bufferutil": "^4.0.6",
     "chnl": "^1.2.0",
+    "es6-object-assign": "^1.1.0",
     "events": "^3.3.0",
     "fast-memoize": "^2.5.2",
     "format-message": "^6.2.4",

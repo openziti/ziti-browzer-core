@@ -123,7 +123,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    */
   async create() {
 
-    this._wasmInstance = await this._zitiContext.getInstance_OuterWASM();
+    this._wasmInstance = await this._zitiContext.getWASMInstance();
 
     this._sslContext = await this._zitiContext.ssl_CTX_new( this._wasmInstance );
 

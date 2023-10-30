@@ -564,7 +564,7 @@ async function initAsClient(websocket, address, protocols, options) {
 
             newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
             opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
-            opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase(); // + ":" + configHostAndPort.port;
+            opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase() + ":" + configHostAndPort.port;
             opts.host = serviceName;
         }
 
@@ -822,9 +822,8 @@ function zitiConnect(options) {
  */
 function abortHandshake(websocket, stream, message) {
   websocket._zitiContext.logger.error(
-      'abortHandshake() entered: message: %o, stream: %o',
-      message,
-      stream
+      'abortHandshake() entered: message: %o',
+      message
     );
   
     websocket.readyState = ZitiWebSocketWrapper.CLOSING;
