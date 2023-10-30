@@ -198,7 +198,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async create() {
 
-        this._wasmInstance = await this._zitiContext.getInstance_InnerWASM();
+        this._wasmInstance = await this._zitiContext.getWASMInstance();
 
         this._sslContext = await this._zitiContext.ssl_CTX_new( this._wasmInstance );
 
@@ -290,9 +290,9 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // If SSL indicates handshake has completed, let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
                 // before we turn loose any writes to the connection
                 if (_connected) {
-                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] pausing...`, this.wasmFD);
-                    await this._zitiContext.delay(500);
-                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] ...resuming`, this.wasmFD);
+                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] pausing...`, this.wasmFD);
+                    // await this._zitiContext.delay(500);
+                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] ...resuming`, this.wasmFD);
                     this._connected = true;
                 }
             }

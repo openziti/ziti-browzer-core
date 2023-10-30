@@ -71,7 +71,7 @@ import { isUndefined, isNull } from 'lodash-es';
       return false;
     }
   
-    await this.generateCSR( await this._zitiContext.getInstance_OuterWASM() );
+    await this.generateCSR( await this._zitiContext.getWASMInstance() );
 
     let result = await this.createEphemeralCert();
 
