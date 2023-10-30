@@ -1,3 +1,12 @@
+# [0.31.0](https://github.com/openziti/ziti-browzer-core/compare/v0.30.0...v0.31.0) (2023-10-30)
+
+
+### Features
+
+* Dual-mode: JSPI or NO_JSPI ([#119](https://github.com/openziti/ziti-browzer-core/issues/119)) ([c0105ee](https://github.com/openziti/ziti-browzer-core/commit/c0105ee8cfa7960afa462b7a0d7f1f36bd42f8b1))
+
+
+
 # [0.30.0](https://github.com/openziti/ziti-browzer-core/compare/v0.29.7...v0.30.0) (2023-10-23)
 
 
