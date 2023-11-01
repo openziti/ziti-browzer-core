@@ -2055,10 +2055,10 @@ class ZitiContext extends EventEmitter {
                   let parts = value.split(";");
                   for (let j = 0; j < parts.length; j++) {
                     let part = parts[j].trim();
-                    if ( part.startsWith("Path") ) {
+                    if ( part.trim().toLowerCase().startsWith("path") ) {
                       cookiePath = part.substring(part.indexOf("=") + 1);
                     }
-                    else if ( part.startsWith("Expires") ) {
+                    else if ( part.trim().toLowerCase().startsWith("expires") ) {
                       expires = new Date( part.substring(part.indexOf("=") + 1) );
                     }
                     else if ( part.startsWith("HttpOnly") ) {
@@ -2066,7 +2066,7 @@ class ZitiContext extends EventEmitter {
                     }
                   }
   
-                  condensedCookieArray.set(name, {name: name, cookie_value: cookie_value, expires: expires, path: cookiePath});
+                  condensedCookieArray.set(name, {name: name, cookie_value: cookie_value, expires: expires, cookiePath: cookiePath});
                 }
               }
 
