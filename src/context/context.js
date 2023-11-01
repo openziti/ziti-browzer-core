@@ -2043,11 +2043,8 @@ class ZitiContext extends EventEmitter {
               let expires;
               let httpOnly = false;
   
-              //   let zitiCookies = await ls.getWithExpiry(zitiConstants.get().ZITI_COOKIES);
-              //   if (isNull(zitiCookies)) {
-              //     zitiCookies = {}
-              //   }
-  
+              let condensedCookieArray = new Map();
+
               for (let i = 0; i < cookieArray.length; i++) {
   
                 let cookie = cookieArray[i];
@@ -2069,14 +2066,14 @@ class ZitiContext extends EventEmitter {
                     }
                   }
   
-  
-                  //       zitiCookies[name] = cookie_value;
-  
-                  //       await ls.setWithExpiry(zitiConstants.get().ZITI_COOKIES, zitiCookies, new Date(8640000000000000));
-  
-                  Cookies.set(name, cookie_value, { expires: expires, path:  cookiePath});
+                  condensedCookieArray.set(name, {name: name, cookie_value: cookie_value, expires: expires, path: cookiePath});
                 }
               }
+
+              function setCondensedCookies(value, key) {
+                Cookies.set(value.name, value.cookie_value, { expires: value.expires, path: value.cookiePath});
+              }
+              condensedCookieArray.forEach(setCondensedCookies);
             }
           }
         }
