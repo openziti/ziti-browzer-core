@@ -1,3 +1,12 @@
+## [0.31.2](https://github.com/openziti/ziti-browzer-core/compare/v0.31.1...v0.31.2) (2023-11-03)
+
+
+### Bug Fixes
+
+* ensure UA header is present (keep Observium happy) ([#121](https://github.com/openziti/ziti-browzer-core/issues/121)) ([cd15d14](https://github.com/openziti/ziti-browzer-core/commit/cd15d149761543c8d49ac0c1802d676e15b325cf))
+
+
+
 ## [0.31.1](https://github.com/openziti/ziti-browzer-core/compare/v0.31.0...v0.31.1) (2023-11-01)
 
 
