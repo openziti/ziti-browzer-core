@@ -328,7 +328,8 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
  
 	 // HTTP-network-or-cache fetch step 2.11
 	 if (!headers.has('User-Agent')) {
-		 headers.set('User-Agent', 'ziti-browzer-core/' + pjson.version);
+		 headers.set('User-Agent', navigator.userAgent);
+		 headers.append( 'x-openziti-browzer-core', pjson.version );
 	 }
  
 	 // --- Disable gzip for now ---
