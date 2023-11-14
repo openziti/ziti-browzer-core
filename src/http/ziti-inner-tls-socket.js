@@ -155,6 +155,8 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         this._tlsReadActive = false;
 
+        this.pendingWriteArray = new Uint8Array(0)
+
     }
 
     getWASMFD() {
@@ -348,11 +350,20 @@ class ZitiInnerTLSSocket extends EventEmitter {
         }
     }
 
-
+    _appendBuffer(buffer1, buffer2) {
+        var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+        tmp.set(new Uint8Array(buffer1), 0);
+        tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+        return tmp;
+    };
+      
     /**
      * 
      */
     async write(conn, buffer) {
+
+        let MAX_IMMEDIATE_WRITE_LENGTH = 10; // data shorter than this goes out immediately
+        let MAX_DELAY_WRITE_TIME       = 50; // number of ms to wait for more data before writing
 
         // Complete the TLS handshake if necessary
         let isConnected = await this.isConnected();
@@ -362,7 +373,32 @@ class ZitiInnerTLSSocket extends EventEmitter {
         }
   
         if (buffer.length > 0) {
-            conn.channel.write(conn, buffer);
+
+            if (buffer.length < MAX_IMMEDIATE_WRITE_LENGTH) {
+
+                conn.channel.write(conn, buffer);
+
+            }
+            else {
+
+                this.pendingWriteArray = this._appendBuffer(this.pendingWriteArray, buffer);
+
+                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.write() buffer.length[${buffer.length}] pendingWriteArray[${this.pendingWriteArray.length}]`);
+
+                if (this.pendingWriteArray.length == buffer.length) {
+
+                    setTimeout((self, conn) => {
+
+                        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.write() AFTER TIMEOUT, now writing pendingWriteArray[${self.pendingWriteArray.length}]`);
+
+                        conn.channel.write(conn, self.pendingWriteArray);
+
+                        self.pendingWriteArray = new Uint8Array(0);
+        
+                    }, MAX_DELAY_WRITE_TIME, this, conn)
+    
+                }
+            }
         }
     }
 
@@ -581,9 +617,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         let { self } = args;
 
-        let isConnected = await this.isConnected();
-
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] isConnected[%o] starting to decrypt enqueued data, calling tls_read', self.wasmFD, isConnected);
+        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] starting to decrypt enqueued data, calling tls_read', self.wasmFD );
 
         let decryptedData = await self._zitiContext.tls_read(self._wasmInstance, self._SSL); // TLS-decrypt some data from the queue
 

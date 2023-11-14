@@ -810,12 +810,40 @@ OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
   const outputData = this.outputData;
   socket.cork();
   let ret;
-  // Retain for(;;) loop for performance reasons
-  // Refs: https://github.com/nodejs/node/pull/30958
+
+  var mergedArrayLength = 0;
+  var mergedArrayCursor = 0;
+  const utf8EncodeText = new TextEncoder();
+
+  // Get combined length of all items in output array
   for (let i = 0; i < outputLength; i++) {
-    const { data, encoding, callback } = outputData[i];
-    ret = socket.write(data, encoding, callback);
+    const { data } = outputData[i];
+    mergedArrayLength += data.length;
   }
+  var mergedArray = new Uint8Array(mergedArrayLength);
+
+  // Create the merged Array
+  for (let i = 0; i < outputLength; i++) {
+    const { data } = outputData[i];
+    var byteArray;
+    if (typeof data === 'string') {
+      byteArray = utf8EncodeText.encode(data);
+    } else {
+      byteArray = data;
+    }
+    if (i==0) {
+      mergedArray.set(byteArray);
+      mergedArrayCursor = byteArray.length;
+    } else {
+      mergedArray.set(byteArray, mergedArrayCursor);
+      mergedArrayCursor += byteArray.length;
+    }
+  }
+
+  // Write the merged array to the ER
+  const { data, encoding, callback } = outputData[0];
+  ret = socket.write(mergedArray, encoding, callback);
+
   socket.uncork();
 
   this.outputData = [];
