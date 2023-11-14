@@ -1641,6 +1641,35 @@ class ZitiContext extends EventEmitter {
    
   }
 
+  async shouldRouteOverZitiSync(url) {
+
+    let parsedURL = new URL(url);   
+    let hostname = parsedURL.hostname;
+    let port = parseInt(parsedURL.port, 10);
+    if ((port === '') || (parsedURL.port === '')) {
+      if ((parsedURL.protocol === 'https:') || (parsedURL.protocol === 'wss:')) {
+        port = 443;
+      } else {
+        port = 80;
+      }
+    }
+
+    let self = this;
+
+    let serviceName = result(find(this._services, function(obj) {
+  
+      if (self._getMatchConfigTunnelerClientV1( obj.config['ziti-tunneler-client.v1'], hostname, port )) {
+        return true;
+      }
+
+      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+
+    }), 'name');
+
+    return serviceName;
+
+  }
+
  /**
   * Determine if the given URL should be handled via CORS Proxy.
   * 
@@ -2007,11 +2036,11 @@ class ZitiContext extends EventEmitter {
             } else {
               buffer = options.body;
             }
-            req.write( buffer );
+            req.end( buffer );
           }
+        } else {
+          req.end();
         }
-  
-        req.end();
   
       }
 

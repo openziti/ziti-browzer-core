@@ -568,13 +568,31 @@ async function initAsClient(websocket, address, protocols, options) {
             opts.host = serviceName;
         }
 
-    } else {  // the request is targeting the raw internet
+    } else {
+      serviceName = await websocket._zitiContext.shouldRouteOverZiti( address );
 
-      websocket._zitiContext.logger.warn('ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [%s]', address);
-        opts.createConnection = isSecure ? tlsConnect : netConnect;
-        opts.host = parsedUrl.hostname.startsWith('[')
-        ? parsedUrl.hostname.slice(1, -1)
-        : parsedUrl.hostname;  
+      if (!isNull(serviceName)) {
+
+        let newUrl = new URL( address );
+
+        opts.createConnection = zitiConnect;    // We're going over Ziti
+
+        let configHostAndPort = await websocket._zitiContext.getConfigHostAndPortByServiceName (serviceName);
+
+        newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
+        opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
+        opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase() + ":" + configHostAndPort.port;
+        opts.host = serviceName;
+
+      }
+      else {  // the request is targeting the raw internet
+
+        websocket._zitiContext.logger.warn('ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [%s]', address);
+          opts.createConnection = isSecure ? tlsConnect : netConnect;
+          opts.host = parsedUrl.hostname.startsWith('[')
+          ? parsedUrl.hostname.slice(1, -1)
+          : parsedUrl.hostname;  
+      }
     }
 
   
@@ -946,6 +964,10 @@ function sendAfterClose(websocket, data, cb) {
   function receiverOnMessage(data) {
     if (typeof data === 'string') {
       this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting STRING: %o', data);
+      this[CONSTANTS.kWebSocket].emit('message', data);
+    }
+    else if (typeof data === 'object') {
+      this[CONSTANTS.kWebSocket]._zitiContext.logger.info('ZitiWebSocketWrapper.receiverOnMessage() entered, emitting object: %o', data);
       this[CONSTANTS.kWebSocket].emit('message', data);
     } else {
       let blob = new Blob([new Uint8Array(data, 0, data.byteLength)]);

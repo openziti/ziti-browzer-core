@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { isNull } from 'lodash-es';
 import { ZitiWebSocketWrapper } from './ziti-websocket-wrapper';
 
 /**
@@ -33,17 +34,28 @@ class ZitiWebSocketWrapperCtor {
     // We only want to intercept WebSockets that target the Ziti BrowZer Bootstrapper
     var regex = new RegExp( zitiBrowzerRuntime.zitiConfig.browzer.bootstrapper.self.host, 'g' );
 
+    let ws;
+
     if (address.match( regex )) { // the request is targeting the Ziti BrowZer Bootstrapper
 
-      let ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
-
-      return ws;
+      ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
 
     } else {
 
-      return new window._ziti_realWebSocket(address, protocols, options);
+      let service = zitiBrowzerRuntime.zitiContext.shouldRouteOverZitiSync(address);
 
+      if (!isNull(service)) {
+
+        ws = new ZitiWebSocketWrapper(address, protocols, options, zitiBrowzerRuntime.zitiContext, zitiBrowzerRuntime.zitiConfig);
+
+      } else {
+
+        ws = new window._ziti_realWebSocket(address, protocols, options);
+
+      }
     }
+
+    return ws;
 
   }
 }
