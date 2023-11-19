@@ -621,7 +621,7 @@ class ZitiChannel {
    *
    * @returns {Promise}
    */
-  async write(conn, data) {
+  write(conn, data) {
 
     if (!isEqual(conn.state, ZitiEdgeProtocol.conn_state.Closed)) {
 

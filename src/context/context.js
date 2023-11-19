@@ -1628,7 +1628,11 @@ class ZitiContext extends EventEmitter {
         });
     
       }
-    
+
+      if (isUndefined(serviceName)) {
+        serviceName = self.shouldRouteOverZitiSync(url);
+      }
+
       return serviceName;
      
     }
