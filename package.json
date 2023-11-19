@@ -1,6 +1,6 @@
 {
   "name": "@openziti/ziti-browzer-core",
-  "version": "0.32.0",
+  "version": "0.32.1",
   "type": "module",
   "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
   "scripts": {

@@ -1,3 +1,12 @@
+## [0.32.1](https://github.com/openziti/ziti-browzer-core/compare/v0.32.0...v0.32.1) (2023-11-19)
+
+
+### Bug Fixes
+
+* typos ([#123](https://github.com/openziti/ziti-browzer-core/issues/123)) ([ca19d36](https://github.com/openziti/ziti-browzer-core/commit/ca19d36a1ab598837797eb662ff31911156c8e43))
+
+
+
 # [0.32.0](https://github.com/openziti/ziti-browzer-core/compare/v0.31.2...v0.32.0) (2023-11-14)
 
 
