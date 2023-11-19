@@ -571,7 +571,7 @@ async function initAsClient(websocket, address, protocols, options) {
     } else {
       serviceName = await websocket._zitiContext.shouldRouteOverZiti( address );
 
-      if (!isNull(serviceName)) {
+      if (!isUndefined(serviceName)) {
 
         let newUrl = new URL( address );
 
