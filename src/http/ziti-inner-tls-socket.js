@@ -207,7 +207,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
         this._BIO = this._zitiContext.bio_new_ssl_connect(this._wasmInstance, this._sslContext);
 
         this._SSL = this._zitiContext.bio_get_ssl(this._wasmInstance, this._BIO);
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.create() SSL[%o] starting TLS handshake', this._SSL);
+        this._zitiContext.logger.trace('ZitiInnerTLSSocket.create() SSL[%o] starting TLS handshake', this._SSL);
 
 
         // Tie the WASM-based SSL object back to this ZitiInnerTLSSocket so that later when
@@ -216,12 +216,29 @@ class ZitiInnerTLSSocket extends EventEmitter {
         // then on to the ER.
         this._zitiContext.ssl_set_fd( this._wasmInstance, this._SSL, this.getWASMFD() );
 
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] starting TLS handshake', this.getWASMFD());
+        this._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] starting TLS handshake', this.getWASMFD());
 
         this.handshake();
-        await this.awaitTLSHandshakeComplete();
+        
+        let success = await this.awaitTLSHandshakeComplete( 5000 ).catch((error) => {
 
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] TLS handshake completed', this.getWASMFD());
+            // Let any listeners know the attempt to complete a nestedTLS handshake has timed out,
+            // which is possibly a condition where the Service is misconfigured, and/or is not really
+            // listening on HTTPS
+            this._zitiContext.emit(ZITI_CONSTANTS.ZITI_EVENT_NESTED_TLS_HANDSHAKE_TIMEOUT, {
+                serviceName: this.outerSocket.zitiConnection._data.serviceName,
+                dst_hostname: this.outerSocket.zitiConnection._data.serviceConnectAppData.dst_hostname,
+                dst_port: this.outerSocket.zitiConnection._data.serviceConnectAppData.dst_port,          
+            });
+
+            this._zitiContext.logger.error(`${error}`, this.getWASMFD());
+
+            throw error;
+        });
+  
+        if (success) {
+            this._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] TLS handshake completed', this.getWASMFD());
+        }
     }
 
 
@@ -229,17 +246,27 @@ class ZitiInnerTLSSocket extends EventEmitter {
      * Remain in lazy-sleepy loop until we have completed our TLS handshake.
      * 
      */
-    async awaitTLSHandshakeComplete() {
+    async awaitTLSHandshakeComplete(threshold) {
         let self = this;
-        return new Promise((resolve) => {
+        let startTime = new Date();
+        let ctr = 0;
+        return new Promise((resolve, reject) => {
             (async function waitForTLSHandshakeComplete() {
+                ctr++;
                 let isConnected = await self.isConnected();
                 if (!isConnected) {
-                    self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[%d] TLS handshake still not complete', self.wasmFD);
+                    if (ctr % 500 == 0) {
+                        self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[%d] TLS handshake still not complete', self.wasmFD);
+                    }
+                    let now = new Date();
+                    let elapsed = now - startTime; //in ms
+                    if (elapsed > threshold) {
+                        return reject(`Handshake Timeout threshold of [${threshold}] exceeded`);
+                    }
                     setTimeout(waitForTLSHandshakeComplete, 10);  
                 } else {
                     self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[%d] TLS handshake complete', self.wasmFD);
-                    return resolve();
+                    return resolve(true);
                 }
             })();
         });

@@ -661,7 +661,7 @@ async function initAsClient(websocket, address, protocols, options) {
 
     opts.serviceName = serviceName;
     opts.serviceScheme = websocket._zitiConfig.browzer.bootstrapper.target.scheme;
-    opts.serviceConnectAppData = await websocket._zitiContext.getConnectAppDataByServiceName(serviceName);
+    opts.serviceConnectAppData = await websocket._zitiContext.getConnectAppDataByServiceName(opts.serviceName, opts.serviceScheme);
   
     // build HTTP request object
     let request = new ZitiHttpRequest(serviceName, opts.href, opts, websocket._zitiContext);
