@@ -106,6 +106,7 @@ const ZITI_CONSTANTS =
     'ZITI_EVENT_NO_WSS_ROUTERS':            'noWSSEnabledEdgeRoutersEvent',
     'ZITI_EVENT_IDP_AUTH_HEALTH':           'idpAuthHealthEvent',
     'ZITI_EVENT_CHANNEL_CONNECT_FAIL':      'channelConnectFailEvent',
+    'ZITI_EVENT_NESTED_TLS_HANDSHAKE_TIMEOUT':     'nestedTLSHandshakeTimeout',
 
     /**
      * Name of event indicating encrypted data for a nestedTLS connection has arrived and needs decryption

@@ -1170,9 +1170,40 @@ class ZitiContext extends EventEmitter {
   }
 
   /**
+   *  If scheme is 'https' then look for port 443
+   * 
+   *  If scheme is 'http'  then look for any port that is NOT 443
+   */
+  getPortByScheme(portRanges, scheme) {
+
+    let dst_port;
+
+    find(portRanges, function(portRange) {
+      if (isEqual( scheme, 'https' )) {
+        if (isEqual( portRange.low, 443 ) || isEqual( portRange.high, 443 )) {
+          dst_port = 443;
+          return true;
+        }
+      }
+      if (isEqual( scheme, 'http' )) {
+        if (!isEqual( portRange.low, 443 )) {
+          dst_port = portRange.low;
+          return true;
+        }
+        else if (!isEqual( portRange.high, 443 )) {
+          dst_port = portRange.high;
+          return true;
+        }
+      }
+    });
+
+    return dst_port.toString();
+  }
+
+  /**
    * 
    */
-  async getConnectAppDataByServiceName (name) {
+  async getConnectAppDataByServiceName (name, scheme) {
     let config = await this.getServiceConfigByName(name);
     if (isUndefined(config)) {
       return undefined;
@@ -1180,9 +1211,10 @@ class ZitiContext extends EventEmitter {
     if (!config['intercept.v1']) {
       return undefined;
     }
+    let dst_port = this.getPortByScheme(config['intercept.v1'].portRanges, scheme);
     let appData = {
       dst_protocol: config['intercept.v1'].protocols[0],
-      dst_port:     config['intercept.v1'].portRanges[0].high.toString(),
+      dst_port:     dst_port,
     };
     if (isIP(config['intercept.v1'].addresses[0])) {
       appData.dst_ip = config['intercept.v1'].addresses[0];
