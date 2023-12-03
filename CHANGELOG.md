@@ -1,3 +1,12 @@
+# [0.33.0](https://github.com/openziti/ziti-browzer-core/compare/v0.32.1...v0.33.0) (2023-12-03)
+
+
+### Features
+
+* TLS handshake timeout event ([#124](https://github.com/openziti/ziti-browzer-core/issues/124)) ([4e3dc9f](https://github.com/openziti/ziti-browzer-core/commit/4e3dc9fff5e0a300ae19567f520ed34fdeba0062))
+
+
+
 ## [0.32.1](https://github.com/openziti/ziti-browzer-core/compare/v0.32.0...v0.32.1) (2023-11-19)
 
 
