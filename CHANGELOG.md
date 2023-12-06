@@ -1,3 +1,12 @@
+## [0.34.1](https://github.com/openziti/ziti-browzer-core/compare/v0.34.0...v0.34.1) (2023-12-06)
+
+
+### Bug Fixes
+
+* portRange handler ([#126](https://github.com/openziti/ziti-browzer-core/issues/126)) ([4591a5f](https://github.com/openziti/ziti-browzer-core/commit/4591a5f15d37935c0dc6e3c3fa51e1fd7c0885df))
+
+
+
 # [0.34.0](https://github.com/openziti/ziti-browzer-core/compare/v0.33.0...v0.34.0) (2023-12-06)
 
 
