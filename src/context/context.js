@@ -1172,7 +1172,8 @@ class ZitiContext extends EventEmitter {
   }
 
   /**
-   *  If scheme is 'https' then look for port 443
+   *  If scheme is 'https' then look for port 443. If 443 not found, 
+   *    use portRange.low
    * 
    *  If scheme is 'http'  then look for any port that is NOT 443
    */
@@ -1185,6 +1186,8 @@ class ZitiContext extends EventEmitter {
         if (isEqual( portRange.low, 443 ) || isEqual( portRange.high, 443 )) {
           dst_port = 443;
           return true;
+        } else {
+          dst_port = portRange.low;
         }
       }
       if (isEqual( scheme, 'http' )) {
