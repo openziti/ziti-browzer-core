@@ -1,3 +1,12 @@
+# [0.34.0](https://github.com/openziti/ziti-browzer-core/compare/v0.33.0...v0.34.0) (2023-12-06)
+
+
+### Features
+
+* Support multiple wssER's in same network ([#125](https://github.com/openziti/ziti-browzer-core/issues/125)) ([8957238](https://github.com/openziti/ziti-browzer-core/commit/8957238b1caf4eaa764ee1af83a8f94f02d8b0bc))
+
+
+
 # [0.33.0](https://github.com/openziti/ziti-browzer-core/compare/v0.32.1...v0.33.0) (2023-12-03)
 
 
