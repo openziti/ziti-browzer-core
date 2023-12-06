@@ -132,6 +132,8 @@ class ZitiContext extends EventEmitter {
 
     this._timeout = ZITI_CONSTANTS.ZITI_DEFAULT_TIMEOUT;
 
+    this._didInitialGetPendingChannelConnects = false;
+
   }
 
   get libCrypto () {
@@ -1404,31 +1406,28 @@ class ZitiContext extends EventEmitter {
   */
   async _getPendingChannelConnects(conn, edgeRouters) {
 
-    return new Promise( async (resolve) => {
+    this.logger.trace('_getPendingChannelConnects entered');
 
-      this.logger.trace('_getPendingChannelConnects entered for edgeRouters [%o]', edgeRouters);
+    let pendingChannelConnects = new Array();
 
-      let pendingChannelConnects = new Array();
-
-      let self = this;
-      
-      // Get a channel connection to each of the Edge Routers that have a WS binding, initiating a connection if channel is not yet connected
-      edgeRouters.forEach(async function(edgeRouter, idx, array) {
-        self.logger.trace('calling getChannelByEdgeRouter for ER [%o]', edgeRouter);  
-        let ch = await self.getChannelByEdgeRouter(conn, edgeRouter).catch((err) => {
-          self.logger.error( err );  
-          throw new Error( err );
-        });
-        self.logger.debug('initiating Hello to [%s] for session[%s]', self.getEdgeRouterURL(edgeRouter), conn.networkSessionToken);  
-        pendingChannelConnects.push( 
-          ch.hello() 
-        );
-
-        if (idx === array.length - 1) {
-          resolve(pendingChannelConnects);  // Return to caller only after we have processed all edge routers
-        }
+    let self = this;
+    
+    // Get a channel connection to each of the Edge Routers that have a WSS binding, initiating a connection if channel is not yet connected
+    for (var i = 0; i < edgeRouters.length; i++) {
+  
+      self.logger.trace('calling getChannelByEdgeRouter for wssER [%s]', edgeRouters[i].hostname);  
+      let ch = await self.getChannelByEdgeRouter(conn, edgeRouters[i]).catch((err) => {
+        self.logger.error( err );  
+        throw new Error( err );
       });
-    });
+      self.logger.debug('initiating Hello to [%s] for session[%s]', self.getEdgeRouterURL(edgeRouters[i]), conn.networkSessionToken);  
+      pendingChannelConnects.push( 
+        ch.hello() 
+      );
+
+    };
+
+    return pendingChannelConnects;
   }
 
 
@@ -1549,7 +1548,7 @@ class ZitiContext extends EventEmitter {
     let result = {};
 
     find(Array.from(this._channels), function(obj) {
-      if (isEqual( obj[1]._edgeRouterHost, edgeRouter )) {
+      if (isEqual( obj[1][0]._edgeRouterHost, edgeRouter )) {
         result.key = obj[0];
         result.ch = obj[1];
         return true;
@@ -1571,6 +1570,8 @@ class ZitiContext extends EventEmitter {
   * @param {*} networkSession
   */
   async connect(conn, networkSession) {
+
+    let self = this;
    
     this.logger.debug('connect() entered for conn[%o] networkSession[%o]', conn.id, networkSession);  
     
@@ -1597,11 +1598,44 @@ class ZitiContext extends EventEmitter {
       this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
-      this.logger.trace('pendingChannelConnects [%o]', pendingChannelConnects);  
-  
-      let channelWithNearestEdgeRouter = await Promise.race( pendingChannelConnects );
-      channelWithNearestEdgeRouter = channelWithNearestEdgeRouter.channel;
-      this.logger.debug('Channel [%d] has nearest Edge Router for conn[%o]', channelWithNearestEdgeRouter.id, conn.id);
+
+      let nearestEdgeRouter;
+
+      if (!this._didInitialGetPendingChannelConnects) {
+
+        // The first time through, we will only wait for one wssER connect to complete, and
+        // will select it as the "nearest".  Other, slower, wssER connects will continue to
+        // run, and eventually complete in the background, but we will not wait for them here
+        // since that would impede performance.
+        nearestEdgeRouter = await Promise.race( pendingChannelConnects );
+
+        this.logger.trace(`Promise.race helloCompletedDuration time for wssER[${nearestEdgeRouter.edgeRouterHost}] was [${nearestEdgeRouter.helloCompletedDuration}]`);
+
+        this._didInitialGetPendingChannelConnects = true;
+
+      } else {
+
+        // Subsequently, we will wait for all wssER connects to complete, since they 
+        // will most likely have done so before we get back here.  We will then examine
+        // the helloCompletedDuration values across all wssERs and chose the one with
+        // the lowest value.
+
+        let edgeRouterConnects = await Promise.all( pendingChannelConnects );
+
+        let helloCompletedDuration = 999999999999;
+
+        find(edgeRouterConnects, function(edgeRouterConnect) {
+          self.logger.trace(`Promise.all helloCompletedDuration time for wssER[${edgeRouterConnect.edgeRouterHost}] was [${edgeRouterConnect.helloCompletedDuration}]`);
+          if (edgeRouterConnect.helloCompletedDuration < helloCompletedDuration) {
+            nearestEdgeRouter = edgeRouterConnect;
+            helloCompletedDuration = edgeRouterConnect.helloCompletedDuration;
+          }
+        });
+
+      }
+
+      let channelWithNearestEdgeRouter = nearestEdgeRouter.channel;
+      this.logger.debug('ch[%d] has nearest wssER[%s] for conn[%o]', channelWithNearestEdgeRouter.id, nearestEdgeRouter.edgeRouterHost, conn.id);
       channelWithNearestEdgeRouter._connections._saveConnection(conn);
       conn.channel = channelWithNearestEdgeRouter;
   
@@ -1956,9 +1990,10 @@ class ZitiContext extends EventEmitter {
   closeChannelByEdgeRouter( edgeRouter ) {
     let result = this.findChannelByEdgeRouter(edgeRouter);
     if (result.key && result.ch) {
+      result.ch[0]._state = ZitiEdgeProtocol.conn_state.Closed;
       this._channels.delete( result.key );  
-      this._channelsById.delete( result.ch.id );
-      this.logger.warn('channel [%s] id[%d] deleted', result.key, result.ch.id);
+      this._channelsById.delete( result.ch[0].id );
+      this.logger.warn('channel [%s] id[%d] deleted', result.key, result.ch[0].id);
     }
   }
   

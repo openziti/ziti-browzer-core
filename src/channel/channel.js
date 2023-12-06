@@ -221,17 +221,15 @@ class ZitiChannel {
    */
   async hello() {
 
-    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] entered', this._id);
+    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] wssER[%s] entered', this._id, this._edgeRouterHost);
 
     await this._zws.open();
 
-    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] _zws.open completed', this._id);
+    this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] wssER[%s] _zws.open completed', this._id, this._edgeRouterHost);
 
     if (this.isHelloCompleted) {
-      this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] Hello handshake was previously completed', this._id);
-      return new Promise( async (resolve) => {
-        resolve( {channel: this, data: null});
-      });
+      this._zitiContext.logger.trace('ZitiChannel.hello() ch[%d] wssER[%s] Hello handshake was previously completed', this._id, this._edgeRouterHost);
+      return( {channel: this, data: null, helloCompletedDuration: this._helloCompletedDuration, edgeRouterHost: this._edgeRouterHost} );
     }
 
     if (isEqual(this._callerId, "ws:")) {
@@ -248,17 +246,17 @@ class ZitiChannel {
   
       await this._tlsConn.create();
 
-      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] initiating TLS handshake', this._id);
+      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] wssER[%s] initiating TLS handshake', this._id, this._edgeRouterHost);
 
       await this._tlsConn.handshake();
 
       await this.awaitTLSHandshakeComplete();
 
-      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] TLS handshake complete', this._id);
+      this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] wssER[%s] TLS handshake complete', this._id, this._edgeRouterHost);
 
     }
 
-    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] initiating message: ZitiEdgeProtocol.content_type.HelloType: ', this._id, ZitiEdgeProtocol.header_type.StringType);
+    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] wssER[%s] initiating message: ZitiEdgeProtocol.content_type.HelloType: ', this._id, this._edgeRouterHost, ZitiEdgeProtocol.header_type.StringType);
     let uuid = uuidv4();
 
     let headers = [
@@ -278,18 +276,19 @@ class ZitiChannel {
 
     let sequence = this.getAndIncrementSequence();
 
+    this._helloStartedTimestamp = Date.now();
+
     let msg = await this.sendMessage( ZitiEdgeProtocol.content_type.HelloType, headers, null, { 
       sequence: sequence,
     });
 
     this._helloCompletedTimestamp = Date.now();
+    this._helloCompletedDuration = this._helloCompletedTimestamp - this._helloStartedTimestamp; //in ms
     this._helloCompleted = true;
     this.state = (ZitiEdgeProtocol.conn_state.Connected);
-    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] Hello handshake to Edge Router [%s] completed at timestamp[%o]', this._id, this._edgeRouterHost, this._helloCompletedTimestamp);
+    this._zitiContext.logger.debug('ZitiChannel.hello() ch[%d] wssER[%s] Hello handshake completed at timestamp[%o]', this._id, this._edgeRouterHost, this._helloCompletedTimestamp);
 
-    return new Promise( async (resolve) => {
-      resolve( {channel: this, data: null});
-    });
+    return( {channel: this, data: null, helloCompletedDuration: this._helloCompletedDuration, edgeRouterHost: this._edgeRouterHost} );
 
   }
 
@@ -301,7 +300,7 @@ class ZitiChannel {
 
     const self = this;
     
-      self._zitiContext.logger.debug('initiating Connect to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
+      self._zitiContext.logger.debug('initiating Connect to wssER[%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
       await sodium.ready;
     
@@ -357,7 +356,7 @@ class ZitiChannel {
 
       conn.state = (ZitiEdgeProtocol.conn_state.Connecting);
   
-      self._zitiContext.logger.debug('about to send Connect to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
+      self._zitiContext.logger.debug('about to send Connect to wssER[%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
   
       let msg = await self.sendMessage( ZitiEdgeProtocol.content_type.Connect, headers, self._network_session_token, { 
           conn: conn,
@@ -380,7 +379,7 @@ class ZitiChannel {
     const self = this;
     return new Promise( async (resolve, reject) => {
     
-      self._zitiContext.logger.debug('initiating Close to Edge Router [%s] for conn[%d]', this._edgeRouterHost, conn.id);
+      self._zitiContext.logger.debug('initiating Close to wssER[%s] for conn[%d]', this._edgeRouterHost, conn.id);
   
       let sequence = conn.getAndIncrementSequence();
       let uuid = uuidv4();
@@ -404,7 +403,7 @@ class ZitiChannel {
   
       ];
     
-      self._zitiContext.logger.debug('about to send Close to Edge Router [%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
+      self._zitiContext.logger.debug('about to send Close to wssER[%s] for conn[%d]', conn.channel.edgeRouterHost, conn.id);
   
       self.sendMessageNoWait( ZitiEdgeProtocol.content_type.StateClosed, headers, self._network_session_token, { 
           conn: conn,
@@ -959,6 +958,10 @@ class ZitiChannel {
    * @param ArrayBuffer data 
    */
   async _recvFromWireAfterDecrypt(ch, data) {
+
+    if (isEqual(ch._state, ZitiEdgeProtocol.conn_state.Closed)) {
+      return;
+    }
 
     let buffer = data;
 
