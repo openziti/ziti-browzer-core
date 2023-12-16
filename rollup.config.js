@@ -47,7 +47,7 @@ let plugins = [
   json(),
   nodeResolve({preferBuiltins: false, browser: true}),
   nodePolyfills(),
-  esformatter({indent: { value: '  '}}),
+  // esformatter({indent: { value: '  '}}),
   // terser(),
 ];
 
