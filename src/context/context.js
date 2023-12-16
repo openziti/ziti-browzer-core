@@ -2124,8 +2124,6 @@ class ZitiContext extends EventEmitter {
       });
   
       req.on('response', async res => {
-
-        let body = res.pipe(new PassThrough());
   
         const response_options = {
           url: url,
@@ -2136,6 +2134,9 @@ class ZitiContext extends EventEmitter {
           timeout: request.timeout,
           counter: request.counter
         };
+
+        let body = res.pipe(new PassThrough( response_options ));
+
         let response = new HttpResponse(body, response_options);
   
         for (const hdr in response_options.headers) {

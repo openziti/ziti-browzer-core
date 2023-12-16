@@ -332,11 +332,8 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 		 headers.append( 'x-openziti-browzer-core', pjson.version );
 	 }
  
-	 // --- Disable gzip for now ---
-	 //
-	 // // HTTP-network-or-cache fetch step 2.15
-	 if (this.compress && !headers.has('Accept-Encoding')) {
-		 headers.set('Accept-Encoding', 'gzip,deflate');
+	 if (!headers.has('Accept-Encoding')) {
+		headers.set('Accept-Encoding', 'gzip,deflate');
 	 }
  
 	 // if (!headers.has('Connection')) {
