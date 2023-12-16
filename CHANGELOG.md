@@ -1,3 +1,12 @@
+# [0.35.0](https://github.com/openziti/ziti-browzer-core/compare/v0.34.1...v0.35.0) (2023-12-16)
+
+
+### Features
+
+* add gzip support ([#127](https://github.com/openziti/ziti-browzer-core/issues/127)) ([df0de41](https://github.com/openziti/ziti-browzer-core/commit/df0de419709902dc1ba5d78badac6d882c9fae8d))
+
+
+
 ## [0.34.1](https://github.com/openziti/ziti-browzer-core/compare/v0.34.0...v0.34.1) (2023-12-06)
 
 
