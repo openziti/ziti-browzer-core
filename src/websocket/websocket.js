@@ -265,12 +265,12 @@ class ZitiWebSocket {
   send(data) {
     if (!this.isOpened) {
       this.waitForWSConnection(function() {
-        this._zitiContext.logger.debug('zws: send (after awaiting open) -> data[%o] len[%o]', data, data.byteLength);
+        this._zitiContext.logger.debug(`zws: send (after awaiting open) -> len[${data.byteLength}] data[${this._zitiContext.truncateString(data.toString())}]`);
         this._ws.send(data);
         this._onSend.dispatchAsync(data);
       });
     } else {
-      this._zitiContext.logger.debug('zws: send -> data[%o] len[%o]', data, data.byteLength);
+      this._zitiContext.logger.debug(`zws: send -> len[${data.byteLength}] data[${this._zitiContext.truncateString(data.toString())}]`);
       this._ws.send(data);
       this._onSend.dispatchAsync(data);
     }
@@ -344,14 +344,14 @@ class ZitiWebSocket {
   }
 
   _handleOpen(event) {
-    this._zitiContext.logger.debug('zws: _handleOpen: event[%o]', event);
+    this._zitiContext.logger.debug(`zws: _handleOpen: url[${event.target.url}]`);
     this._onOpen.dispatchAsync(event);
     this._opening.resolve(event);
   }
 
   _handleMessage(event) {
     const data = this._options.extractMessageData(event);
-    this._zitiContext.logger.debug('zws: _handleMessage: recv <- data[%o]', data);
+    this._zitiContext.logger.debug(`zws: _handleMessage: recv <- data[${this._zitiContext.truncateString(data.toString())}]`);
     this._onMessage.dispatchAsync(data);
 
     // Let listeners know we received data
@@ -374,7 +374,7 @@ class ZitiWebSocket {
   }
 
   _tryHandleResponse(data) {
-    this._zitiContext.logger.trace('zws: _tryHandleResponse: recv <- data[%o]', data);
+    this._zitiContext.logger.trace(`zws: _tryHandleResponse: recv <- data[${this._zitiContext.truncateString(data.toString())}]`);
     if (this._options.extractRequestId) {
       const requestId = this._options.extractRequestId(data);
       if (requestId) {
@@ -385,15 +385,15 @@ class ZitiWebSocket {
   }
 
   _handleError(event) {
-    this._zitiContext.logger.error('zws: _handleError: event[%o]', event);
+    this._zitiContext.logger.error(`zws: _handleError: url[${event.target.url}]`);
     this._onError.dispatchAsync(event);
   }
 
   _handleClose(event) {
-    this._zitiContext.logger.trace('zws: _handleClose: event[%o]', event);
+    this._zitiContext.logger.trace(`zws: _handleClose: url[${event.target.url}]`);
     this._onClose.dispatchAsync(event);
     this._closing.resolve(event);
-    const error = new Error(`WebSocket closed with reason: ${event.reason} (${event.code}).`);
+    const error = new Error(`zws: closed with reason: ${event.reason} (${event.code}).`);
     if (this._opening.isPending) {
       this._opening.reject(error);
     }

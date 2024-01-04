@@ -46,7 +46,11 @@ class ZitiLogger {
     let _options = flatOptions(options, defaultOptions);
 
     this._suffix = _options.suffix || ''
-    this._reporters = _options.reporters || [new ZitiReporter({suffix: this._suffix})]
+    this._reporters = _options.reporters || [new ZitiReporter({
+      suffix: this._suffix, 
+      useSWPostMessage: _options.useSWPostMessage,
+      zitiBrowzerServiceWorkerGlobalScope: _options.zitiBrowzerServiceWorkerGlobalScope,
+    })]
     this._types = _options.types || Types
     this._logLevel = normalizeLogLevel(_options.logLevel, this._types)
     this._defaults = _options.defaults || {_logLevel: 0}

@@ -216,7 +216,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
         // then on to the ER.
         this._zitiContext.ssl_set_fd( this._wasmInstance, this._SSL, this.getWASMFD() );
 
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] starting TLS handshake', this.getWASMFD());
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] starting TLS handshake`);
 
         this.handshake();
         
@@ -237,7 +237,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
         });
   
         if (success) {
-            this._zitiContext.logger.trace('ZitiInnerTLSSocket.create() wasmFD[%d] TLS handshake completed', this.getWASMFD());
+            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed`);
         }
     }
 
@@ -256,7 +256,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 let isConnected = await self.isConnected();
                 if (!isConnected) {
                     if (ctr % 500 == 0) {
-                        self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[%d] TLS handshake still not complete', self.wasmFD);
+                        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[${self.wasmFD}] TLS handshake still not complete`);
                     }
                     let now = new Date();
                     let elapsed = now - startTime; //in ms
@@ -265,39 +265,20 @@ class ZitiInnerTLSSocket extends EventEmitter {
                     }
                     setTimeout(waitForTLSHandshakeComplete, 10);  
                 } else {
-                    self._zitiContext.logger.trace('ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[%d] TLS handshake complete', self.wasmFD);
+                    self._zitiContext.logger.trace(`ZitiInnerTLSSocket.awaitTLSHandshakeComplete() fd[${self.wasmFD}] TLS handshake complete`);
                     return resolve(true);
                 }
             })();
         });
     }
 
-
-    /**
-     * 
-     */
-    // handshake_cb(self, rc) {
-    //     self._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake_cb(): entered rc=%d ', rc );
-
-    //     if (rc < 0) {
-    //         throw new Error(`TLS handshake failed for fd[${self.wasmFD}]`);
-    //     }
-
-    //     // Let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
-    //     // before we turn loose any writes to the connection
-    //     setTimeout((tlsConn, rc) => {
-    //         self._zitiContext.logger.trace("ZitiInnerTLSSocket.handshake_cb(): after timeout");
-    //         self._connected = true;
-    //     }, 5, self, rc)
-    // }
-
     /**
      * 
      */
     async handshake() {
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake(): fd[%d] calling ssl_do_handshake()', this.wasmFD );
-        let result = this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.handshake(): fd[%d] back from ssl_do_handshake(): result=%d (now awaiting cb)', this.wasmFD, result );
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.handshake(): fd[${this.wasmFD}] calling ssl_do_handshake()` );
+        let result = await this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.handshake(): fd[${this.wasmFD}] back from ssl_do_handshake(): result[${result}] (now awaiting cb)`);
     }
 
     /**
@@ -305,7 +286,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async isConnected() {
 
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.isConnected() entered: fd[%d] connected[%o]', this.wasmFD, this._connected);
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() entered: fd[${this.wasmFD}] connected[${this._connected}]`);
 
         await this._isConnectedMutex.runExclusive( async () => {
 
@@ -314,14 +295,14 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // Ask the SSL if its handshake has completed yet
                 let _connected = this._zitiContext.ssl_is_init_finished(this._wasmInstance, this._SSL);
 
-                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() ssl_is_init_finished() result: SSL[%o] fd[%d] connected[%o]`, this._SSL, this.wasmFD, _connected);
+                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() ssl_is_init_finished() result: SSL[${this._SSL}] fd[${this.wasmFD}] connected[${_connected}]`);
 
                 // If SSL indicates handshake has completed, let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
                 // before we turn loose any writes to the connection
                 if (_connected) {
-                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] pausing...`, this.wasmFD);
-                    // await this._zitiContext.delay(500);
-                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() fd[%d] ...resuming`, this.wasmFD);
+                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() pausing fd[${this.wasmFD}]`);
+                    await this._zitiContext.delay(500);
+                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() resuming fd[${this.wasmFD}]`);
                     this._connected = true;
                 }
             }
@@ -429,162 +410,6 @@ class ZitiInnerTLSSocket extends EventEmitter {
         }
     }
 
-
-    /**
-     * 
-     */
-    // async fd_read( len ) {
-    //     this._fd_read_depth++;
-    //     // await this.acquireTLSReadLock();
-    //     this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: entered with len [%o] _fd_read_depth[%d]', len, this._fd_read_depth);
-    //     let buffer = new ArrayBuffer( len );
-    //     buffer = await this._readInto( buffer );
-    //     this._fd_read_depth--;
-    //     // this.releaseTLSReadLock();
-    //     this._zitiContext.logger.trace('ZitiInnerTLSSocket.fd_read: returning buffer [%o]', buffer);
-    //     return buffer;
-    // }
-
-    // _readFromReaderBuffer(targetBuffer, targetStart, targetLength) {
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readFromReaderBuffer[${this.wasmFD}]: targetBuffer[${targetBuffer}] targetStart[${targetStart}] targetLength[${targetLength}]`);
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readFromReaderBuffer[${this.wasmFD}]: _readerBuffer.byteLength[${this._readerBuffer.byteLength}] _readerBufferOffset+targetLength[${(this._readerBufferOffset + targetLength)}]`);
-    //     if ((this._readerBufferOffset + targetLength) > this._readerBuffer.byteLength) {
-    //         this._zitiContext.logger.error(`ZitiInnerTLSSocket._readFromReaderBuffer[${this.wasmFD}]: _readerBufferOffset+targetLength[${(this._readerBufferOffset + targetLength)}] exceeds _readerBuffer.byteLength[${this._readerBuffer.byteLength}]`);
-    //     }
-
-    //     let srcBuffer = new Buffer(this._readerBuffer);
-    //     targetBuffer = new Buffer(targetBuffer);
-    //     return srcBuffer.copy( targetBuffer, targetStart, this._readerBufferOffset, (this._readerBufferOffset + targetLength) );
-    // }
-
-    // async _getQueueLength() {
-
-    //     let release = await this._q.acquireMutex();
-
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._getQueueLength[${this.wasmFD}]: DUMP -VVV------------------------------------`);
-
-    //     let dumpctr = 0;
-    //     for (const [key, value] of Object.entries(this._q.elements)) {
-    //       this._zitiContext.logger.trace(`ZitiInnerTLSSocket._getQueueLength[${this.wasmFD}]: DUMP `, key, value);
-    //       dumpctr += value.byteLength - value.offset;
-    //       this._zitiContext.logger.trace(`ZitiInnerTLSSocket._getQueueLength[${this.wasmFD}]: DUMP `, (value.byteLength - value.offset), dumpctr);
-    //     }
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._getQueueLength[${this.wasmFD}]: DUMP -^^^------------------------------------`, dumpctr);
-
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._getQueueLength[${this.wasmFD}]: releasing mutex`);
-
-    //     release();
-
-    //     return dumpctr;
-    // }
-  
-    // async _awaitTargetLengthPresent(targetLength) {
-
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._awaitTargetLengthPresent[${this.wasmFD}]: entered for targetLength[${targetLength}]`);
-
-    //     let totalLen = await this._getQueueLength();
-
-    //     while (totalLen < targetLength) {
-    
-    //         this._zitiContext.logger.trace(`ZitiInnerTLSSocket._awaitTargetLengthPresent[${this.wasmFD}]: awaiting on _reader.read()`);
-    //         const { value: view, done } = await this._reader.read();
-    //         let chunk = {
-    //             offset: 0,
-    //             byteLength: view.buffer.byteLength,
-    //             buffer: view.buffer
-    //         }
-    //         this._zitiContext.logger.trace(`ZitiInnerTLSSocket._awaitTargetLengthPresent[${this.wasmFD}]: returned from this._reader.read(), enqueueing new chunk of byteLength[${chunk.byteLength}]`);
-    //         await this._q.enqueue( chunk );
-
-    //         totalLen = await this._getQueueLength();
-    //     }
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._awaitTargetLengthPresent[${this.wasmFD}]: returning totalLen[${totalLen}]`);
-
-    //     return totalLen;
-    // }
-
-    // async _readInto(targetBuffer) {
-
-    //     let remainingTargetLength = targetBuffer.byteLength;
-    //     let targetBufferOffset = 0;
-    //     targetBuffer = new Buffer(targetBuffer);
-
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: entered, targetLength[${targetBuffer.byteLength}]`);
-
-    //     // Do not proceed until the queue is populated with enough data to fulfill the read request
-    //     let totalLen = await this._awaitTargetLengthPresent(remainingTargetLength);
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: totalLen in this._q is: `, totalLen);
-
-    //     while (remainingTargetLength > 0) { // Until all requested bytes have been delivered
-
-    //         let chunk = this._q.peek(); // Get top-most chunk, and determine unconsumed portion
-
-    //         if (isUndefined(chunk)) {
-    //             debugger
-    //         }
-
-    //         let remainingChunkLen = (chunk.byteLength - chunk.offset);
-    //         this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: remainingTargetLength[${remainingTargetLength}] remainingChunkLen[${remainingChunkLen}]`);
-
-    //         let srcBuffer = new Buffer(chunk.buffer);
-
-    //         if (remainingChunkLen < remainingTargetLength) { // if chunk is too small to completely fulfill read request, then
-    //                                                          // consume remaining contents of this chunk, then dispose of it
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 1 copying at targetBufferOffset[${targetBufferOffset}] chunk.offset[${chunk.offset}]`);
-    //             let bytesCopied = srcBuffer.copy( targetBuffer, targetBufferOffset, chunk.offset, (chunk.offset+remainingChunkLen));
-    //             remainingTargetLength -= bytesCopied;
-    //             targetBufferOffset += bytesCopied;
-    //             chunk.offset += bytesCopied;
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 1 bytesCopied[${bytesCopied}] remainingChunkLen[${(chunk.byteLength - chunk.offset)}] purging chunk`);
-    //             await this._q.dequeue();
-    //         }
-    //         else if (remainingChunkLen == remainingTargetLength) { // if chunk will exactly fulfill read request, then
-    //                                                                 // consume remaining contents of this chunk, then dispose of it
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 2 copying at targetBufferOffset[${targetBufferOffset}] chunk.offset[${chunk.offset}]`);
-    //             let bytesCopied = srcBuffer.copy( targetBuffer, targetBufferOffset, chunk.offset, (chunk.offset+remainingChunkLen));
-    //             remainingTargetLength -= bytesCopied;
-    //             chunk.offset += bytesCopied;
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 2 bytesCopied[${bytesCopied}] remainingChunkLen[${(chunk.byteLength - chunk.offset)}] purging chunk`);
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: this._q before: `, this._q);
-    //             await this._q.dequeue();
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: this._q after: `, this._q);
-    //         } else {                                        // Chunk contains more than enough data to fulfill read request, so
-    //                                                         // consume leading fragment of this chunk, update its offset, and leave it in the queue
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 3 copying at targetBufferOffset[${targetBufferOffset}] chunk.offset[${chunk.offset}]`);
-    //             let bytesCopied = srcBuffer.copy( targetBuffer, targetBufferOffset, chunk.offset, (chunk.offset+remainingTargetLength));
-    //             remainingTargetLength -= bytesCopied;
-    //             chunk.offset += bytesCopied;
-    //             this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: 3 bytesCopied[${bytesCopied}] remainingChunkLen[${(chunk.byteLength - chunk.offset)}]`);
-    //         }
-
-    //     }
-    
-    //     this._zitiContext.logger.trace(`ZitiInnerTLSSocket._readInto[${this.wasmFD}]: exiting`);
-    
-    //     return targetBuffer.buffer;
-    // }
-
-
-    /**
-     * 
-     */
-    // read_cb(self, buffer) {
-    //     self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%o]', buffer);
-    //     // If WASM passed an undefined buffer it means that there was a zero-length read from the socket
-    //     if (isUndefined(buffer)) {
-    //         console.log('ZitiInnerTLSSocket.read_cb(): emitting "close"');
-    //         self.emit('close', buffer);
-    //     } 
-    //     // // Otherwise, emit the data to the listener
-    //     else {
-    //     //     // self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): clear data from outer socket is ready  <--- [%o]', buffer);
-    //         self._zitiContext.logger.trace('ZitiInnerTLSSocket.read_cb(): emitting "data" from outer socket  <--- [%s]', String.fromCharCode.apply(null, new Uint8Array(buffer)));
-    //         self.emit('data', buffer);
-    //     }
-    //     // this._tlsProcessLockRelease();
-    // }    
-
-
     /**
      * 
      * @param {*} arrayBuffer // ArrayBuffer
@@ -593,7 +418,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         let isConnected = await this.isConnected();
 
-        this._zitiContext.logger.trace('ZitiInnerTLSSocket.process() fd[%d] isConnected[%o] encrypted data from outer socket arrived  <--- [%o]', this.wasmFD, isConnected, arrayBuffer.byteLength);
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${this.wasmFD}] isConnected[${isConnected}] encrypted data from outer socket arrived  <--- [${arrayBuffer.byteLength}]`);
 
         if (arrayBuffer.byteLength === 0) {
 
@@ -601,11 +426,11 @@ class ZitiInnerTLSSocket extends EventEmitter {
             if (isConnected) {
                 // ...then emit the 'close' event (...after slight delay)
 
-                this._zitiContext.logger.trace("ZitiInnerTLSSocket.process() fd[%d] pausing before emitting 'close' event", this.wasmFD);
+                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${this.wasmFD}] pausing before emitting 'close' event`);
 
                 setTimeout((self) => {
 
-                    self._zitiContext.logger.trace("ZitiInnerTLSSocket.process() fd[%d] emitting 'close' event after pause", self.wasmFD);
+                    self._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${self.wasmFD}] emitting 'close' event after pause`);
                     self.emit('close', undefined);
     
                 }, 1000, this)
@@ -620,7 +445,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
             // If the TLS handshake has completed
             if (isConnected) {
 
-                this._zitiContext.logger.trace('ZitiInnerTLSSocket.process() fd[%d] this._tlsReadActive[%o]', this.wasmFD, this._tlsReadActive);
+                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${this.wasmFD}] this._tlsReadActive[${this._tlsReadActive}]`);
 
                 // If there is no tls_read in flight
                 if (!this._tlsReadActive) {
@@ -644,21 +469,21 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         let { self } = args;
 
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] starting to decrypt enqueued data, calling tls_read', self.wasmFD );
+        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] starting to decrypt enqueued data, calling tls_read`);
 
         let decryptedData = await self._zitiContext.tls_read(self._wasmInstance, self._SSL); // TLS-decrypt some data from the queue
 
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] clear data from the outer socket is ready  <--- len[%d]', self.wasmFD, decryptedData.byteLength);
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] emitting "data" from outer socket  <--- [%s]', self.wasmFD, String.fromCharCode.apply(null, new Uint8Array(decryptedData)));
+        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] clear data from the outer socket is ready  <--- len[${decryptedData.byteLength}]`);
+        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] emitting "data" from outer socket  <--- [${String.fromCharCode.apply(null, new Uint8Array(decryptedData))}]`);
         self.emit('data', decryptedData.buffer);
 
         // If there is still some pending encrypted data
         let item = self._zitiContext.peekTLSData( self._wasmInstance, self.wasmFD );
-        self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] peekTLSData returned [%o]', self.wasmFD, item);
+        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] peekTLSData returned [${item}]`);
 
         if (!isEqual(item, 0)) {
 
-            self._zitiContext.logger.trace('ZitiInnerTLSSocket.processDataDecryption() fd[%d] pending encrypted data detected, so firing event so we run again', self.wasmFD, decryptedData.byteLength);
+            self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] pending encrypted data detected, so firing event so we run again`);
 
             // Then we need to do TLS-decrypt of that data, so fire an event so we run again
             self.emit(ZITI_CONSTANTS.ZITI_EVENT_XGRESS_RX_NESTED_TLS, {

@@ -586,7 +586,7 @@ class ZitiContext extends EventEmitter {
 
     let result = await this._libCrypto.ssl_do_handshake(wasmInstance, ssl);
 
-    this.logger.trace('ZitiContext.ssl_do_handshake() exiting, result=', result);
+    this.logger.trace(`ZitiContext.ssl_do_handshake() exiting, result[${result}]`);
 
     return result;
   }
@@ -603,7 +603,7 @@ class ZitiContext extends EventEmitter {
    */
   ssl_set_fd(wasmInstance, ssl, fd) {
 
-    this.logger.trace('ZitiContext.ssl_set_fd() entered SSL[%o] fd[%d]', ssl, fd);
+    this.logger.trace(`ZitiContext.ssl_set_fd() entered SSL[${ssl}] fd[${fd}]`);
 
     let result = this._libCrypto.ssl_set_fd(wasmInstance, ssl, fd);
 
@@ -639,7 +639,7 @@ class ZitiContext extends EventEmitter {
    */
   async tls_enqueue(wasmInstance, wasmFD, arrayBuffer) {
 
-    this.logger.trace('ZitiContext.tls_enqueue(%d) [%o] entered', wasmFD, arrayBuffer);
+    this.logger.trace(`ZitiContext.tls_enqueue() fd[${wasmFD}] [${this.truncateString(arrayBuffer.toString())}] entered`);
 
     this._libCrypto.tls_enqueue(wasmInstance, wasmFD, arrayBuffer);
   
@@ -651,11 +651,11 @@ class ZitiContext extends EventEmitter {
    */
   peekTLSData(wasmInstance, wasmFD) {
 
-    this.logger.trace('ZitiContext.peekTLSData(%d) entered', wasmFD);
+    this.logger.trace(`ZitiContext.peekTLSData() fd[${wasmFD}] entered`);
 
     let item = this._libCrypto.peekTLSData(wasmInstance, wasmFD);
   
-    this.logger.trace('ZitiContext.peekTLSData(%d) returning', item);
+    this.logger.trace(`ZitiContext.peekTLSData() fd[${wasmFD}] returning[${item}]`);
 
     return item;
   }
@@ -679,7 +679,7 @@ class ZitiContext extends EventEmitter {
    */
   async tls_read(wasmInstance, ssl) {
 
-    this.logger.trace('ZitiContext.tls_read(%d) entered', ssl);
+    this.logger.trace(`ZitiContext.tls_read() ssl[${ssl}]`);
 
     let result = await this._libCrypto.tls_read(wasmInstance, ssl);
   
@@ -697,7 +697,7 @@ class ZitiContext extends EventEmitter {
 
       // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
       let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
-      self.logger.trace('ZitiContext.getFreshAPISession(): method:', method);
+      self.logger.trace('ZitiContext.getFreshAPISession(): method [${method}]');
 
       // Get an API session with Controller
       let res = await self._zitiBrowzerEdgeClient.authenticate({
@@ -759,8 +759,6 @@ class ZitiContext extends EventEmitter {
 
       let res = await this.doAuthenticate();
 
-      this.logger.trace('ZitiContext.getFreshAPISession(): response:', res);
-
       if (isUndefined(res)) {
 
         this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
@@ -820,7 +818,7 @@ class ZitiContext extends EventEmitter {
       this.logger.error(`cannot authenticate`);
     }
 
-    this.logger.trace('ZitiContext.getFreshAPISession() exiting; token is: ', this._apiSession.token);
+    this.logger.trace('ZitiContext.getFreshAPISession() exiting; zt-session token is: ', this._apiSession.token);
 
     return this._apiSession.token ;
   }
@@ -1051,8 +1049,6 @@ class ZitiContext extends EventEmitter {
       throw error;
     });
 
-    this.logger.trace('ZitiContext.fetchControllerVersion(): response:', res);
-
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
       throw new Error(res.error.message);
@@ -1086,7 +1082,7 @@ class ZitiContext extends EventEmitter {
     let service_id = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'id');
-    this.logger.trace('service[%s] has id[%s]', name, service_id);
+    this.logger.trace(`getServiceIdByName() service[${name}] has id[${service_id}]`);
     return service_id;
   }
  
@@ -1098,7 +1094,7 @@ class ZitiContext extends EventEmitter {
     let encryptionRequired = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'encryptionRequired');
-    this.logger.trace('service[%s] has encryptionRequired[%o]', name, encryptionRequired);
+    this.logger.trace(`getServiceEncryptionRequiredByName() service[${name}] has encryptionRequired[${encryptionRequired}]`);
     return encryptionRequired;
   }
 
@@ -1129,7 +1125,7 @@ class ZitiContext extends EventEmitter {
     let config = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'config');
-    this.logger.trace('service[%s] has config[%o]', name, config);
+    this.logger.trace(`getServiceConfigByName() service[${name}] has config[${config}]`);
 
     if (isUndefined(config)) {
       // Let any listeners know there are no configs associated with the given service,
@@ -1159,7 +1155,7 @@ class ZitiContext extends EventEmitter {
       }
     }
     if (isEqual(host, 'unknown')) {
-      this.logger.warn('service[%s] has no config', name);
+      this.logger.warn(`service[${name}] has no config`);
 
       // Let any listeners know there are no configs associated with the given service,
       // which is most likely a condition of a misconfigured network
@@ -1252,7 +1248,7 @@ class ZitiContext extends EventEmitter {
       }
     }
     if (isUndefined(ret)) {
-      this.logger.warn('service[%s] has no config', name);
+      this.logger.warn(`service[${name}] has no config`);
 
       // Let any listeners know there are no configs associated with the given service,
       // which is most likely a condition of a misconfigured network
@@ -1360,7 +1356,7 @@ class ZitiContext extends EventEmitter {
       data: data
     });
 
-    this.logger.trace('newConnection: conn[%d]', conn.id);
+    this.logger.trace(`newConnection() conn[${conn.id}]`);
 
     return conn;
   };
@@ -1378,7 +1374,7 @@ class ZitiContext extends EventEmitter {
     throwIf(isUndefined(service), 'service not specified');
     throwIf(!isEqual(this, conn.zitiContext), 'connection has different context');
 
-    this.logger.debug('dial: conn[%d] service[%s]', conn.id, service);
+    this.logger.debug(`dial() conn[${conn.id}] service[${service}]`);
 
     if (isEqual( this.services.size, 0 )) {
       await this.fetchServices();
@@ -1392,7 +1388,7 @@ class ZitiContext extends EventEmitter {
 
     await this.connect(conn, network_session);
 
-    this.logger.debug('dial: conn[%d] service[%s] encryptionRequired[%o] is now complete', conn.id, service, conn.encrypted);
+    this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
 
   };
 
@@ -1418,12 +1414,12 @@ class ZitiContext extends EventEmitter {
     // Get a channel connection to each of the Edge Routers that have a WSS binding, initiating a connection if channel is not yet connected
     for (var i = 0; i < edgeRouters.length; i++) {
   
-      self.logger.trace('calling getChannelByEdgeRouter for wssER [%s]', edgeRouters[i].hostname);  
+      self.logger.trace(`calling getChannelByEdgeRouter for wssER [${edgeRouters[i].hostname}]`);  
       let ch = await self.getChannelByEdgeRouter(conn, edgeRouters[i]).catch((err) => {
         self.logger.error( err );  
         throw new Error( err );
       });
-      self.logger.debug('initiating Hello to [%s] for session[%s]', self.getEdgeRouterURL(edgeRouters[i]), conn.networkSessionToken);  
+      self.logger.debug(`initiating Hello to [${self.getEdgeRouterURL(edgeRouters[i])}] for session[${conn.networkSessionToken}]`);
       pendingChannelConnects.push( 
         ch.hello() 
       );
@@ -1443,10 +1439,10 @@ class ZitiContext extends EventEmitter {
     return new Promise((resolve) => {
       (function waitForChannelConnectComplete() {
         if (isEqual( ch.state, ZitiEdgeProtocol.conn_state.Initial ) || isEqual( ch.state, ZitiEdgeProtocol.conn_state.Connecting )) {
-          ch.zitiContext.logger.trace('awaitChannelConnectComplete() ch[%d] still not yet connected', ch.id);
+          ch.zitiContext.logger.trace(`awaitChannelConnectComplete() ch[${ch.id}] still not yet connected`);
           setTimeout(waitForChannelConnectComplete, 100);  
         } else {
-          ch.zitiContext.logger.trace('ch[%d] is connected', ch.id);
+          ch.zitiContext.logger.trace(`ch[${ch.id}] is connected`);
           return resolve();
         }
       })();
@@ -1461,11 +1457,11 @@ class ZitiContext extends EventEmitter {
     throwIf(isUndefined(edgeRouter), 'edgeRouter not specified');
 
   
-    this.logger.trace('getChannelByEdgeRouter entered for conn[%d] edgeRouter[%s]', conn.id, edgeRouter.hostname);
+    this.logger.trace(`getChannelByEdgeRouter entered for conn[${ch.id}] edgeRouter[${edgeRouter.hostname}]`);
 
     let key = edgeRouter.hostname + '-' + conn.networkSessionToken;
 
-    this.logger.trace('getChannelByEdgeRouter key[%s]', key);
+    this.logger.trace(`getChannelByEdgeRouter key[${key}]`);
 
     let channelsArray = this._channels.get( key );
     if (isUndefined(channelsArray)) {
@@ -1489,17 +1485,17 @@ class ZitiContext extends EventEmitter {
 
     if (!isUndefined(ch)) {
 
-      this.logger.trace('ch[%d] state[%d] found for edgeRouter[%s]', ch.id, ch.state, edgeRouter.hostname);
+      this.logger.trace(`ch[${ch.id}] state[${ch.state}] found for edgeRouter[${edgeRouter.hostname}]`);
 
       await this.awaitChannelConnectComplete(ch);
 
-      this.logger.trace('ch[%d] state[%d] for edgeRouter[%s] is connect-complete', ch.id, ch.state, edgeRouter.hostname);
+      this.logger.trace(`ch[${ch.id}] state[${ch.state}] for edgeRouter[${edgeRouter.hostname}] is connect-complete`);
 
       if (!isEqual( ch.state, ZitiEdgeProtocol.conn_state.Connected )) {
-        this.logger.error('should not be here: ch[%d] has state[%d]', ch.id, ch.state);
+        this.logger.error(`should not be here: ch[${ch.id}] has state[${ch.state}]`);
       }
 
-      this.logger.trace('getChannelByEdgeRouter returning existing ch[%d]', ch.id);
+      this.logger.trace(`getChannelByEdgeRouter returning existing ch[${ch.id}]`);
 
       return (ch);
     }
@@ -1514,14 +1510,12 @@ class ZitiContext extends EventEmitter {
 
     ch.state = ZitiEdgeProtocol.conn_state.Connecting;
 
-    this.logger.trace('Created ch[%d] ', ch.id);
-    // this._channels.set(key, ch);
-    // this._channelsById.set(ch.id, ch);
+    this.logger.trace(`Created ch[${ch.id}]`);
     channelsArray.push(ch);
 
     this.logger.trace(`getChannelByEdgeRouter channelsArray length [${channelsArray.length}] items`);
     
-    this.logger.trace('getChannelByEdgeRouter returning new ch[%d]', ch.id);
+    this.logger.trace(`getChannelByEdgeRouter returning new ch[${ch.id}]`);
 
     return ch;
   }
@@ -1576,7 +1570,7 @@ class ZitiContext extends EventEmitter {
 
     let self = this;
    
-    this.logger.debug('connect() entered for conn[%o] networkSession[%o]', conn.id, networkSession);  
+    this.logger.debug(`connect() entered for conn[${conn.id}] networkSession[${networkSession}]`);  
     
     conn.networkSessionToken = networkSession.token;
   
@@ -1584,21 +1578,21 @@ class ZitiContext extends EventEmitter {
     let edgeRouters = filter(networkSession.edgeRouters, function(o) { 
       return (has(o, 'urls.ws') || has(o, 'urls.wss')); 
     });
-    this.logger.trace('edgeRouters [%o]', edgeRouters);  
+    this.logger.trace(`edgeRouters [${edgeRouters}]`);  
 
     // Something is wrong if we have no ws-enabled edge routers
     if (isEqual(edgeRouters.length, 0)) {
       // Let any listeners know we have no ws-enabled edge routers in the network
       this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_WSS_ROUTERS, {} );
-      throw new Error('No Edge Routers with ws: binding were found');
+      throw new Error(`No Edge Routers with 'wss:' binding were found`);
     }
   
     //
-    this.logger.debug('trying to acquire _connectMutex for conn[%o]', conn.id);
+    this.logger.debug(`trying to acquire _connectMutex for conn[${conn.id}]`);
   
     await this._connectMutexWithTimeout.runExclusive(async () => {
   
-      this.logger.debug('now own _connectMutex for conn[%o]', conn.id);
+      this.logger.debug(`now own _connectMutex for conn[${conn.id}]`);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
 
@@ -1638,7 +1632,7 @@ class ZitiContext extends EventEmitter {
       }
 
       let channelWithNearestEdgeRouter = nearestEdgeRouter.channel;
-      this.logger.debug('ch[%d] has nearest wssER[%s] for conn[%o]', channelWithNearestEdgeRouter.id, nearestEdgeRouter.edgeRouterHost, conn.id);
+      this.logger.debug(`ch[${channelWithNearestEdgeRouter.id}] has nearest wssER[${nearestEdgeRouter.edgeRouterHost}] for conn[${conn.id}]`);
       channelWithNearestEdgeRouter._connections._saveConnection(conn);
       conn.channel = channelWithNearestEdgeRouter;
   
@@ -1651,7 +1645,7 @@ class ZitiContext extends EventEmitter {
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
         }
       }
-      this.logger.debug('releasing _connectMutex for conn[%o]', conn.id);
+      this.logger.debug(`releasing _connectMutex for conn[${conn.id}]`);
     })
     .catch(( err ) => {
       this.logger.error(err);
@@ -1670,9 +1664,7 @@ class ZitiContext extends EventEmitter {
     let self = this;
 
     async function _shouldRouteOverZiti(url) {
-   
-      self.logger.debug('shouldRouteOverZiti() entered for url[%o]', url);  
-  
+     
       let parsedURL = new URL(url);
    
       let hostname = parsedURL.hostname;
@@ -1996,7 +1988,7 @@ class ZitiContext extends EventEmitter {
       result.ch[0]._state = ZitiEdgeProtocol.conn_state.Closed;
       this._channels.delete( result.key );  
       this._channelsById.delete( result.ch[0].id );
-      this.logger.warn('channel [%s] id[%d] deleted', result.key, result.ch[0].id);
+      this.logger.warn(`channel [${result.key}] id[${result.ch[0].id}] deleted`);
     }
   }
   
@@ -2019,15 +2011,24 @@ class ZitiContext extends EventEmitter {
 
     setTimeout(async (self, ch, conn) => {
       await ch.close(conn);
-      self.logger.trace('ZitiConnection.close: conn.id[%d]', conn.id);
+      self.logger.trace(`ZitiConnection.close: conn.id[${conn.id}]`);
       ch._connections._deleteConnection(conn);
-      self.logger.trace('ZitiConnection.close: ch._connections.length is now [%d]', ch._connections._items.size);
+      self.logger.trace(`ZitiConnection.close: ch._connections.length is now [${ch._connections._items.size}]`);
     }, 500, this, ch, conn);
 
   }
  
- 
-
+  /**
+   * 
+   */
+  truncateString(str, num) {
+    let maxLength = num ? num : 80;
+    if (str.length <= maxLength) {
+      return str
+    }
+    return str.slice(0, maxLength) + '...'
+  }
+  
   /**
    * 
    * @param {*} options 
@@ -2054,7 +2055,7 @@ class ZitiContext extends EventEmitter {
         url = parsedURL.toString();
       }
 
-      self.logger.debug('httpFetch starting for [%s]', url);
+      self.logger.debug(`httpFetch starting for [${url}]`);
 
       // build HTTP request object
       let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
