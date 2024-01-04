@@ -44,15 +44,12 @@ import promiseFinally from 'promise.prototype.finally';
    * @returns {Promise}
    */
   create(messageId, fn, timeout) {
-    // this._zitiContext.logger.trace("messages.create(): conn[%d] messageId[%o]", (this._conn ? this._conn.id : 'n/a'), messageId);
     this._rejectExistingMessage(messageId);
     return this._createNewMessage(messageId, fn, timeout);
   }
 
   resolve(messageId, data) {
-    // this._zitiContext.logger.trace("messages.resolve(): conn[%d] messageId[%o] data[%o]", (this._conn ? this._conn.id : 'n/a'), messageId, data);
     if (!isNull(messageId) && this._items.has(messageId)) {
-      // this._zitiContext.logger.trace("messages.resolve(): FOUND messageId: [%o]", messageId);
       this._items.get(messageId).resolve(data);
     }
   }

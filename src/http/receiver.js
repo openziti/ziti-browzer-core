@@ -106,7 +106,6 @@ class Receiver extends Writable {
    * @private
    */
   consume(n) {
-    // ziti._ctx.logger.debug('ZitiWebSocket.Receiver consume entered, n is: %d', n);
 
     this._bufferedBytes -= n;
 

@@ -135,8 +135,8 @@ class ZitiSocket extends EventEmitter {
      */
     captureResponseData(conn, data) {
 
-        conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d], dataLen: [%o]", conn.id, data.byteLength);
-        conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d], (string)data: [%s]", conn.id, Buffer.from(data, 'utf8'));
+        conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}], dataLen: [${data.byteLength}]`);
+        conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}], (string)data: [${Buffer.from(data, 'utf8')}]`);
 
         let zitiSocket = conn.socket;
 
@@ -150,7 +150,7 @@ class ZitiSocket extends EventEmitter {
             if (data.byteLength > 0) {
                 zitiSocket.emit('data', data);
             } else {
-                conn.zitiContext.logger.trace("ZitiSocket.captureResponseData() <- conn[%d] emitting 'close' event", conn.id);
+                conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}] emitting 'close' event`);
                 zitiSocket.emit('close', data);
             }
         }
@@ -168,7 +168,7 @@ class ZitiSocket extends EventEmitter {
             this.zitiConnection = this.zitiContext.newConnection(opts);
             this.zitiConnection.socket = this;
             await this.zitiContext.dial(this.zitiConnection, opts.serviceName);
-            this.zitiContext.logger.debug("ZitiSocket.connect() dial(%s) on conn[%d] now complete", opts.serviceName, this.zitiConnection.id);
+            this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] on conn[${this.zitiConnection.id}] now complete`);
         } else {
             throw new Error('no serviceName or conn was provided');
         }

@@ -491,11 +491,7 @@ async function initAsClient(websocket, address, protocols, options) {
       port: undefined
     };
   
-    websocket._zitiContext.logger.info(
-      'ZitiWebSocketWrapper initAsClient(), address is: %s, options is: %o',
-      address,
-      opts
-    );
+    websocket._zitiContext.logger.info(`ZitiWebSocketWrapper initAsClient(), address[${address}] options[${opts}]`);
   
     // /**
     //  *  Defer the Ziti init sequence for the moment.  We currently rely on
@@ -551,7 +547,7 @@ async function initAsClient(websocket, address, protocols, options) {
         serviceName = await websocket._zitiContext.shouldRouteOverZiti( newUrl );
 
         if (isUndefined(serviceName)) { // If we have no serviceConfig associated with the hostname:port, do not intercept
-          websocket._zitiContext.logger.warn('ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [%s]', address);
+          websocket._zitiContext.logger.warn(`ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [${address}]`);
             opts.createConnection = isSecure ? tlsConnect : netConnect;
             opts.host = parsedUrl.hostname.startsWith('[')
             ? parsedUrl.hostname.slice(1, -1)
@@ -587,7 +583,7 @@ async function initAsClient(websocket, address, protocols, options) {
       }
       else {  // the request is targeting the raw internet
 
-        websocket._zitiContext.logger.warn('ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [%s]', address);
+        websocket._zitiContext.logger.warn(`ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [${address}]`);
           opts.createConnection = isSecure ? tlsConnect : netConnect;
           opts.host = parsedUrl.hostname.startsWith('[')
           ? parsedUrl.hostname.slice(1, -1)

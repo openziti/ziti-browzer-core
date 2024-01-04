@@ -35,55 +35,89 @@ export default class ZitiReporter {
         // success: '#2ecc71'  // Green
       }
     }
-  
+
+    /**
+     * 
+     */
+     async sendLogMessage( logObj ) {
+      const windows = await this.options.zitiBrowzerServiceWorkerGlobalScope.clients.matchAll({ type: 'window' })
+      for (const window of windows) {
+        try {
+          window.postMessage(
+            {
+              type: 'LOG_MESSAGE_EVENT',
+              payload: {
+                logObj
+              }
+            }
+          )
+        }
+        catch (e) {
+          debugger;
+        }
+      }
+    }
+
     log (logObj) {
-      const consoleLogFn = logObj.level < 1
-        // eslint-disable-next-line no-console
-        ? (console.__error || console.error)
-        // eslint-disable-next-line no-console
-        : logObj.level === 1 && console.warn ? (console.__warn || console.warn) : (console.__log || console.log)
-  
-      // Type
-      const type = logObj.type !== 'log' ? logObj.type : ''
-  
-      // Tag
-      const tag = logObj.tag ? logObj.tag : ''
 
-      // Suffix
-      const suffix = this.options.suffix ? this.options.suffix : ''
-  
-      // Styles
-      const color = this.typeColorMap[logObj.type] || this.levelColorMap[logObj.level] || this.defaultColor
-      const successStyle = `
-        border-radius: 1.5em;
-        color: white;
-        font-weight: bold;
-        padding: 10px 1.5em;
-        background-image: linear-gradient(to bottom right, #0e61ed , #ee044f);
-      `
-      const normalStyle = `
-        background: ${color};
-        border-radius: 1.5em;
-        color: white;
-        font-weight: bold;
-        padding: 2px 0.5em;
-      `
+      
+      if (this.options.useSWPostMessage) {  // don't use native `console` API to write log msg, but instead, 
+                                            // send the msg to ZBR via PostMessage, and have ZBR use native 
+                                            // `console` API to emit log msg.  This option is to facilitate
+                                            // log capture in eruda.
 
-      const style = logObj.type === 'success' ? successStyle : normalStyle
-  
-      const badge = logObj.type === 'success' ? `%cZiti` : `%c${suffix}-${[tag, type].filter(Boolean).join(':')}`
+        this.sendLogMessage(logObj);
 
-      // Log to the console
-      if (typeof logObj.args[0] === 'string') {
-        consoleLogFn(
-          `${badge}%c ${logObj.args[0]}`,
-          style,
-          // Empty string as style resets to default console style
-          '',
-          ...logObj.args.slice(1)
-        )
       } else {
-        consoleLogFn(badge, style, ...logObj.args)
+
+        const consoleLogFn = logObj.level < 1
+          // eslint-disable-next-line no-console
+          ? (console.__error || console.error)
+          // eslint-disable-next-line no-console
+          : logObj.level === 1 && console.warn ? (console.__warn || console.warn) : (console.__log || console.log)
+    
+        // Type
+        const type = logObj.type !== 'log' ? logObj.type : ''
+    
+        // Tag
+        const tag = logObj.tag ? logObj.tag : ''
+
+        // Suffix
+        const suffix = this.options.suffix ? this.options.suffix : ''
+    
+        // Styles
+        const color = this.typeColorMap[logObj.type] || this.levelColorMap[logObj.level] || this.defaultColor
+        const successStyle = `
+          border-radius: 1.5em;
+          color: white;
+          font-weight: bold;
+          padding: 10px 1.5em;
+          background-image: linear-gradient(to bottom right, #0e61ed , #ee044f);
+        `
+        const normalStyle = `
+          background: ${color};
+          border-radius: 1.5em;
+          color: white;
+          font-weight: bold;
+          padding: 2px 0.5em;
+        `
+
+        const style = logObj.type === 'success' ? successStyle : normalStyle
+    
+        const badge = logObj.type === 'success' ? `%cZiti` : `%c${suffix}-${[tag, type].filter(Boolean).join(':')}`
+
+        // Log to the console
+        if (typeof logObj.args[0] === 'string') {
+          consoleLogFn(
+            `${badge}%c ${logObj.args[0]}`,
+            style,
+            // Empty string as style resets to default console style
+            '',
+            ...logObj.args.slice(1)
+          )
+        } else {
+          consoleLogFn(badge, style, ...logObj.args)
+        }
       }
     }
 }

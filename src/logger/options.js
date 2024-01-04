@@ -33,6 +33,15 @@ const defaultOptions = {
      *
      */
      suffix: '??',
+
+    /**
+     * See {@link Options.useSWPostMessage}
+     *
+     */
+    useSWPostMessage: false,
+    zitiBrowzerServiceWorkerGlobalScope: 0,
+
+
     };
 
 export {
