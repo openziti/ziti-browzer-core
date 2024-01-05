@@ -1457,7 +1457,7 @@ class ZitiContext extends EventEmitter {
     throwIf(isUndefined(edgeRouter), 'edgeRouter not specified');
 
   
-    this.logger.trace(`getChannelByEdgeRouter entered for conn[${ch.id}] edgeRouter[${edgeRouter.hostname}]`);
+    this.logger.trace(`getChannelByEdgeRouter entered for conn[${conn.id}] edgeRouter[${edgeRouter.hostname}]`);
 
     let key = edgeRouter.hostname + '-' + conn.networkSessionToken;
 
