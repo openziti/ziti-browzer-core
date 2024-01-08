@@ -118,10 +118,14 @@ class ZitiContext extends EventEmitter {
 
     this._connectMutexWithTimeout = withTimeout(new Mutex(), 30 * 1000);
 
-    this._tlsHandshakeLock = withTimeout(new Mutex(), 5 * 1000, new Error('timeout on _tlsHandshakeLock'));
+    this._tlsHandshakeLock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on _tlsHandshakeLock'));
 
-    this._fetchSemaphore = new Semaphore( 8 );
-    // this._fetchSemaphore = new Semaphore( 1 );
+    this._fetchSemaphoreHTTP  = new Semaphore( 8 );
+
+    //TEMP: we constrain HTTP requests that travel over nestedTLS to one-at-a-time for the moment.
+    //      This will be removed as soon as I fix the TLS protocol collision issue that manifests
+    //      when multiple HTTP requests are initiated simultaneously :(
+    this._fetchSemaphoreHTTPS = new Semaphore( 1 );
 
     this._pkey = null;
     this._privateKeyPEM = null;
@@ -580,7 +584,11 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  async ssl_do_handshake(wasmInstance, ssl) {
+   async ssl_do_handshake(useLock, fd, wasmInstance, ssl) {
+
+    if (useLock) {
+      await this.acquireTLSHandshakeLock(fd);
+    }
 
     this.logger.trace('ZitiContext.ssl_do_handshake() entered');
 
@@ -2038,7 +2046,13 @@ class ZitiContext extends EventEmitter {
 
     let self = this;
 
-    const [value, release] = await self._fetchSemaphore.acquire();
+    let value, release;
+
+    if (isEqual(opts.serviceScheme, 'https')) {
+      [value, release] = await self._fetchSemaphoreHTTPS.acquire();
+    } else {
+      [value, release] = await self._fetchSemaphoreHTTP.acquire();
+    }
 
     let ret;
 

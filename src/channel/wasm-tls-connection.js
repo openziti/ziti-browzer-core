@@ -182,7 +182,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
   async handshake() {
 
     this._zitiContext.logger.trace(`ZitiWASMTLSConnection.handshake(): fd[${this.wasmFD}] calling ssl_do_handshake()` );
-    let result = await this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
+    let result = await this._zitiContext.ssl_do_handshake( false, this.wasmFD, this._wasmInstance, this._SSL );
     this._zitiContext.logger.trace(`ZitiWASMTLSConnection.handshake(): fd[${this.wasmFD}] conn[${this.wasmFD}] back from ssl_do_handshake() result[${result}] (now awaiting cb)`);
   }
 

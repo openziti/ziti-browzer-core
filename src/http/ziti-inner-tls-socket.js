@@ -155,6 +155,8 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         this._tlsReadActive = false;
 
+        this._closeEventPending = false;
+
         this.pendingWriteArray = new Uint8Array(0)
 
     }
@@ -200,6 +202,8 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async create() {
 
+        await this._zitiContext.acquireTLSHandshakeLock(this.getWASMFD());
+
         this._wasmInstance = await this._zitiContext.getWASMInstance();
 
         this._sslContext = await this._zitiContext.ssl_CTX_new( this._wasmInstance );
@@ -220,7 +224,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
         this.handshake();
         
-        let success = await this.awaitTLSHandshakeComplete( 5000 ).catch((error) => {
+        let success = await this.awaitTLSHandshakeComplete( 30000 ).catch((error) => {
 
             // Let any listeners know the attempt to complete a nestedTLS handshake has timed out,
             // which is possibly a condition where the Service is misconfigured, and/or is not really
@@ -237,7 +241,10 @@ class ZitiInnerTLSSocket extends EventEmitter {
         });
   
         if (success) {
-            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed`);
+            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause start`);
+            await this._zitiContext.delay(500); // allow the 'SSL negotiation finished successfully' work to complete
+            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause end`);
+            this._zitiContext.releaseTLSHandshakeLock(this.getWASMFD());
         }
     }
 
@@ -277,7 +284,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async handshake() {
         this._zitiContext.logger.trace(`ZitiInnerTLSSocket.handshake(): fd[${this.wasmFD}] calling ssl_do_handshake()` );
-        let result = await this._zitiContext.ssl_do_handshake( this._wasmInstance, this._SSL );
+        let result = await this._zitiContext.ssl_do_handshake( false, this.wasmFD, this._wasmInstance, this._SSL );
         this._zitiContext.logger.trace(`ZitiInnerTLSSocket.handshake(): fd[${this.wasmFD}] back from ssl_do_handshake(): result[${result}] (now awaiting cb)`);
     }
 
@@ -286,7 +293,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async isConnected() {
 
-        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() entered: fd[${this.wasmFD}] connected[${this._connected}]`);
+        // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() entered: fd[${this.wasmFD}] connected[${this._connected}]`);
 
         await this._isConnectedMutex.runExclusive( async () => {
 
@@ -295,14 +302,14 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // Ask the SSL if its handshake has completed yet
                 let _connected = this._zitiContext.ssl_is_init_finished(this._wasmInstance, this._SSL);
 
-                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() ssl_is_init_finished() result: SSL[${this._SSL}] fd[${this.wasmFD}] connected[${_connected}]`);
+                // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() ssl_is_init_finished() result: SSL[${this._SSL}] fd[${this.wasmFD}] connected[${_connected}]`);
 
                 // If SSL indicates handshake has completed, let's delay a smidge, and allow the WASM mTLS ciphersuite-exchange to complete, 
                 // before we turn loose any writes to the connection
                 if (_connected) {
-                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() pausing fd[${this.wasmFD}]`);
+                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() pausing fd[${this.wasmFD}]`);
                     await this._zitiContext.delay(500);
-                    this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() resuming fd[${this.wasmFD}]`);
+                    // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() resuming fd[${this.wasmFD}]`);
                     this._connected = true;
                 }
             }
@@ -424,16 +431,13 @@ class ZitiInnerTLSSocket extends EventEmitter {
 
             // If the TLS handshake has completed, and we get a zero-length buffer...
             if (isConnected) {
-                // ...then emit the 'close' event (...after slight delay)
+                // ...then indicate we have a pending 'close' event.  The 'close' event will be emitted by the ClientRequest
+                //      when it runs and sees the need to emit the event.  We need to defer/delay the emission of the 'close'
+                //      event because it is possible that the data for this connection hasn't completed the decrypt flow yet, 
+                //      and thus the HTTP Response pqrsing logic hasn't run yet, and if we issue a 'close' before then, the
+                //      HTTP Response parsing logic will interpret the close as a 'socket hang up' error.
 
-                this._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${this.wasmFD}] pausing before emitting 'close' event`);
-
-                setTimeout((self) => {
-
-                    self._zitiContext.logger.trace(`ZitiInnerTLSSocket.process() fd[${self.wasmFD}] emitting 'close' event after pause`);
-                    self.emit('close', undefined);
-    
-                }, 1000, this)
+                this._closeEventPending = true;
 
             }
 
