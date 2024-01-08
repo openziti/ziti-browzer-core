@@ -1,3 +1,12 @@
+## [0.35.3](https://github.com/openziti/ziti-browzer-core/compare/v0.35.2...v0.35.3) (2024-01-08)
+
+
+### Bug Fixes
+
+* 'socket hang up' errors (again) ([#130](https://github.com/openziti/ziti-browzer-core/issues/130)) ([b5bb462](https://github.com/openziti/ziti-browzer-core/commit/b5bb46249c8b228e82d27d13d9220737b3323c1f))
+
+
+
 ## [0.35.2](https://github.com/openziti/ziti-browzer-core/compare/v0.35.1...v0.35.2) (2024-01-05)
 
 
