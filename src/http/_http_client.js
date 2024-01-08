@@ -534,7 +534,6 @@ function statusIsInformational(status) {
 function parserOnIncomingClient(res, shouldKeepAlive) {
   const socket = this.socket;
   const req = socket._httpMessage;
-  // console.log(`parserOnIncomingClient() entered req.path[${req.path}] res: `, res);
 
   // debug('AGENT incoming response!');
 
@@ -599,6 +598,15 @@ function parserOnIncomingClient(res, shouldKeepAlive) {
   if (req.aborted || !req.emit('response', res))
     res._dump();
 
+  if (socket.innerTLSSocket) {
+    socket.innerTLSSocket._zitiContext.logger.trace(`parserOnIncomingClient() fd[${socket.innerTLSSocket.wasmFD}] req.path[${req.path}] _closeEventPending[${socket.innerTLSSocket._closeEventPending}]`);
+    if (socket.innerTLSSocket._closeEventPending) {
+      setTimeout((socket) => {
+        socket.innerTLSSocket.emit('close', undefined);
+      }, 10, socket)
+    }
+  }
+  
   if (method === 'HEAD')
     return 1;  // Skip body but don't treat as Upgrade.
 
