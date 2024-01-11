@@ -678,20 +678,9 @@ class ZitiChannel {
   sendMessageNoWait(contentType, headers, body, options = {}) {
     const timeout = options.timeout !== undefined ? options.timeout : this._timeout;
     const messageId = options.sequence || this._sequence;
-    // this._zitiContext.logger.debug("send (no wait) -> conn[%o] seq[%o] contentType[%o]", 
-    //   (options.conn ? options.conn.id : 'n/a'), 
-    //   messageId, 
-    //   contentType, 
-    //   (body ? body.toString() : 'n/a'));
 
-    this._zitiContext.logger.debug(`send (no wait) -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] bodyLen[${(body ? body.length : 'n/a')}] body[${(body ? body.toString() : 'n/a')}]`,
-      this._id,
-      (options.conn ? options.conn.id : 'n/a'), 
-      messageId, contentType, 
-      (body ? body.length : 'n/a')
-      ,
-      (body ? body.toString() : 'n/a')
-      );
+    // this._zitiContext.logger.debug(`send (no wait) -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] bodyLen[${(body ? body.length : 'n/a')}] body[${(body ? body.toString() : 'n/a')}]`);
+    this._zitiContext.logger.debug(`send (no wait) -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] byteLength[${(body ? body.byteLength : 'n/a')}]`);
 
     this._sendMarshaled(contentType, headers, body, options, messageId);
   }

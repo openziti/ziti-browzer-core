@@ -795,6 +795,8 @@ async function initAsClient(websocket, address, protocols, options) {
   
         websocket._zitiContext.logger.info('WebSocket handshake SUCCESSFUL');
   
+        socket.isWebSocket = true;
+        
         websocket.setSocket(socket, head, opts.maxPayload);
     });
 }

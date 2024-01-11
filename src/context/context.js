@@ -125,7 +125,7 @@ class ZitiContext extends EventEmitter {
     //TEMP: we constrain HTTP requests that travel over nestedTLS to one-at-a-time for the moment.
     //      This will be removed as soon as I fix the TLS protocol collision issue that manifests
     //      when multiple HTTP requests are initiated simultaneously :(
-    this._fetchSemaphoreHTTPS = new Semaphore( 1 );
+    this._fetchSemaphoreHTTPS = new Semaphore( 8 );
 
     this._pkey = null;
     this._privateKeyPEM = null;
