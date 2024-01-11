@@ -1,3 +1,12 @@
+## [0.35.4](https://github.com/openziti/ziti-browzer-core/compare/v0.35.3...v0.35.4) (2024-01-11)
+
+
+### Bug Fixes
+
+* multi-MB writes fail under nestedTLS ([#131](https://github.com/openziti/ziti-browzer-core/issues/131)) ([d966d09](https://github.com/openziti/ziti-browzer-core/commit/d966d098722b6c798df3cda992cedba21a3c0b28))
+
+
+
 ## [0.35.3](https://github.com/openziti/ziti-browzer-core/compare/v0.35.2...v0.35.3) (2024-01-08)
 
 
