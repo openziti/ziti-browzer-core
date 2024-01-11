@@ -21,55 +21,6 @@ import { ZITI_CONSTANTS } from '../constants';
 
 // import { Buffer } from 'buffer/';  // note: the trailing slash is important!
 
-// class Queue {
-//     constructor(logger) {
-//       this.logger = logger;
-//       this.elements = {};
-//       this.head = 0;
-//       this.tail = 0;
-//       this.mutex = withTimeout(new Mutex(), 1 * 1000, new Error('timeout on Queue mutex'));
-//     }
-//     async enqueue(element) {
-//         this.logger.trace(`Queue.enqueue() entered: `, element);
-//         await this.mutex.runExclusive( () => {
-//             this.elements[this.tail] = element;
-//             this.tail++;
-//         });
-//         this.logger.trace(`Queue.enqueue() exiting: `, element);
-//     }
-//     async dequeue() {
-//         this.logger.trace(`Queue.dequeue() entered`);
-//         let item;
-//         await this.mutex.runExclusive( () => {
-//             item = this.elements[this.head];
-//             delete this.elements[this.head];
-//             this.head++;
-//         });
-//         this.logger.trace(`Queue.dequeue() exiting: `, item);
-//         return item;
-//     }
-//     peek() {
-//       return this.elements[this.head];
-//     }
-//     headNdx() {
-//         return this.head;
-//     }
-//     peekNdx(ndx) {
-//         return this.elements[ndx];
-//     }
-//     async acquireMutex() {
-//         this.logger.trace(`Queue.acquireMutex() waiting for mutex`);
-//         const release = await this.mutex.acquire();
-//         this.logger.trace(`Queue.acquireMutex() now own mutex`);
-//         return release;
-//     }  
-//     get length() {
-//       return this.tail - this.head;
-//     }
-//     get isEmpty() {
-//       return this.length === 0;
-//     }
-// }
   
 class ZitiInnerTLSSocket extends EventEmitter {
 
@@ -242,7 +193,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
   
         if (success) {
             this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause start`);
-            await this._zitiContext.delay(500); // allow the 'SSL negotiation finished successfully' work to complete
+            // await this._zitiContext.delay(500); // allow the 'SSL negotiation finished successfully' work to complete
             this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause end`);
             this._zitiContext.releaseTLSHandshakeLock(this.getWASMFD());
         }
@@ -348,20 +299,24 @@ class ZitiInnerTLSSocket extends EventEmitter {
      * @param {*} wireData (already TLS-encrypted)
      */
     async fd_write(wireData) {
-        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}]: encrypted data is ready`);
+
+        // clone the data coming in from the WASM. We do this because it is possible for teh WASM memory to detach before we actually do the channel.write operation below
+        let clonedWireData = new Uint8Array(wireData);
+
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}] byteLength[${clonedWireData.byteLength}] encrypted data is ready`);
         const conn = await this.outerSocket.getZitiConnection();
-        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}]: outerSocket[${this.outerSocket._id}] outerSocket.conn[${conn._id}]`);
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}] byteLength[${clonedWireData.byteLength}] outerSocket[${this.outerSocket._id}] outerSocket.conn[${conn._id}]`);
         let isConnected = await this.isConnected();
         if (!isConnected) {
-            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}]: (handshake data) is being sent to ch[${conn.channel.id}]  --->`);
-            conn.channel.write(conn, wireData);
+            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}] byteLength[${clonedWireData.byteLength}] (handshake data) is being sent to ch[${conn.channel.id}]  --->`);
+            conn.channel.write(conn, clonedWireData);
         } else {
-            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}]: (encrypted data) is being sent to tlsConn[${conn.channel._tlsConn.wasmFD}]  --->`);
+            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.fd_write() fd[${this.wasmFD}] byteLength[${clonedWireData.byteLength}] (encrypted data) is being sent to tlsConn[${conn.channel._tlsConn.wasmFD}]  --->`);
 
             //
             this._sendingEncryptedData = true;
 
-            conn.channel.write(conn, wireData);
+            conn.channel.write(conn, clonedWireData);
         }
     }
 
