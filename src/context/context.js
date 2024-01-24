@@ -654,7 +654,6 @@ class ZitiContext extends EventEmitter {
    * 
    */
   async acquireTLSHandshakeLock(fd) {
-    debugger;
     this.logger.trace(`ZitiContext.acquireTLSHandshakeLock() [${fd}] trying to acquire _tlsHandshakeLock`);
     this._tlsHandshakeLockRelease = await this._tlsHandshakeLock.acquire();
     this._tlsHandshakeLockFD = fd;
