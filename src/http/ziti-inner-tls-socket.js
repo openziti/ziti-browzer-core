@@ -1,5 +1,5 @@
 /*
-Copyright Netfoundry, Inc.
+Copyright NetFoundry, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async create() {
 
-        await this._zitiContext.acquireTLSHandshakeLock(this.getWASMFD());
+        // await this._zitiContext.acquireTLSHandshakeLock(this.getWASMFD());
 
         this._wasmInstance = await this._zitiContext.getWASMInstance();
 
@@ -191,12 +191,12 @@ class ZitiInnerTLSSocket extends EventEmitter {
             throw error;
         });
   
-        if (success) {
-            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause start`);
+        // if (success) {
+            // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause start`);
             // await this._zitiContext.delay(500); // allow the 'SSL negotiation finished successfully' work to complete
-            this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause end`);
-            this._zitiContext.releaseTLSHandshakeLock(this.getWASMFD());
-        }
+            // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.create() wasmFD[${this.getWASMFD()}] TLS handshake completed pause end`);
+            // this._zitiContext.releaseTLSHandshakeLock(this.getWASMFD());
+        // }
     }
 
 
@@ -259,7 +259,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // before we turn loose any writes to the connection
                 if (_connected) {
                     // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() pausing fd[${this.wasmFD}]`);
-                    await this._zitiContext.delay(500);
+                    // await this._zitiContext.delay(500);
                     // this._zitiContext.logger.trace(`ZitiInnerTLSSocket.isConnected() resuming fd[${this.wasmFD}]`);
                     this._connected = true;
                 }
