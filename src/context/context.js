@@ -2090,8 +2090,6 @@ class ZitiContext extends EventEmitter {
 
     let ret;
 
-    try {
-
     let fetchPromise = new Promise( async (resolve, reject) => {
 
       /**
@@ -2113,59 +2111,66 @@ class ZitiContext extends EventEmitter {
 
       let req;
 
-      if (options.method === 'GET') {
-  
-        req = http.get(options);
-        req.agent = await this.getZitiAgentPool().connect(req, options);
-  
-      } else {
+      try {
 
-        req = http.request(options);
-        req.agent = await this.getZitiAgentPool().connect(req, options);
-
-        if (options.body) {
-          if (options.body instanceof Promise) {
-            let chunk = await options.body;
-            req.write( chunk );
-          }
-          else if (options.body instanceof ZitiFormData) {
-  
-            let p = new Promise((resolve, reject) => {
-  
-              let stream = options.body.getStream();
-  
-              stream.on('error', err => {
-                reject(new Error(`${err.message}`));
-              });
-  
-              stream.on('end', () => {
-                try {
-                  resolve();
-                } catch (err) {
-                  reject(new Error(`${err.message}`));
-                }
-              });
-  
-              stream.pipe(new BrowserStdout({req: req}))
-            });
-  
-            await p;
-  
-          }
-          else {
-            let buffer;
-            if (options.body.arrayBuffer) {
-              let ab = await options.body.arrayBuffer();
-              buffer = new Buffer(ab)
-            } else {
-              buffer = options.body;
-            }
-            req.end( buffer );
-          }
+        if (options.method === 'GET') {
+    
+          req = http.get(options);
+          req.agent = await this.getZitiAgentPool().connect(req, options);
+    
         } else {
-          req.end();
+
+          req = http.request(options);
+          req.agent = await this.getZitiAgentPool().connect(req, options);
+
+          if (options.body) {
+            if (options.body instanceof Promise) {
+              let chunk = await options.body;
+              req.write( chunk );
+            }
+            else if (options.body instanceof ZitiFormData) {
+    
+              let p = new Promise((resolve, reject) => {
+    
+                let stream = options.body.getStream();
+    
+                stream.on('error', err => {
+                  reject(new Error(`${err.message}`));
+                });
+    
+                stream.on('end', () => {
+                  try {
+                    resolve();
+                  } catch (err) {
+                    reject(new Error(`${err.message}`));
+                  }
+                });
+    
+                stream.pipe(new BrowserStdout({req: req}))
+              });
+    
+              await p;
+    
+            }
+            else {
+              let buffer;
+              if (options.body.arrayBuffer) {
+                let ab = await options.body.arrayBuffer();
+                buffer = new Buffer(ab)
+              } else {
+                buffer = options.body;
+              }
+              req.end( buffer );
+            }
+          } else {
+            req.end();
+          }
+    
         }
-  
+      }
+      catch (error) {
+        let errResponse = new Response(new Blob(), { status: 400, statusText: `ZBR Error: ${error}` });
+        resolve(errResponse);  
       }
 
       req.on('error', err => {
@@ -2175,7 +2180,7 @@ class ZitiContext extends EventEmitter {
   
       req.on('response', async res => {
 
-        self.logger.debug(`httpFetch on.reponse() elapsed[${et.getValue()}] url[${url}]`);
+        self.logger.debug(`httpFetch on.response() elapsed[${et.getValue()}] url[${url}]`);
   
         const response_options = {
           url: url,
@@ -2240,10 +2245,6 @@ class ZitiContext extends EventEmitter {
     });
 
     ret = await fetchPromise;
-  
-    } finally {
-      // release();
-    }
 
     return ret;
   }

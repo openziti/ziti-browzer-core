@@ -262,7 +262,6 @@ class ZitiAgentPool extends EventEmitter {
       tid = setTimeout(() => {
         this.logger.trace('ending zitiAgent due to timeout')
         timeoutHit = true
-        // force kill the node driver, and let libpq do its teardown
         zitiAgent.connection ? zitiAgent.connection.stream.destroy() : zitiAgent.end()
       }, this.options.connectionTimeoutMillis)
     }
