@@ -1,5 +1,5 @@
 /*
-Copyright Netfoundry, Inc.
+Copyright NetFoundry, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import {
 } from './_http_common';
 
 import { OutgoingMessage } from './_http_outgoing';
-import { ZitiAgent } from './ziti-agent';
 import { Buffer } from 'buffer';
 // import searchParamsSymbol from 'search';
 import { HTTPINTERNAL } from './internal/http';
@@ -123,8 +122,6 @@ function ClientRequest(input, options, cb) {
     options = Object.assign(input || {}, options);
   }
 
-  this.agent = new ZitiAgent(options);
-
   const protocol = 'https:';
 
   let path;
@@ -134,8 +131,7 @@ function ClientRequest(input, options, cb) {
       throw new ERR_UNESCAPED_CHARACTERS('Request path');
   }
 
-  const defaultPort = options.defaultPort ||
-                    (this.agent && this.agent.defaultPort);
+  const defaultPort = options.defaultPort;
 
   const port = options.port = options.port || defaultPort || 80;
   const host = options.host = validateHost(options.hostname, 'hostname') ||
@@ -191,20 +187,8 @@ function ClientRequest(input, options, cb) {
 
   let called = false;
 
-  if (this.agent) {
-    // If there is an agent we should default to Connection:keep-alive,
-    // but only if the Agent will actually reuse the connection!
-    // If it's not a keepAlive agent, and the maxSockets==Infinity, then
-    // there's never a case where this socket will actually be reused
-    // if (!this.agent.keepAlive && !NumberIsFinite(this.agent.maxSockets)) {
-    if (!this.agent.keepAlive) {
-        this._last = true;
-      this.shouldKeepAlive = false;
-    } else {
-      this._last = false;
-      this.shouldKeepAlive = true;
-    }
-  }
+  this._last = false;
+  this.shouldKeepAlive = true;
 
   const headersArray = Array.isArray(options.headers.raw());
   if (!headersArray) {
@@ -266,9 +250,6 @@ function ClientRequest(input, options, cb) {
     this._deferToConnect(null, null, () => this._flush());
   };
 
-  // initiate connection
-  this.agent.addRequest(this, options);
-
   this._deferToConnect(null, null, () => this._flush());
 }
 Object.setPrototypeOf(ClientRequest.prototype, OutgoingMessage.prototype);
@@ -319,9 +300,6 @@ ClientRequest.prototype.destroy = function destroy(err) {
 };
 
 function _destroy(req, socket, err) {
-  // TODO (ronag): Check if socket was used at all (e.g. headersSent) and
-  // re-use it in that case. `req.socket` just checks whether the socket was
-  // assigned to the request and *might* have been used.
   if (socket && (!req.agent || req.socket)) {
     socket.destroy(err);
   } else {
@@ -581,7 +559,7 @@ function parserOnIncomingClient(res, shouldKeepAlive) {
     // Server MUST respond with Connection:keep-alive for us to enable it.
     // If we've been upgraded (via WebSockets) we also shouldn't try to
     // keep the connection open.
-    req.shouldKeepAlive = false;
+    // req.shouldKeepAlive = false;
   }
 
   // DTRACE_HTTP_CLIENT_RESPONSE(socket, req);
@@ -672,6 +650,11 @@ function responseOnEnd() {
     // - `req.finished` means `end()` has been called and no further data.
     //   can be written
     responseKeepAlive(req);
+
+    // Release the zitiAgent back into the pool
+    if (req.agent) {
+      req.agent.release();
+    }
   }
 }
 
@@ -750,9 +733,9 @@ function listenSocketTimeout(req) {
 }
 
 ClientRequest.prototype.onSocket = function onSocket(socket, err) {
-  // TODO(ronag): Between here and onSocketNT the socket
-  // has no 'error' handler.
-  process.nextTick(onSocketNT, this, socket, err);
+  setTimeout((req) => {
+    onSocketNT(req, socket, err);
+  }, 1, this)
 };
 
 function onSocketNT(req, socket, err) {

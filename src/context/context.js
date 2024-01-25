@@ -1,5 +1,5 @@
 /*
-Copyright Netfoundry, Inc.
+Copyright NetFoundry, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import { ZitiFormData } from '../http/form-data';
 import { BrowserStdout } from '../http/browser-stdout';
 import { http } from '../http/http';
 import { ZitiWebSocketWrapperCtor } from '../http/ziti-websocket-wrapper-ctor';
+import { ZitiAgentPool } from '../http/ziti-agent-pool';
 import { ZitiWASMFD } from './wasmFD';
 
 
@@ -48,6 +49,7 @@ import { isUndefined, isEqual, isNull, result, find, filter, has, minBy, forEach
 import EventEmitter from 'events';
 import {isIP} from 'is-ip';
 import jwt_decode from 'jwt-decode';
+import ElapsedTime from 'elapsed-time';
 
  
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
@@ -138,6 +140,24 @@ class ZitiContext extends EventEmitter {
 
     this._didInitialGetPendingChannelConnects = false;
 
+    this._agentPool = new ZitiAgentPool({
+
+      // maximum number of ZitiAgent's the pool should contain
+      max: 25,
+
+      // number of milliseconds a client must sit idle in the pool and not be checked out
+      // before it is disconnected from the backend and discarded
+      // default is 10000 (10 seconds) - setting to 0 to disables auto-disconnection of idle clients
+      idleTimeoutMillis: 0,
+
+      // number of milliseconds to wait before timing out when connecting a new ZitiAgent - 0 means no timeout
+      connectionTimeoutMillis: (10 * 1000),
+
+      // pass the pool our logger
+      logger: this.logger,
+
+    })
+    
   }
 
   get libCrypto () {
@@ -201,6 +221,14 @@ class ZitiContext extends EventEmitter {
       zitiContext: this,
     });
 
+  }
+
+
+  /**
+   * 
+   */
+  getZitiAgentPool() {
+    return this._agentPool;
   }
 
 
@@ -705,7 +733,7 @@ class ZitiContext extends EventEmitter {
 
       // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
       let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
-      self.logger.trace('ZitiContext.getFreshAPISession(): method [${method}]');
+      self.logger.trace(`ZitiContext.getFreshAPISession(): method[${method}]`);
 
       // Get an API session with Controller
       let res = await self._zitiBrowzerEdgeClient.authenticate({
@@ -1578,7 +1606,7 @@ class ZitiContext extends EventEmitter {
 
     let self = this;
    
-    this.logger.debug(`connect() entered for conn[${conn.id}] networkSession[${networkSession}]`);  
+    this.logger.debug(`ctx.connect() conn[${conn.id}] socket[${conn.socket._id}] networkSession[${networkSession}]`);  
     
     conn.networkSessionToken = networkSession.token;
   
@@ -1596,11 +1624,11 @@ class ZitiContext extends EventEmitter {
     }
   
     //
-    this.logger.debug(`trying to acquire _connectMutex for conn[${conn.id}]`);
+    // this.logger.debug(`trying to acquire _connectMutex for conn[${conn.id}]`);
   
-    await this._connectMutexWithTimeout.runExclusive(async () => {
+    // await this._connectMutexWithTimeout.runExclusive(async () => {
   
-      this.logger.debug(`now own _connectMutex for conn[${conn.id}]`);
+      // this.logger.debug(`now own _connectMutex for conn[${conn.id}]`);
   
       let pendingChannelConnects = await this._getPendingChannelConnects(conn, edgeRouters);
 
@@ -1640,25 +1668,29 @@ class ZitiContext extends EventEmitter {
       }
 
       let channelWithNearestEdgeRouter = nearestEdgeRouter.channel;
-      this.logger.debug(`ch[${channelWithNearestEdgeRouter.id}] has nearest wssER[${nearestEdgeRouter.edgeRouterHost}] for conn[${conn.id}]`);
       channelWithNearestEdgeRouter._connections._saveConnection(conn);
       conn.channel = channelWithNearestEdgeRouter;
+      this.logger.debug(`ctx.connect() conn[${conn.id}] socket[${conn.socket._id}] ch[${channelWithNearestEdgeRouter.id}] has nearest wssER[${nearestEdgeRouter.edgeRouterHost}]`);
   
       // Initiate connection with Edge Router (creates Fabric session)
-      await channelWithNearestEdgeRouter.connect(conn);
+      // if (conn.socket.isNew) {
+        await channelWithNearestEdgeRouter.connect(conn);
+      // }
   
       if (conn.state == ZitiEdgeProtocol.conn_state.Connected) {
         if (conn.encrypted) {  // if connected to a service that has 'encryptionRequired'
           // Do not proceed until crypto handshake has completed
+          this.logger.trace(`ctx.connect() conn[${conn.id}] socket[${conn.socket._id}] awaitConnectionCryptoEstablishComplete start`);
           await channelWithNearestEdgeRouter.awaitConnectionCryptoEstablishComplete(conn);
+          this.logger.trace(`ctx.connect() conn[${conn.id}] socket[${conn.socket._id}] awaitConnectionCryptoEstablishComplete end`);
         }
       }
-      this.logger.debug(`releasing _connectMutex for conn[${conn.id}]`);
-    })
-    .catch(( err ) => {
-      this.logger.error(err);
-      throw new Error(err);
-    });  
+      // this.logger.debug(`releasing _connectMutex for conn[${conn.id}]`);
+    // })
+    // .catch(( err ) => {
+    //   this.logger.error(err);
+    //   throw new Error(err);
+    // });  
   }
 
 
@@ -2044,19 +2076,19 @@ class ZitiContext extends EventEmitter {
    */
    async httpFetch (url, opts) {
 
+    let et = ElapsedTime.new().start();
+
     let self = this;
 
     let value, release;
 
-    if (isEqual(opts.serviceScheme, 'https')) {
-      [value, release] = await self._fetchSemaphoreHTTPS.acquire();
-    } else {
-      [value, release] = await self._fetchSemaphoreHTTP.acquire();
-    }
+    // if (isEqual(opts.serviceScheme, 'https')) {
+    //   [value, release] = await self._fetchSemaphoreHTTPS.acquire();
+    // } else {
+    //   [value, release] = await self._fetchSemaphoreHTTP.acquire();
+    // }
 
     let ret;
-
-    try {
 
     let fetchPromise = new Promise( async (resolve, reject) => {
 
@@ -2069,68 +2101,76 @@ class ZitiContext extends EventEmitter {
         url = parsedURL.toString();
       }
 
-      self.logger.debug(`httpFetch starting for [${url}]`);
+      self.logger.debug(`httpFetch starting url[${url}]`);
 
       // build HTTP request object
       let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
       let options = await request.getRequestOptions();
-      // options.domProxyHit = domProxyHit;
 
       options.headers.set('Host', await this.getConfigHostByServiceName (opts.serviceName));
 
       let req;
 
-      if (options.method === 'GET') {
-  
-        req = http.get(options);
-  
-      } else {
+      try {
 
-        req = http.request(options);
-
-        if (options.body) {
-          if (options.body instanceof Promise) {
-            let chunk = await options.body;
-            req.write( chunk );
-          }
-          else if (options.body instanceof ZitiFormData) {
-  
-            let p = new Promise((resolve, reject) => {
-  
-              let stream = options.body.getStream();
-  
-              stream.on('error', err => {
-                reject(new Error(`${err.message}`));
-              });
-  
-              stream.on('end', () => {
-                try {
-                  resolve();
-                } catch (err) {
-                  reject(new Error(`${err.message}`));
-                }
-              });
-  
-              stream.pipe(new BrowserStdout({req: req}))
-            });
-  
-            await p;
-  
-          }
-          else {
-            let buffer;
-            if (options.body.arrayBuffer) {
-              let ab = await options.body.arrayBuffer();
-              buffer = new Buffer(ab)
-            } else {
-              buffer = options.body;
-            }
-            req.end( buffer );
-          }
+        if (options.method === 'GET') {
+    
+          req = http.get(options);
+          req.agent = await this.getZitiAgentPool().connect(req, options);
+    
         } else {
-          req.end();
+
+          req = http.request(options);
+          req.agent = await this.getZitiAgentPool().connect(req, options);
+
+          if (options.body) {
+            if (options.body instanceof Promise) {
+              let chunk = await options.body;
+              req.write( chunk );
+            }
+            else if (options.body instanceof ZitiFormData) {
+    
+              let p = new Promise((resolve, reject) => {
+    
+                let stream = options.body.getStream();
+    
+                stream.on('error', err => {
+                  reject(new Error(`${err.message}`));
+                });
+    
+                stream.on('end', () => {
+                  try {
+                    resolve();
+                  } catch (err) {
+                    reject(new Error(`${err.message}`));
+                  }
+                });
+    
+                stream.pipe(new BrowserStdout({req: req}))
+              });
+    
+              await p;
+    
+            }
+            else {
+              let buffer;
+              if (options.body.arrayBuffer) {
+                let ab = await options.body.arrayBuffer();
+                buffer = new Buffer(ab)
+              } else {
+                buffer = options.body;
+              }
+              req.end( buffer );
+            }
+          } else {
+            req.end();
+          }
+    
         }
-  
+      }
+      catch (error) {
+        let errResponse = new Response(new Blob(), { status: 400, statusText: `ZBR Error: ${error}` });
+        resolve(errResponse);  
       }
 
       req.on('error', err => {
@@ -2139,6 +2179,8 @@ class ZitiContext extends EventEmitter {
       });
   
       req.on('response', async res => {
+
+        self.logger.debug(`httpFetch on.response() elapsed[${et.getValue()}] url[${url}]`);
   
         const response_options = {
           url: url,
@@ -2203,10 +2245,6 @@ class ZitiContext extends EventEmitter {
     });
 
     ret = await fetchPromise;
-  
-    } finally {
-      release();
-    }
 
     return ret;
   }

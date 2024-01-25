@@ -1,5 +1,5 @@
 /*
-Copyright Netfoundry, Inc.
+Copyright NetFoundry, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -135,8 +135,8 @@ class ZitiSocket extends EventEmitter {
      */
     captureResponseData(conn, data) {
 
-        conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}], dataLen: [${data.byteLength}]`);
-        conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}], (string)data: [${Buffer.from(data, 'utf8')}]`);
+        conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}] socket[${conn.socket._id}][${conn.socket.isNew}] dataLen: [${data.byteLength}]`);
+        // conn.zitiContext.logger.trace(`ZitiSocket.captureResponseData() <- conn[${conn.id}] (string)data: [${Buffer.from(data, 'utf8')}]`);
 
         let zitiSocket = conn.socket;
 
@@ -160,17 +160,32 @@ class ZitiSocket extends EventEmitter {
      * Connect to a Ziti service.
     */
     async connect(opts) {
+        
+        if (opts.isNew) {
 
-        if (typeof opts.conn == 'object') {
-            this.zitiConnection = opts.conn;
-        }
-        else if (typeof opts.serviceName == 'string') {
+            if (typeof opts.conn == 'object') {
+                this.zitiConnection = opts.conn;
+            }
+            else if (typeof opts.serviceName == 'string') {
+                this.zitiConnection = this.zitiContext.newConnection(opts);
+                this.zitiConnection.socket = this;
+                this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] socket[${this._id}] conn[${this.zitiConnection.id}] initiated`);
+                await this.zitiContext.dial(this.zitiConnection, opts.serviceName);
+                this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] socket[${this._id}] conn[${this.zitiConnection.id}] now complete`);
+            } else {
+                throw new Error('no serviceName or conn was provided');
+            }
+
+        } else {
+
+            //
+            // Yes, this code is redundant with that above... but this will change once reusable socket connections is working
+            //
             this.zitiConnection = this.zitiContext.newConnection(opts);
             this.zitiConnection.socket = this;
+            this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] socket[${this._id}] conn[${this.zitiConnection.id}] initiated`);
             await this.zitiContext.dial(this.zitiConnection, opts.serviceName);
-            this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] on conn[${this.zitiConnection.id}] now complete`);
-        } else {
-            throw new Error('no serviceName or conn was provided');
+            this.zitiContext.logger.debug(`ZitiSocket.connect() dial[${opts.serviceName}] socket[${this._id}] conn[${this.zitiConnection.id}] now complete`);
         }
 
         this._writable = true;
@@ -179,6 +194,7 @@ class ZitiSocket extends EventEmitter {
         this.zitiConnection.dataCallback = (this.captureResponseData);
         this.zitiConnection.socket = (this);
 
+        // Let the HTTP parser layer know we are ready/available
         this.emit('connect', this.zitiConnection);
     }
      
@@ -277,6 +293,7 @@ class ZitiSocket extends EventEmitter {
      *
      */
     async destroy() {
+        debugger;
         this._writable = false;
         await this.zitiContext.close(this.zitiConnection);
     }
@@ -285,6 +302,7 @@ class ZitiSocket extends EventEmitter {
      *
      */
     async end(data, encoding, callback) {
+        debugger;
         this._writable = false;
         await this.zitiContext.close(this.zitiConnection);
     }

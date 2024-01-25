@@ -1,5 +1,5 @@
 /*
-Copyright Netfoundry, Inc.
+Copyright NetFoundry, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -250,7 +250,7 @@ class ZitiWebSocket {
           self._zitiContext.logger.debug("zws: waitForWSConnection: connection is now open");
           callback();
         } else {
-          self._zitiContext.logger.debug("zws: waitForWSConnection: wait...for %o", self.url);
+          self._zitiContext.logger.debug(`zws: waitForWSConnection: wait...for [${self.url}]`);
           self.waitForWSConnection(callback);
         }
       }, 
@@ -265,12 +265,12 @@ class ZitiWebSocket {
   send(data) {
     if (!this.isOpened) {
       this.waitForWSConnection(function() {
-        this._zitiContext.logger.debug(`zws: send (after awaiting open) -> len[${data.byteLength}] data[${this._zitiContext.truncateString(data.toString())}]`);
+        this._zitiContext.logger.debug(`zws: send (after awaiting open) -> len[${data.byteLength}] wssER[${this._url}] data[${this._zitiContext.truncateString(data.toString())}]`);
         this._ws.send(data);
         this._onSend.dispatchAsync(data);
       });
     } else {
-      this._zitiContext.logger.debug(`zws: send -> len[${data.byteLength}] data[${this._zitiContext.truncateString(data.toString())}]`);
+      this._zitiContext.logger.debug(`zws: send -> len[${data.byteLength}] wssER[${this._url}] data[${this._zitiContext.truncateString(data.toString())}]`);
       this._ws.send(data);
       this._onSend.dispatchAsync(data);
     }
@@ -351,7 +351,7 @@ class ZitiWebSocket {
 
   _handleMessage(event) {
     const data = this._options.extractMessageData(event);
-    this._zitiContext.logger.debug(`zws: _handleMessage: recv <- data[${this._zitiContext.truncateString(data.toString())}]`);
+    this._zitiContext.logger.debug(`zws: _handleMessage: recv <- len[${data.size}] wssER[${this._url}]`);
     this._onMessage.dispatchAsync(data);
 
     // Let listeners know we received data
