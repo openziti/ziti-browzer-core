@@ -666,6 +666,8 @@ async function initAsClient(websocket, address, protocols, options) {
     
     // Send request
     let req = (websocket._req = get(req_options));
+
+    req.agent = await websocket._zitiContext.getZitiAgentPool().connect(req, req_options);
   
     websocket._zitiContext.logger.info('WebSocket handshake request has been sent');
   
