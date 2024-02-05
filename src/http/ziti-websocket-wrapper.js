@@ -103,7 +103,10 @@ class ZitiWebSocketWrapper extends EventEmitter {
     get OPEN() {
         return ZitiWebSocketWrapper.OPEN;
     }
-    
+    get READYSTATE() {
+      return this.readyState;
+    }
+  
     /**
      * This deviates from the WHATWG interface since ws doesn't support the
      * required default "blob" type (instead we define a custom "nodebuffer"
@@ -469,6 +472,8 @@ export {
  */
 async function initAsClient(websocket, address, protocols, options) {
 
+    await websocket._zitiContext.awaitInitializationComplete();
+
     let serviceName;
 
     const opts = {
@@ -532,65 +537,12 @@ async function initAsClient(websocket, address, protocols, options) {
     const get = http.get;
     let perMessageDeflate;
 
-    // await loadCookies(parsedUrl.hostname);
+    opts.createConnection = zitiConnect;    // We're going over Ziti
 
-    // We only want to intercept fetch requests that target the Ziti BrowZer Bootstrapper
-    var regex = new RegExp( websocket._zitiConfig.browzer.bootstrapper.self.host, 'g' );
-
-    if (address.match( regex )) { // the request is targeting the Ziti BrowZer Bootstrapper
-
-        var newUrl = new URL( address );
-        newUrl.hostname = websocket._zitiConfig.browzer.bootstrapper.target.service;
-        newUrl.port = websocket._zitiConfig.browzer.bootstrapper.target.port;
-        websocket._zitiContext.logger.debug( 'ZitiWebSocketWrapper: transformed URL: ', newUrl.toString());
-
-        serviceName = await websocket._zitiContext.shouldRouteOverZiti( newUrl );
-
-        if (isUndefined(serviceName)) { // If we have no serviceConfig associated with the hostname:port, do not intercept
-          websocket._zitiContext.logger.warn(`ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [${address}]`);
-            opts.createConnection = isSecure ? tlsConnect : netConnect;
-            opts.host = parsedUrl.hostname.startsWith('[')
-            ? parsedUrl.hostname.slice(1, -1)
-            : parsedUrl.hostname;      
-        } else {
-
-            opts.createConnection = zitiConnect;    // We're going over Ziti
-
-            let configHostAndPort = await websocket._zitiContext.getConfigHostAndPortByServiceName (serviceName);
-
-            newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
-            opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
-            opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase() + ":" + configHostAndPort.port;
-            opts.host = serviceName;
-        }
-
-    } else {
-      serviceName = await websocket._zitiContext.shouldRouteOverZiti( address );
-
-      if (!isUndefined(serviceName)) {
-
-        let newUrl = new URL( address );
-
-        opts.createConnection = zitiConnect;    // We're going over Ziti
-
-        let configHostAndPort = await websocket._zitiContext.getConfigHostAndPortByServiceName (serviceName);
-
-        newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
-        opts.href = newUrl.protocol + '//' + configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
-        opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + configHostAndPort.host.toLowerCase() + ":" + configHostAndPort.port;
-        opts.host = serviceName;
-
-      }
-      else {  // the request is targeting the raw internet
-
-        websocket._zitiContext.logger.warn(`ZitiWebSocketWrapper(): no associated serviceConfig, bypassing intercept of [${address}]`);
-          opts.createConnection = isSecure ? tlsConnect : netConnect;
-          opts.host = parsedUrl.hostname.startsWith('[')
-          ? parsedUrl.hostname.slice(1, -1)
-          : parsedUrl.hostname;  
-      }
-    }
-
+    newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
+    opts.href = newUrl.protocol + '//' + opts.configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
+    opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + opts.configHostAndPort.host.toLowerCase() + ":" + opts.configHostAndPort.port;
+    opts.host = opts.serviceName;
   
     opts.defaultPort = opts.defaultPort || defaultPort;
     opts.port = parsedUrl.port || defaultPort;
@@ -655,12 +607,11 @@ async function initAsClient(websocket, address, protocols, options) {
       opts.path = parts[1];
     }
 
-    opts.serviceName = serviceName;
     opts.serviceScheme = websocket._zitiConfig.browzer.bootstrapper.target.scheme;
     opts.serviceConnectAppData = await websocket._zitiContext.getConnectAppDataByServiceName(opts.serviceName, opts.serviceScheme);
   
     // build HTTP request object
-    let request = new ZitiHttpRequest(serviceName, opts.href, opts, websocket._zitiContext);
+    let request = new ZitiHttpRequest(opts.serviceName, opts.href, opts, websocket._zitiContext);
     const req_options = await request.getRequestOptions();
     req_options.isWebSocket = true;
     
