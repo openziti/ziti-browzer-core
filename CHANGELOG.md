@@ -1,3 +1,12 @@
+# [0.37.0](https://github.com/openziti/ziti-browzer-core/compare/v0.36.1...v0.37.0) (2024-02-05)
+
+
+### Features
+
+* WebSocket intercept enhancements ([#134](https://github.com/openziti/ziti-browzer-core/issues/134)) ([8db3112](https://github.com/openziti/ziti-browzer-core/commit/8db311258e162de4968ab6a69aa72357a3c68c77))
+
+
+
 ## [0.36.1](https://github.com/openziti/ziti-browzer-core/compare/v0.36.0...v0.36.1) (2024-01-31)
 
 
