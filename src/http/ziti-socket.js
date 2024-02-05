@@ -293,7 +293,6 @@ class ZitiSocket extends EventEmitter {
      *
      */
     async destroy() {
-        debugger;
         this._writable = false;
         await this.zitiContext.close(this.zitiConnection);
     }
@@ -302,7 +301,6 @@ class ZitiSocket extends EventEmitter {
      *
      */
     async end(data, encoding, callback) {
-        debugger;
         this._writable = false;
         await this.zitiContext.close(this.zitiConnection);
     }
