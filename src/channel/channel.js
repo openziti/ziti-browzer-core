@@ -681,6 +681,7 @@ class ZitiChannel {
 
     // this._zitiContext.logger.debug(`send (no wait) -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] bodyLen[${(body ? body.length : 'n/a')}] body[${(body ? body.toString() : 'n/a')}]`);
     this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] socket[${options.conn ? options.conn.socket._id : 'n/a'}][${options.conn ? options.conn.socket.isNew : 'n/a'}] seq[${messageId}] contentType[${contentType}] byteLength[${(body ? body.byteLength : 'n/a')}]`);
+    this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> body[${(body ? body.toString() : 'n/a')}]`);
 
     this._sendMarshaled(contentType, headers, body, options, messageId);
   }
@@ -1111,7 +1112,7 @@ class ZitiChannel {
               if (len > 2000) {
                 len = 2000;
               }
-              // this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): %s", m1.substring(0, len));
+              this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): %s", m1.substring(0, len));
 
               //
               // let dbgStr = m1.substring(0, len);

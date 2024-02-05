@@ -223,6 +223,24 @@ class ZitiContext extends EventEmitter {
 
   }
 
+ /**
+  * Remain in lazy-sleepy loop until context is initialized.
+  * 
+  * @param {*} ctx 
+  */
+  awaitInitializationComplete() {
+    let self = this;
+    return new Promise((resolve) => {
+      (function waitForInitializationComplete() {
+        if (!self._initialized) {
+          setTimeout(waitForInitializationComplete, 10);  
+        } else {
+          return resolve();
+        }
+      })();
+    });
+  }
+
 
   /**
    * 
@@ -1213,6 +1231,8 @@ class ZitiContext extends EventEmitter {
 
     let dst_port;
 
+    scheme = scheme.replace(':', '');
+
     find(portRanges, function(portRange) {
       if (isEqual( scheme, 'https' )) {
         if (isEqual( portRange.low, 443 ) || isEqual( portRange.high, 443 )) {
@@ -1722,12 +1742,16 @@ class ZitiContext extends EventEmitter {
         throw new Error( error );
       });
   
-      if (isUndefined(serviceName)) {
-  
-        serviceName = await self.getServiceNameByHostName(hostname).catch(( error ) => {
-          throw new Error( error );
-        });
+      if (parsedURL.port === '') {
+
+        if (isUndefined(serviceName)) {
     
+          serviceName = await self.getServiceNameByHostName(hostname).catch(( error ) => {
+            throw new Error( error );
+          });
+      
+        }
+
       }
 
       if (isUndefined(serviceName)) {
@@ -1746,7 +1770,7 @@ class ZitiContext extends EventEmitter {
    
   }
 
-  async shouldRouteOverZitiSync(url) {
+  shouldRouteOverZitiSync(url) {
 
     let parsedURL = new URL(url);   
     let hostname = parsedURL.hostname;
@@ -1767,7 +1791,9 @@ class ZitiContext extends EventEmitter {
         return true;
       }
 
-      return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+      if (self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port )) {
+        return true;
+      }
 
     }), 'name');
 
@@ -1878,7 +1904,9 @@ class ZitiContext extends EventEmitter {
           return true;
         }
   
-        return self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port );
+        if (self._getMatchConfigInterceptV1( obj.config['intercept.v1'], hostname, port )) {
+          return true;
+        }
   
       }), 'name');
   
