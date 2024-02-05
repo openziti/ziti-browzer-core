@@ -539,8 +539,8 @@ async function initAsClient(websocket, address, protocols, options) {
 
     opts.createConnection = zitiConnect;    // We're going over Ziti
 
-    newUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
-    opts.href = newUrl.protocol + '//' + opts.configHostAndPort.host.toLowerCase() + newUrl.pathname + newUrl.search;
+    parsedUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
+    opts.href = parsedUrl.protocol + '//' + opts.configHostAndPort.host.toLowerCase() + parsedUrl.pathname + parsedUrl.search;
     opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + opts.configHostAndPort.host.toLowerCase() + ":" + opts.configHostAndPort.port;
     opts.host = opts.serviceName;
   
