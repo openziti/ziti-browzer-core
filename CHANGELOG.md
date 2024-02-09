@@ -1,3 +1,12 @@
+## [0.37.2](https://github.com/openziti/ziti-browzer-core/compare/v0.37.1...v0.37.2) (2024-02-09)
+
+
+### Bug Fixes
+
+* getPortByScheme tweak ([#136](https://github.com/openziti/ziti-browzer-core/issues/136)) ([4037a6f](https://github.com/openziti/ziti-browzer-core/commit/4037a6f085e9b8f59c17b5fc98053a8bb82f5f4a))
+
+
+
 ## [0.37.1](https://github.com/openziti/ziti-browzer-core/compare/v0.37.0...v0.37.1) (2024-02-05)
 
 
