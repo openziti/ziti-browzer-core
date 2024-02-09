@@ -1240,6 +1240,7 @@ class ZitiContext extends EventEmitter {
           return true;
         } else {
           dst_port = portRange.low;
+          return true;
         }
       }
       if (isEqual( scheme, 'http' )) {
@@ -1249,6 +1250,9 @@ class ZitiContext extends EventEmitter {
         }
         else if (!isEqual( portRange.high, 443 )) {
           dst_port = portRange.high;
+          return true;
+        } else {
+          dst_port = 443;
           return true;
         }
       }
