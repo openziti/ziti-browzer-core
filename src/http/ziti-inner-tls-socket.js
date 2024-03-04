@@ -381,7 +381,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
                 // ...then indicate we have a pending 'close' event.  The 'close' event will be emitted by the ClientRequest
                 //      when it runs and sees the need to emit the event.  We need to defer/delay the emission of the 'close'
                 //      event because it is possible that the data for this connection hasn't completed the decrypt flow yet, 
-                //      and thus the HTTP Response pqrsing logic hasn't run yet, and if we issue a 'close' before then, the
+                //      and thus the HTTP Response parsing logic hasn't run yet, and if we issue a 'close' before then, the
                 //      HTTP Response parsing logic will interpret the close as a 'socket hang up' error.
 
                 this._closeEventPending = true;
