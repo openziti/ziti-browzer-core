@@ -12,9 +12,16 @@ class PassThrough extends Transform  {
   constructor (options) {
     super(options);
     this.ee = new EventEmitter();
-    if (options.headers && options.headers['content-encoding'] && isEqual(options.headers['content-encoding'].toLowerCase(), 'gzip')) {
-      this.isGzip = true;
-      this.inflator = new pako.Inflate();
+    if (options.headers) {
+      if (options.headers['content-encoding']) {
+        if ( 
+          isEqual(options.headers['content-encoding'].toLowerCase(), 'gzip')    ||
+          isEqual(options.headers['content-encoding'].toLowerCase(), 'deflate')
+        ) {
+          this.isGzip = true;
+          this.inflator = new pako.Inflate();
+        }
+      }
     }
   }
 
