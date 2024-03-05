@@ -1,3 +1,12 @@
+# [0.39.0](https://github.com/openziti/ziti-browzer-core/compare/v0.38.0...v0.39.0) (2024-03-05)
+
+
+### Features
+
+* improve intercept.v1 config protocol parsing ([#138](https://github.com/openziti/ziti-browzer-core/issues/138)) ([8d60d53](https://github.com/openziti/ziti-browzer-core/commit/8d60d53ddc408bfe8e4edd380600f49b515eda13))
+
+
+
 # [0.38.0](https://github.com/openziti/ziti-browzer-core/compare/v0.37.2...v0.38.0) (2024-03-04)
 
 
