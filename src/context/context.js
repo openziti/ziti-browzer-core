@@ -1261,6 +1261,17 @@ class ZitiContext extends EventEmitter {
     return dst_port.toString();
   }
 
+  getProtocol(protocolsArray) {
+    let protocol;
+    find(protocolsArray, function(p) {
+      if (isEqual( p, 'tcp' )) {
+        protocol = p;
+        return true;
+      }
+    });
+    return protocol;
+  }
+
   /**
    * 
    */
@@ -1273,8 +1284,16 @@ class ZitiContext extends EventEmitter {
       return undefined;
     }
     let dst_port = this.getPortByScheme(config['intercept.v1'].portRanges, scheme);
+    let dst_protocol = this.getProtocol(config['intercept.v1'].protocols);
+    if (isUndefined(dst_protocol)) {
+      // Let any listeners know there are no supported protocols associated with the given service,
+      // which is most likely a condition of a misconfigured network
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_CONFIG_PROTOCOL_FOR_SERVICE, {
+        serviceName: name
+      });
+    }
     let appData = {
-      dst_protocol: config['intercept.v1'].protocols[0],
+      dst_protocol: dst_protocol,
       dst_port:     dst_port,
     };
     if (isIP(config['intercept.v1'].addresses[0])) {
