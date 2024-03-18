@@ -614,6 +614,7 @@ async function initAsClient(websocket, address, protocols, options) {
     let request = new ZitiHttpRequest(opts.serviceName, opts.href, opts, websocket._zitiContext);
     const req_options = await request.getRequestOptions();
     req_options.isWebSocket = true;
+    req_options.port = opts.serviceConnectAppData.dst_port;
     
     // Send request
     let req = (websocket._req = get(req_options));
