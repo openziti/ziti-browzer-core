@@ -1,3 +1,12 @@
+## [0.39.2](https://github.com/openziti/ziti-browzer-core/compare/v0.39.1...v0.39.2) (2024-03-21)
+
+
+### Bug Fixes
+
+* avoid using null appdata ([#140](https://github.com/openziti/ziti-browzer-core/issues/140)) ([d141a2f](https://github.com/openziti/ziti-browzer-core/commit/d141a2f61e08f78edaf17d774ee8e4c41c2b5fdc))
+
+
+
 ## [0.39.1](https://github.com/openziti/ziti-browzer-core/compare/v0.39.0...v0.39.1) (2024-03-18)
 
 
