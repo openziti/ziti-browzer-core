@@ -281,6 +281,8 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async tls_write(wireData) {
         this._zitiContext.logger.trace(`ZitiInnerTLSSocket.tls_write[${this.wasmFD}] unencrypted data is ready to be sent to the ER  ---> [%o]`, wireData);
+        var textDecoder = new TextDecoder("utf-8");
+        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.tls_write[${this.wasmFD}] body[${(wireData ? textDecoder.decode(wireData) : 'n/a')}]`);
         this._zitiContext.tls_write(this._wasmInstance, this._SSL, wireData);
     }
 

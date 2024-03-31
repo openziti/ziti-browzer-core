@@ -264,10 +264,11 @@ class ZitiWebSocket {
    */
   send(data) {
     if (!this.isOpened) {
+      let self = this;
       this.waitForWSConnection(function() {
-        this._zitiContext.logger.debug(`zws: send (after awaiting open) -> len[${data.byteLength}] wssER[${this._url}] data[${this._zitiContext.truncateString(data.toString())}]`);
-        this._ws.send(data);
-        this._onSend.dispatchAsync(data);
+        self._zitiContext.logger.debug(`zws: send (after awaiting open) -> len[${data.byteLength}] wssER[${self._url}] data[${self._zitiContext.truncateString(data.toString())}]`);
+        self._ws.send(data);
+        self._onSend.dispatchAsync(data);
       });
     } else {
       this._zitiContext.logger.debug(`zws: send -> len[${data.byteLength}] wssER[${this._url}] data[${this._zitiContext.truncateString(data.toString())}]`);

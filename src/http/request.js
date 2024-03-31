@@ -253,50 +253,50 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	// 	 headers.set('Host', parsedURL.hostname);
 	//  }
  
-	 let cookieObject = {};
- 
-	 // Obtain all Cookie KV pairs from the incoming Cookie header
-	 if (headers.has('Cookie')) {
-		 let cookieHdr = headers.get('Cookie');
-		 let cookies = _split(cookieHdr, ';' );
-		 forEach(cookies, function( cookie ) {
-			 let cookieKV = _split(cookie, '=' );
-			 cookieObject[cookieKV[0]] = cookieKV[1];		
-		 });
-	 }
- 
-	 // Obtain all Cookie KV pairs from the browser Cookie cache
+	let cookieObject = {};
+	let cookiesAlreadySet = {};
+
+	// Obtain all Cookie KV pairs from the incoming Cookie header
+	if (headers.has('Cookie')) {
+		let cookieString = headers.get('Cookie');
+		let pairs = cookieString.split(",");
+		forEach(pairs, function( cookie ) {
+			let cookieKV = _split(cookie, '=' );
+			 cookieObject[cookieKV[0]] = cookieKV[1];	
+			 cookiesAlreadySet[cookie] = true;
+		});
+	}
+
+	 // Obtain all Cookie KV pairs from the browser Cookie cache (this only works in ZBR, it does nothing in SW)
 	 let browserCookies = Cookies.get();
 	 for (const cookie in browserCookies) {
 		 if (browserCookies.hasOwnProperty( cookie )) {
-			 cookieObject[cookie] = browserCookies[cookie];
-			 if (cookie.includes('CSRF')) {
-				 headers.set('X-CSRF-Token', browserCookies[cookie]);
-			 }		
+			cookieObject[cookie] = browserCookies[cookie];
+			if (!isEqual(cookie, '__ziti-browzer-config')) {
+				if (cookie.includes('CSRF')) {
+					headers.set('X-CSRF-Token', browserCookies[cookie]);
+			 	} else {
+					if (isUndefined(cookiesAlreadySet[cookie] )) {
+						cookieObject[cookie] = browserCookies[cookie];	
+						cookiesAlreadySet[cookie] = true;
+					}
+				}
+			}
 		 }
 	 }
-  
-	 // Obtain all Cookie KV pairs from the Ziti Cookie cache
-	//  const release = await ziti._cookiemutex.acquire();
-	//  let zitiCookies = await ls.getWithExpiry(zitiConstants.get().ZITI_COOKIES);
-	//  release();
-	//  if (!isNull(zitiCookies)) {
-	// 	 for (const cookie in zitiCookies) {
-	// 		 if (zitiCookies.hasOwnProperty(cookie)) {
-	// 			 if (zitiCookies[cookie] !== 'null') {
-	// 				 cookieObject[cookie] = zitiCookies[cookie];
-	// 			 }
-	// 		 }
-	// 	 }
-	//  }
   
 	 // set the Cookie header
 	 let cookieHeaderValue = '';
 	 for (const cookie in cookieObject) {
 		 if (cookie !== '') {
-			 if (cookieObject.hasOwnProperty(cookie)) {
-				 cookieHeaderValue += cookie + '=' + cookieObject[cookie] + '; ';
-			 }
+			if (!isEqual(cookie, '__ziti-browzer-config')) {
+			 	if (cookieObject.hasOwnProperty(cookie)) {
+					if (cookieHeaderValue !== '') {
+						cookieHeaderValue += '; ';
+					}
+					cookieHeaderValue += cookie + '=' + cookieObject[cookie];
+			 	}
+			}
 		 }
 	 }
 	 if (cookieHeaderValue !== '') {
