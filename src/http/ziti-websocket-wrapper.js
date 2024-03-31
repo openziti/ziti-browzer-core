@@ -106,6 +106,9 @@ class ZitiWebSocketWrapper extends EventEmitter {
     get READYSTATE() {
       return this.readyState;
     }
+    set READYSTATE(readyState) {
+      this.readyState = readyState;
+    }
   
     /**
      * This deviates from the WHATWG interface since ws doesn't support the
@@ -191,7 +194,7 @@ class ZitiWebSocketWrapper extends EventEmitter {
     socket.on('end', socketOnEnd);
     socket.on('error', socketOnError);
 
-    this.readyState = ZitiWebSocketWrapper.OPEN;
+    this.READYSTATE = ZitiWebSocketWrapper.OPEN;
     this.emit('open');
   }
 

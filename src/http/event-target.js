@@ -133,7 +133,9 @@ const EventTarget = {
     if (typeof listener !== 'function') return;
 
     function onMessage(data) {
-      listener.call(this, new MessageEvent(data, this));
+      let e = new MessageEvent(data, this);
+      Object.setPrototypeOf(e, window.MessageEvent.prototype)
+      listener.call(this, e);
     }
 
     function onClose(code, message) {
@@ -145,7 +147,9 @@ const EventTarget = {
     }
 
     function onOpen() {
-      listener.call(this, new OpenEvent(this));
+      let e = new OpenEvent(this);
+      Object.setPrototypeOf(e, window.Event.prototype)
+      listener.call(this, e);
     }
 
     if (method === 'message') {
