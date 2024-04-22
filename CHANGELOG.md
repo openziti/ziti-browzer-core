@@ -1,3 +1,12 @@
+## [0.40.1](https://github.com/openziti/ziti-browzer-core/compare/v0.40.0...v0.40.1) (2024-04-22)
+
+
+### Bug Fixes
+
+* Service revocation detect/react enhancements ([#142](https://github.com/openziti/ziti-browzer-core/issues/142)) ([127b903](https://github.com/openziti/ziti-browzer-core/commit/127b903cbcaf047d23ea528503e60626ce636b79))
+
+
+
 # [0.40.0](https://github.com/openziti/ziti-browzer-core/compare/v0.39.2...v0.40.0) (2024-03-31)
 
 
