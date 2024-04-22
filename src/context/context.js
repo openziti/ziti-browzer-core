@@ -1084,10 +1084,6 @@ class ZitiContext extends EventEmitter {
     if (isUndefined( this._services ) ) {
       throw new Error('response contains no data');
     }
-    if ( this._services.length === 0) {
-      throw new Error('list of services is empty!');
-    }
-
     // this.logger.trace('List of available Services acquired: [%o]', this._services);
     
   }
