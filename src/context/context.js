@@ -751,7 +751,7 @@ class ZitiContext extends EventEmitter {
 
       // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
       let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
-      self.logger.trace(`ZitiContext.getFreshAPISession(): method[${method}]`);
+      self.logger.trace(`ZitiContext.doAuthenticate(): method[${method}]`);
 
       // Get an API session with Controller
       let res = await self._zitiBrowzerEdgeClient.authenticate({
@@ -765,7 +765,8 @@ class ZitiContext extends EventEmitter {
 
           configTypes: [
             'ziti-tunneler-client.v1',
-            'intercept.v1'
+            'intercept.v1',
+            'zrok.proxy.v1'
           ],
 
           envInfo: {

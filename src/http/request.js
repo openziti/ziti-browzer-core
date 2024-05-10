@@ -256,14 +256,37 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	let cookieObject = {};
 	let cookiesAlreadySet = {};
 
+	function isValidCookie(cookieValue) {
+		console.log(`isValidCookie() entered cookieValue[${cookieValue}]`)
+		// Check if the cookie value is a non-empty string
+		if (typeof cookieValue !== 'string' || cookieValue.trim() === '') {
+			return false;
+		}
+	
+		// Split the cookie string into parts separated by semicolons
+		var parts = cookieValue.split(';');
+	
+		// Check if the first part contains a valid key-value pair
+		var keyValue = parts[0].split('=');
+		if (keyValue.length !== 2 || !keyValue[0].trim() || !keyValue[1].trim()) {
+			return false;
+		}
+		
+		// The value conforms to the basic format of a cookie
+		return true;
+	}
+	
 	// Obtain all Cookie KV pairs from the incoming Cookie header
 	if (headers.has('Cookie')) {
 		let cookieString = headers.get('Cookie');
 		let pairs = cookieString.split(",");
 		forEach(pairs, function( cookie ) {
-			let cookieKV = _split(cookie, '=' );
-			 cookieObject[cookieKV[0]] = cookieKV[1];	
-			 cookiesAlreadySet[cookie] = true;
+			if (isValidCookie(cookie)) {
+				let cookieKV = _split(cookie, '=' );
+				let cookieVal = _split(cookieKV[1], ';' );
+				cookieObject[cookieKV[0]] = cookieVal[0];	
+				cookiesAlreadySet[cookie] = true;	
+			}
 		});
 	}
 
