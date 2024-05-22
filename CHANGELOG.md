@@ -1,3 +1,12 @@
+## [0.40.3](https://github.com/openziti/ziti-browzer-core/compare/v0.40.2...v0.40.3) (2024-05-22)
+
+
+### Bug Fixes
+
+* Properly handle cookie values that are b64 (end with '=') ([#145](https://github.com/openziti/ziti-browzer-core/issues/145)) ([82ad11c](https://github.com/openziti/ziti-browzer-core/commit/82ad11c0f477a2e3c14654ee7abb3f7bfd30259f))
+
+
+
 ## [0.40.2](https://github.com/openziti/ziti-browzer-core/compare/v0.40.1...v0.40.2) (2024-05-13)
 
 
