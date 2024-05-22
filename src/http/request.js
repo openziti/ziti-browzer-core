@@ -255,25 +255,52 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
  
 	let cookieObject = {};
 	let cookiesAlreadySet = {};
-
+	
+	function containsSemiColonBeforeEqualSign(cookieValue) {
+		var regex = /;(?=[^=]*=)/;
+		if (regex.test(cookieValue)) {
+			var indexSEMI = cookieValue.indexOf(';');
+			var indexEQ = cookieValue.indexOf('=');
+			if (indexEQ > indexSEMI) {
+				return true;
+			}
+		}
+		return false;
+	}
+	function containsSemiColonJustAfterEqualSign(cookieValue) {
+		var regex = /=;/;
+		if (regex.test(cookieValue)) {
+			var indexSEMI = cookieValue.indexOf(';');
+			var indexEQ = cookieValue.indexOf('=');
+			if ((indexSEMI - 1) > indexEQ) {
+				return false; // the cookie val ends with an '=' but it's because it's a b64 value, not an empty value
+			} else {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	function isValidCookie(cookieValue) {
-		console.log(`isValidCookie() entered cookieValue[${cookieValue}]`)
-		// Check if the cookie value is a non-empty string
+
 		if (typeof cookieValue !== 'string' || cookieValue.trim() === '') {
 			return false;
 		}
-	
-		// Split the cookie string into parts separated by semicolons
-		var parts = cookieValue.split(';');
-	
-		// Check if the first part contains a valid key-value pair
-		var keyValue = parts[0].split('=');
-		if (keyValue.length !== 2 || !keyValue[0].trim() || !keyValue[1].trim()) {
+
+		if (containsSemiColonBeforeEqualSign(cookieValue)) {
 			return false;
 		}
-		
-		// The value conforms to the basic format of a cookie
-		return true;
+		if (containsSemiColonJustAfterEqualSign(cookieValue)) {
+			return false;
+		}
+
+		var indexEQ = cookieValue.indexOf('=');
+		var key = cookieValue.substring(0, indexEQ);
+		key = key.trim();
+		var prevalue = cookieValue.substring(indexEQ + 1);
+		var val = prevalue.split(';');
+
+		return [key, val[0]];
 	}
 	
 	// Obtain all Cookie KV pairs from the incoming Cookie header
@@ -281,10 +308,9 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 		let cookieString = headers.get('Cookie');
 		let pairs = cookieString.split(",");
 		forEach(pairs, function( cookie ) {
-			if (isValidCookie(cookie)) {
-				let cookieKV = _split(cookie, '=' );
-				let cookieVal = _split(cookieKV[1], ';' );
-				cookieObject[cookieKV[0]] = cookieVal[0];	
+			let parts = isValidCookie(cookie)
+			if (parts) {
+				cookieObject[parts[0]] = parts[1];	
 				cookiesAlreadySet[cookie] = true;	
 			}
 		});
