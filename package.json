@@ -66,7 +66,7 @@
     "async-mutex": "^0.3.2",
     "asynckit": "^0.4.0",
     "buffer": "^6.0.3",
-    "bufferutil": "^4.0.6",
+    "bufferutil": "^4.0.8",
     "chnl": "^1.2.0",
     "elapsed-time": "^0.0.1",
     "es6-object-assign": "^1.1.0",
