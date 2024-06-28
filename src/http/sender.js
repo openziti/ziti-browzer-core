@@ -411,8 +411,14 @@ class Sender {
    */
   sendFrame(list, cb) {
     if (list.length === 2) {
-      this._socket.write(list[0]);
-      this._socket.write(list[1], cb);
+      // The WebSocket frame is in two chunks. Merge the two byte arrays into a single byte array,
+      // and transmit in a single write (to prevent the receiving side from potentially processing
+      // a partial frame)
+      var mergedArray = new Uint8Array(list[0].length + list[1].length);
+      mergedArray.set(list[0]);
+      mergedArray.set(list[1], list[0].length);
+      this._socket.write(mergedArray, cb);
+
     } else {
       this._socket.write(list[0], cb);
     }
