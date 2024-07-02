@@ -455,6 +455,7 @@ class Receiver extends Writable {
 
         if (this._binaryType === 'nodebuffer') {
           data = BUFFERUTIL.concat(fragments, messageLength);
+          data = data.buffer.slice(data.byteOffset, data.byteLength + data.byteOffset)
         } else if (this._binaryType === 'arraybuffer') {
           data = BUFFERUTIL.toArrayBuffer(BUFFERUTIL.concat(fragments, messageLength));
         } else {
