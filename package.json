@@ -61,7 +61,7 @@
   "dependencies": {
     "@openziti/libcrypto-js": "^0.19.0",
     "@openziti/ziti-browzer-edge-client": "^0.6.2",
-    "asn1js": "^2.4.0",
+    "asn1js": "^3.0.5",
     "assert": "^2.0.0",
     "async-mutex": "^0.3.2",
     "asynckit": "^0.4.0",
