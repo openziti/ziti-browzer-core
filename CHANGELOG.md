@@ -1,3 +1,12 @@
+## [0.40.7](https://github.com/openziti/ziti-browzer-core/compare/v0.40.6...v0.40.7) (2024-07-08)
+
+
+### Bug Fixes
+
+* upgrade @openziti/libcrypto-js from 0.19.0 to 0.20.0 ([#151](https://github.com/openziti/ziti-browzer-core/issues/151)) ([8f3f03d](https://github.com/openziti/ziti-browzer-core/commit/8f3f03d7b7a2ebf5a291e4b9d8e9955e2aaa2c8d))
+
+
+
 ## [0.40.6](https://github.com/openziti/ziti-browzer-core/compare/v0.40.5...v0.40.6) (2024-07-08)
 
 
