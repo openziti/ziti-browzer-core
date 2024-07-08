@@ -1,3 +1,12 @@
+## [0.40.8](https://github.com/openziti/ziti-browzer-core/compare/v0.40.7...v0.40.8) (2024-07-08)
+
+
+### Bug Fixes
+
+* upgrade promise.prototype.finally from 3.1.7 to 3.1.8 ([#149](https://github.com/openziti/ziti-browzer-core/issues/149)) ([abea0c0](https://github.com/openziti/ziti-browzer-core/commit/abea0c0ed31941698537e07c78e656384280d852))
+
+
+
 ## [0.40.7](https://github.com/openziti/ziti-browzer-core/compare/v0.40.6...v0.40.7) (2024-07-08)
 
 
