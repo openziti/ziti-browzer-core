@@ -1,3 +1,12 @@
+## [0.40.11](https://github.com/openziti/ziti-browzer-core/compare/v0.40.10...v0.40.11) (2024-07-08)
+
+
+### Bug Fixes
+
+* upgrade async-mutex from 0.3.2 to 0.5.0 ([#146](https://github.com/openziti/ziti-browzer-core/issues/146)) ([afc1c19](https://github.com/openziti/ziti-browzer-core/commit/afc1c191a35d7b928677b6e4b613a52b37f74db9))
+
+
+
 ## [0.40.10](https://github.com/openziti/ziti-browzer-core/compare/v0.40.9...v0.40.10) (2024-07-08)
 
 
