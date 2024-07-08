@@ -1,3 +1,12 @@
+## [0.40.12](https://github.com/openziti/ziti-browzer-core/compare/v0.40.11...v0.40.12) (2024-07-08)
+
+
+### Bug Fixes
+
+* upgrade bufferutil from 4.0.7 to 4.0.8 ([#148](https://github.com/openziti/ziti-browzer-core/issues/148)) ([648d9ee](https://github.com/openziti/ziti-browzer-core/commit/648d9ee30f66e0592558fa83db3360f7bf2309b8))
+
+
+
 ## [0.40.11](https://github.com/openziti/ziti-browzer-core/compare/v0.40.10...v0.40.11) (2024-07-08)
 
 
