@@ -1,3 +1,12 @@
+## [0.40.13](https://github.com/openziti/ziti-browzer-core/compare/v0.40.12...v0.40.13) (2024-07-09)
+
+
+### Bug Fixes
+
+* bump pkijs from 2.4.0 to 3.1.0 ([#160](https://github.com/openziti/ziti-browzer-core/issues/160)) ([2b67914](https://github.com/openziti/ziti-browzer-core/commit/2b6791411e450130ddbe097bdd76a10dc69652fb))
+
+
+
 ## [0.40.12](https://github.com/openziti/ziti-browzer-core/compare/v0.40.11...v0.40.12) (2024-07-08)
 
 
