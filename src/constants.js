@@ -108,6 +108,7 @@ const ZITI_CONSTANTS =
     'ZITI_EVENT_CHANNEL_CONNECT_FAIL':      'channelConnectFailEvent',
     'ZITI_EVENT_NESTED_TLS_HANDSHAKE_TIMEOUT':     'nestedTLSHandshakeTimeout',
     'ZITI_EVENT_NO_CONFIG_PROTOCOL_FOR_SERVICE':  'noConfigProtocolForServiceEvent',
+    'ZITI_EVENT_WSS_ROUTER_CONNECTION_ERROR':  'WSSEnabledEdgeRouterConnectionErrorEvent',
 
     /**
      * Name of event indicating encrypted data for a nestedTLS connection has arrived and needs decryption

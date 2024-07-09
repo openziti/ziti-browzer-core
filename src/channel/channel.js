@@ -45,6 +45,7 @@ import ElapsedTime from 'elapsed-time';
 import sodium  from 'libsodium-wrappers';
 import PromiseController from 'promise-controller';
 import formatMessage from 'format-message';
+import { ZITI_CONSTANTS } from '../constants';
 
 formatMessage.setup({
   // locale: 'en', // what locale strings should be displayed
@@ -216,7 +217,15 @@ class ZitiChannel {
 
     this._zitiContext.logger.trace(`ch.hello() ch[${this._id}] wssER[${this._edgeRouterHost}] entered`);
 
-    await this._zws.open();
+    try {
+      await this._zws.open();
+    } catch (e) {
+      // Let listeners know we failed to connect to the wssER
+      this._zitiContext.emit(ZITI_CONSTANTS.ZITI_EVENT_WSS_ROUTER_CONNECTION_ERROR, {
+        wsser: this._zws._url,
+      });
+      return;
+    }
 
     this._zitiContext.logger.trace(`ch.hello() ch[${this._id}] wssER[${this._edgeRouterHost}] _zws.open completed`);
 
