@@ -41,7 +41,7 @@
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@types/node": "^20.6.3",
     "chai": "^4.3.6",
-    "del": "^6.1.1",
+    "del": "^7.1.0",
     "execa": "^6.1.0",
     "gulp": "^4.0.2",
     "karma": "^6.3.20",
