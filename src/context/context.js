@@ -1095,8 +1095,14 @@ class ZitiContext extends EventEmitter {
    */
   async listControllerVersion() {
      
+    let self = this;
+
     let res = await this._zitiBrowzerEdgeClient.listVersion({ 
     }).catch((error) => {
+      // Let listeners know we failed to connect to the Controller
+      self.emit(ZITI_CONSTANTS.ZITI_EVENT_CONTROLLER_CONNECTION_ERROR, {
+        controllerApi: self.controllerApi,
+      });
       throw error;
     });
 
