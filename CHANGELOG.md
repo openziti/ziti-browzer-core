@@ -1,3 +1,12 @@
+# [0.42.0](https://github.com/openziti/ziti-browzer-core/compare/v0.41.0...v0.42.0) (2024-08-02)
+
+
+### Features
+
+* Render Error page if Controller certs are expired ([#170](https://github.com/openziti/ziti-browzer-core/issues/170)) ([c385b7d](https://github.com/openziti/ziti-browzer-core/commit/c385b7d3f7185f80789238f886042ab2713e2f55))
+
+
+
 # [0.41.0](https://github.com/openziti/ziti-browzer-core/compare/v0.40.17...v0.41.0) (2024-07-09)
 
 
