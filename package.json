@@ -83,7 +83,7 @@
     "mime-types": "^2.1.35",
     "multistream": "^4.1.0",
     "pako": "^2.1.0",
-    "pkijs": "^3.1.0",
+    "pkijs": "^3.2.1",
     "process": "^0.11.10",
     "promise-controller": "^1.0.0",
     "promise.prototype.finally": "^3.1.8",
