@@ -1,3 +1,12 @@
+# [0.43.0](https://github.com/openziti/ziti-browzer-core/compare/v0.42.0...v0.43.0) (2024-08-26)
+
+
+### Features
+
+* Cert chain parsing support ([#175](https://github.com/openziti/ziti-browzer-core/issues/175)) ([f1cd2c9](https://github.com/openziti/ziti-browzer-core/commit/f1cd2c9cf3ff1441a452042a4858267c5fdd65bc))
+
+
+
 # [0.42.0](https://github.com/openziti/ziti-browzer-core/compare/v0.41.0...v0.42.0) (2024-08-02)
 
 
