@@ -1326,6 +1326,10 @@ class ZitiContext extends EventEmitter {
             host: config['ziti-tunneler-client.v1'].hostname,
             port: config['ziti-tunneler-client.v1'].port,
           }
+        } else {
+          if (config['zrok.proxy.v1']) {
+            return undefined;
+          }
         }
       }
     }
