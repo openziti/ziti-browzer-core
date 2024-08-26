@@ -78,15 +78,51 @@ let convertBinaryToCertificate = (certificateBuffer) => {
     const certificate = new Certificate({ schema: asn1.result });
     return certificate;
 }
-  
+ 
+// Function to parse a certificate
+let parseCertificate = async function(pem) {
+    const der = convertPemToBinary(pem);
+    const asn1 = asn1js.fromBER(der);
+    const cert = new Certificate({ schema: asn1.result });
+    return cert;
+}
+
+// Function to split PEM chain into individual certificates
+let splitPemChain = function(pemChain) {
+    // Regular expression to match individual certificates
+    const certRegex = /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
+    const matches = pemChain.match(certRegex);
+    
+    if (!matches) {
+        throw new Error('No certificates found in the chain');
+    }
+
+    return matches;
+}
+
+let parseCertificateChain = async function(certChain) {
+    const parsedCerts = [];
+    
+    let certificates = splitPemChain(certChain)
+
+    for (const pem of certificates) {
+        const cert = await parseCertificate(pem);
+        parsedCerts.push(cert);
+    }
+    return parsedCerts;
+}
 
 /**
  *	Convert PEM to Certificate
  *
  * @param {string} pem
  */  
-let convertPemToCertificate = (pem) => {
-    return convertBinaryToCertificate( convertPemToBinary(pem) );
+let convertPemToCertificate = async (pem) => {
+
+    let parsedCerts = await parseCertificateChain(pem);
+
+    return parsedCerts[0];
+
 }
 
 /**

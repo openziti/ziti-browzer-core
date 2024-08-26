@@ -543,8 +543,13 @@ async function initAsClient(websocket, address, protocols, options) {
     opts.createConnection = zitiConnect;    // We're going over Ziti
 
     parsedUrl.protocol = websocket._zitiConfig.browzer.bootstrapper.target.scheme + ":";
-    opts.href = parsedUrl.protocol + '//' + opts.configHostAndPort.host.toLowerCase() + parsedUrl.pathname + parsedUrl.search;
-    opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + opts.configHostAndPort.host.toLowerCase() + ":" + opts.configHostAndPort.port;
+    if (opts.configHostAndPort) {
+      opts.href = parsedUrl.protocol + '//' + opts.configHostAndPort.host.toLowerCase() + parsedUrl.pathname + parsedUrl.search;
+      opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + opts.configHostAndPort.host.toLowerCase() + ":" + opts.configHostAndPort.port;
+    } else {
+      opts.href = parsedUrl.protocol + '//' + websocket._zitiConfig.browzer.bootstrapper.target.service.toLowerCase() + parsedUrl.pathname + parsedUrl.search;
+      opts.origin = websocket._zitiConfig.browzer.bootstrapper.target.scheme + "://" + websocket._zitiConfig.browzer.bootstrapper.target.service.toLowerCase() + ":" + (websocket._zitiConfig.browzer.bootstrapper.target.scheme == 'https' ? '443' : '80');
+    }
     opts.host = opts.serviceName;
   
     opts.defaultPort = opts.defaultPort || defaultPort;

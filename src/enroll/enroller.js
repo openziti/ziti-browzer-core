@@ -128,7 +128,7 @@ import { isUndefined, isNull } from 'lodash-es';
 
     let certificate;
     try {
-      certificate = convertPemToCertificate( flatcert );
+      certificate = await convertPemToCertificate( flatcert );
       // printCertificate( certificate );
     } catch (err) {
       this.logger.error(err);
