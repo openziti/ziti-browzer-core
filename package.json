@@ -59,7 +59,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.20.0",
+    "@openziti/libcrypto-js": "^0.21.0",
     "@openziti/ziti-browzer-edge-client": "^0.6.2",
     "asn1js": "^3.0.5",
     "assert": "^2.0.0",

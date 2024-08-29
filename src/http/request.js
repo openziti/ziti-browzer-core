@@ -384,6 +384,9 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	 if (!headers.has('Accept-Encoding')) {
 		headers.set('Accept-Encoding', 'gzip,deflate');
 	 }
+
+	 // Automatic SSO for Isaiah
+	 headers.append( 'Remote-User', await this.getZitiContext().getAccessTokenEmail() );
  
 	 // if (!headers.has('Connection')) {
 	 // 	headers.set('Connection', 'keep-alive');
