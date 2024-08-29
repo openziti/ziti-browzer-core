@@ -186,6 +186,7 @@ export {
     convertPemToBinary,
     convertBinaryToCertificate,
     convertPemToCertificate,
+    splitPemChain,
     printCertificate,
     getExpiryTimeFromCertificate,
     getExpiryStringFromCertificate,

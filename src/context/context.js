@@ -39,6 +39,10 @@ import { http } from '../http/http';
 import { ZitiWebSocketWrapperCtor } from '../http/ziti-websocket-wrapper-ctor';
 import { ZitiAgentPool } from '../http/ziti-agent-pool';
 import { ZitiWASMFD } from './wasmFD';
+import {
+  splitPemChain
+} from '../utils/pki';
+
 
 
 
@@ -566,12 +570,14 @@ class ZitiContext extends EventEmitter {
     this.logger.trace('ZitiContext.ssl_CTX_add_certificate() entered');
 
     // Add client cert
-    sslContext = this._libCrypto.ssl_CTX_add_certificate(wasmInstance, sslContext, await this.getCertPEM());
+    sslContext = this._libCrypto.ssl_CTX_add_certificate(wasmInstance, sslContext, await this.getCertPEMLeaf());
     if (isNull(sslContext)) throw Error("SSL Context failure.");
 
-    // Add CAs
-    sslContext = this._libCrypto.ssl_CTX_add1_to_CA_list(wasmInstance, sslContext, await this.getCasPEM());
-    if (isNull(sslContext)) throw Error("SSL Context failure.");
+    // Add remaining certs in the chain
+    for (const intermediatePEM of await this.getCertPEMIntermediatesArray()) {
+      sslContext = this._libCrypto.ssl_CTX_add_extra_chain_cert(wasmInstance, sslContext, intermediatePEM);
+      if (isNull(sslContext)) throw Error("SSL Context failure.");
+    }
 
     this.logger.trace('ZitiContext.ssl_CTX_add_certificate() exiting');
 
@@ -799,7 +805,15 @@ class ZitiContext extends EventEmitter {
   delay(time) {
     return new Promise(resolve => setTimeout(resolve, time));
   }
-  
+
+  /**
+   * 
+   */
+  async getAccessTokenEmail() {
+    var decoded_access_token = jwt_decode(this.access_token);
+    return decoded_access_token.email;
+  }
+
   /**
    * 
    */
@@ -926,7 +940,9 @@ class ZitiContext extends EventEmitter {
       this._casPEM = this._zitiEnroller.casPEM;
       this._certPEM = this._zitiEnroller.certPEM;
       this._certExpiryTime = this._zitiEnroller.certPEMExpiryTime;
-
+      let certPEMArray = splitPemChain(this._certPEM);
+      this._certPEMLeaf = certPEMArray[0];
+      this._certPEMIntermediatesArray = certPEMArray.slice(1);
       return true;
     }
 
@@ -960,6 +976,36 @@ class ZitiContext extends EventEmitter {
     }
 
     return this._certPEM;
+  }
+
+  /**
+   * 
+   */
+  async getCertPEMLeaf () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
+    }
+    if (isNull(this._certPEMLeaf)) {
+      await this.enroll()
+    }
+
+    return this._certPEMLeaf;
+  }
+
+  /**
+   * 
+   */
+  async getCertPEMIntermediatesArray () {
+
+    if (isNull(this._privateKeyPEM)) {
+      this._privateKeyPEM = await this.getPrivateKeyPEM(this._pkey)
+    }
+    if (isNull(this._certPEMLeaf)) {
+      await this.enroll()
+    }
+
+    return this._certPEMIntermediatesArray;
   }
 
   /**
