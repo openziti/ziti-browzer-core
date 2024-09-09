@@ -116,6 +116,12 @@ const ZITI_CONSTANTS =
      */
     'ZITI_EVENT_XGRESS_RX_NESTED_TLS':      'xgressEventNestedTLS',
 
+    /**
+     * High Availability (HA)
+     */
+    'ZITI_HA_CONTROLLER':                   'HA_CONTROLLER',
+    'ZITI_OIDC_AUTH':                       'OIDC_AUTH',
+
 };
 
   

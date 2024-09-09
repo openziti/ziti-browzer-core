@@ -202,7 +202,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
     if (_connected) {
 
       setTimeout((self) => {
-        self._zitiContext.logger.trace("ZitiWASMTLSConnection.connected(): after timeout");
+        // self._zitiContext.logger.trace("ZitiWASMTLSConnection.connected(): after timeout");
         self._connected = true;
       }, 500, this);
 
@@ -239,7 +239,7 @@ import {Mutex, withTimeout, Semaphore} from 'async-mutex';
    * @param {*} arrayBuffer // ArrayBuffer
    */
   async process(arrayBuffer) {
-    this._zitiContext.logger.trace(`ZitiWASMTLSConnection.process fd[${this.wasmFD}] encrypted data from the ER arrived  <--- [${arrayBuffer}]`);
+    this._zitiContext.logger.trace(`ZitiWASMTLSConnection.process fd[${this.wasmFD}] encrypted data from the ER arrived  <--- `, arrayBuffer);
 
     await this._zitiContext.tls_enqueue(this._wasmInstance, this.wasmFD, arrayBuffer); // enqueue the encrypted data (place it in WASM memory)
     
