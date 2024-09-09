@@ -127,10 +127,6 @@ class ZitiContext extends EventEmitter {
     this._tlsHandshakeLock = withTimeout(new Mutex(), 30 * 1000, new Error('timeout on _tlsHandshakeLock'));
 
     this._fetchSemaphoreHTTP  = new Semaphore( 8 );
-
-    //TEMP: we constrain HTTP requests that travel over nestedTLS to one-at-a-time for the moment.
-    //      This will be removed as soon as I fix the TLS protocol collision issue that manifests
-    //      when multiple HTTP requests are initiated simultaneously :(
     this._fetchSemaphoreHTTPS = new Semaphore( 8 );
 
     this._pkey = null;
@@ -161,6 +157,8 @@ class ZitiContext extends EventEmitter {
       logger: this.logger,
 
     })
+
+    this.controllerCapabilities = [];
     
   }
 
@@ -746,6 +744,48 @@ class ZitiContext extends EventEmitter {
     return result;
   }
 
+
+  /**
+   *  doAuthenticateWithOIDC
+   * 
+   *  Utilize Controller's HA OIDC endpoint to authenticate.  
+   *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
+   *  swagger spec doesn't include the new HA OIDC endpoint refs.
+   */
+  doAuthenticateWithOIDC(parameters) {
+
+    let self = this;
+
+    if (parameters === undefined) {
+        parameters = {};
+    }
+
+    let deferred = self._zitiBrowzerEdgeClient.getDeferred();
+    let domain = self._zitiBrowzerEdgeClient.domain;
+
+    domain = domain.replace(`/edge/client/v1`, `/oidc/login/ext-jwt`); // don't hit edge-api, but instead, hit Controller's Zitadel endpoint
+
+    let body = {},
+        queryParameters = {},
+        headers = {},
+        form = {};
+
+    headers = self._zitiBrowzerEdgeClient.setAuthHeaders(headers);
+    headers['Accept'] = ['application/json'];
+    headers['Content-Type'] = ['application/json'];
+
+    if (parameters['auth'] !== undefined) {
+        body = parameters['auth'];
+    }
+
+    queryParameters = self._zitiBrowzerEdgeClient.mergeQueryParams(parameters, queryParameters);
+
+    self._zitiBrowzerEdgeClient.request('POST', domain, parameters, body, headers, queryParameters, form, deferred);
+
+    return deferred.promise;
+  };
+
+
   /**
    * 
    */
@@ -753,53 +793,48 @@ class ZitiContext extends EventEmitter {
 
     let self = this;
 
-    return new Promise( async (resolve, reject) => {
+    // the 'auth' body is common between the legacy and HA auth endpoints
+    let auth = { 
 
-      // Use 'ext-jwt' style authentication, but allow for 'password' style (mostly for testing)
-      let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
-      self.logger.trace(`ZitiContext.doAuthenticate(): method[${method}]`);
+      configTypes: [
+        'ziti-tunneler-client.v1',
+        'intercept.v1',
+        'zrok.proxy.v1'
+      ],
 
-      // Get an API session with Controller
-      let res = await self._zitiBrowzerEdgeClient.authenticate({
+      envInfo: {
 
-        method: method,
+        // e.g.:  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36'
+        arch: (typeof _ziti_realFetch !== 'undefined') ? window.navigator.userAgent : 'n/a',
 
-        auth: { 
+        // e.g.:  'macOS', 'Linux', 'Windows'
+        os: (typeof _ziti_realFetch !== 'undefined') ? (typeof navigator.userAgentData !== 'undefined' ? navigator.userAgentData.platform : 'n/a') : 'n/a'
+      },
 
-          username: self.updbUser,
-          password: self.updbPswd,
+      sdkInfo: {
+        type: self.sdkType,
+        version: self.sdkVersion,
+        branch: self.sdkBranch,
+        revision: self.sdkRevision,
+      },
+  
+    }
 
-          configTypes: [
-            'ziti-tunneler-client.v1',
-            'intercept.v1',
-            'zrok.proxy.v1'
-          ],
-
-          envInfo: {
-
-            // e.g.:  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36'
-            arch: (typeof _ziti_realFetch !== 'undefined') ? window.navigator.userAgent : 'n/a',
-
-            // e.g.:  'macOS', 'Linux', 'Windows'
-            os: (typeof _ziti_realFetch !== 'undefined') ? (typeof navigator.userAgentData !== 'undefined' ? navigator.userAgentData.platform : 'n/a') : 'n/a'
-          },
-            
-          sdkInfo: {
-            type: self.sdkType,
-            version: self.sdkVersion,
-            branch: self.sdkBranch,
-            revision: self.sdkRevision,
-          },   
-              
-        }
-      }).catch((error) => {
+    // If running in an HA network, utilize Controller's HA OIDC endpoint to authenticate...
+    if (this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_HA_CONTROLLER) && this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_OIDC_AUTH)) {
+      let res = await self.doAuthenticateWithOIDC({ auth: auth }).catch((error) => {
         self.logger.error( error );
       });
-
-      return resolve( res );
-
-    });
-
+      return res;
+    } 
+    // ...otherwise, utilize Controller's "legacy"" endpoint to authenticate
+    else {
+      let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
+      let res = await self._zitiBrowzerEdgeClient.authenticate({ method: method, auth: auth }).catch((error) => {
+        self.logger.error( error );
+      });
+      return res;
+    }
   }
 
   delay(time) {
@@ -1164,6 +1199,10 @@ class ZitiContext extends EventEmitter {
     }
 
     this.logger.info('Controller Version acquired: ', this._controllerVersion.version);
+
+    const {capabilities} = this._controllerVersion;
+    this.controllerCapabilities = capabilities;
+    this.logger.trace(`controllerCapabilities: ${this.controllerCapabilities}`);
 
     return this._controllerVersion;
   }
@@ -1770,7 +1809,9 @@ class ZitiContext extends EventEmitter {
   
       // Initiate connection with Edge Router (creates Fabric session)
       // if (conn.socket.isNew) {
-        await channelWithNearestEdgeRouter.connect(conn);
+        await channelWithNearestEdgeRouter.connectWithRetry(conn).catch(( error ) => { 
+          this.logger.trace(`ctx.connect() conn[${conn.id}] error[${error.message}]`);
+        });
       // }
   
       if (conn.state == ZitiEdgeProtocol.conn_state.Connected) {

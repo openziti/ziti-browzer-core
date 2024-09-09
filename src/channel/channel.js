@@ -297,6 +297,42 @@ class ZitiChannel {
   }
 
   /**
+   * 
+   */
+  async connectWithRetry(conn, retries = 10, backoff = 50) {
+    const self = this;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        self._zitiContext.logger.debug(`ch.connectWithRetry() attempt ${attempt} starting - wssER[${this._edgeRouterHost}] conn[${conn.id}]`);
+
+        await self.connect(conn);
+
+        if (!isEqual(conn.state, ZitiEdgeProtocol.conn_state.Connected)) {
+          self._zitiContext.logger.debug(`ch.connectWithRetry() attempt ${attempt} failed - wssER[${this._edgeRouterHost}] conn[${conn.id}] state[${conn.state}]`);
+          throw new Error(`Connect attempt failed`);
+        }
+
+        return;
+      } catch (error) {
+        if (isEqual(attempt, retries)) {
+
+          self._zitiContext.emit('channelConnectFailEvent', {
+            serviceName: conn.data.serviceName
+          });
+  
+          throw error; // rethrow the error after the final attempt
+        }
+
+        // Backoff: wait for some time before retrying
+        const delay = Math.min((backoff * Math.pow(2, attempt - 1)), 1000);
+        self._zitiContext.logger.debug(`ch.connectWithRetry() retrying in ${delay}ms - wssER[${this._edgeRouterHost}] conn[${conn.id}]`);
+        await self._zitiContext.delay(delay);
+      }
+    }
+  }
+
+  /**
    * Connect specified Connection to associated Edge Router.
    * 
    */
@@ -446,10 +482,6 @@ class ZitiChannel {
 
         this._zitiContext.logger.warn(`ch._recvConnectResponse() conn[${conn.id}] failed to connect on ch[${this.id}]`);
         conn.state = (ZitiEdgeProtocol.conn_state.Closed);
-
-        this._zitiContext.emit('channelConnectFailEvent', {
-          serviceName: expectedConn.data.serviceName
-        });
         break;
 
       case ZitiEdgeProtocol.content_type.StateConnected:
@@ -1127,7 +1159,8 @@ class ZitiChannel {
               // let dbgStr = m1.substring(0, len);
               // this._zitiContext.logger.trace("recv <- data (first 2000): %s", dbgStr);
 
-            } catch (e) {   }
+            } catch (e) {   
+            }
 
             bodyView = unencrypted_data.message;
           } else {
