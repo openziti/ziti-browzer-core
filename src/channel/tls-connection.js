@@ -61,7 +61,7 @@ import { v4 as uuidv4 } from 'uuid';
    */
   async pullKeyPair() {
 
-    this._privateKeyPEM = this._zitiContext.get_privateKeyPEM();
+    this._privateKeyPEM = await this._zitiContext.get_privateKeyPEM();
 
     this._certPEM = await this._zitiContext.getCertPEM();
 

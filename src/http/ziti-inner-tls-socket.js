@@ -134,7 +134,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
      */
     async pullKeyPair() {
 
-        this._privateKeyPEM = this._zitiContext.get_privateKeyPEM();
+        this._privateKeyPEM = await this._zitiContext.get_privateKeyPEM();
 
         this._certPEM = await this._zitiContext.getCertPEM();
 
