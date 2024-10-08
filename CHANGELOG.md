@@ -1,3 +1,12 @@
+# [0.47.0](https://github.com/openziti/ziti-browzer-core/compare/v0.46.0...v0.47.0) (2024-10-08)
+
+
+### Features
+
+* do not process 'null' as a WebSocket event listener ([#184](https://github.com/openziti/ziti-browzer-core/issues/184)) ([04c287c](https://github.com/openziti/ziti-browzer-core/commit/04c287cc38ec7290e8becde13f1a330b891f1884))
+
+
+
 # [0.46.0](https://github.com/openziti/ziti-browzer-core/compare/v0.45.0...v0.46.0) (2024-09-24)
 
 
