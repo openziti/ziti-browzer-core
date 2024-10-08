@@ -1267,7 +1267,7 @@ class ZitiContext extends EventEmitter {
     let config = result(find(this._services, function(obj) {
       return obj.name === name;
     }), 'config');
-    this.logger.trace(`getServiceConfigByName() service[${name}] has config[${config}]`);
+    this.logger.trace(`getServiceConfigByName() service[${name}] has config: `, config);
 
     if (isUndefined(config)) {
       // Let any listeners know there are no configs associated with the given service,
@@ -2337,9 +2337,13 @@ class ZitiContext extends EventEmitter {
           counter: request.counter
         };
 
-        let body = res.pipe(new PassThrough( response_options ));
-
-        let response = new HttpResponse(body, response_options);
+        let response;
+        if (isEqual(res.statusCode, 204)) {
+          response = new HttpResponse(null, response_options);
+        } else {
+          let body = res.pipe(new PassThrough( response_options ));
+          response = new HttpResponse(body, response_options);
+        }
   
         for (const hdr in response_options.headers) {
           if (response_options.headers.hasOwnProperty(hdr)) {
