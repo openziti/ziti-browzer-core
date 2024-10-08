@@ -1153,13 +1153,14 @@ class ZitiChannel {
               if (len > 2000) {
                 len = 2000;
               }
-              this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): %s", m1.substring(0, len));
+              this._zitiContext.logger.trace("recv <- unencrypted_data (first 2000): ", m1.substring(0, len));
 
               //
               // let dbgStr = m1.substring(0, len);
               // this._zitiContext.logger.trace("recv <- data (first 2000): %s", dbgStr);
 
-            } catch (e) {   
+            } catch (e) {
+              // console.log('sodium.to_string error: ', e)
             }
 
             bodyView = unencrypted_data.message;

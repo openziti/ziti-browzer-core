@@ -434,6 +434,7 @@ readyStates.forEach((readyState, i) => {
      * @public
      */
     set(listener) {
+      if (isNull(listener) || isUndefined(listener)) { return; }
       const listeners = this.listeners(method);
       for (let i = 0; i < listeners.length; i++) {
         //
