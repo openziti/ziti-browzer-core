@@ -216,6 +216,12 @@ class ZitiContext extends EventEmitter {
 
     }
 
+    this.targetService = options.target;
+    this.targetServiceAppData = await this.getConnectAppDataByServiceName (this.targetService.service, this.targetService.scheme);
+    this.targetServiceHost = await this.getConfigHostByServiceName (this.targetService.service);
+    this.targetServiceHostAndPort = `${this.targetServiceAppData.dst_hostname}:${this.targetServiceAppData.dst_port}`;
+    this.bootstrapperHost = options.bootstrapperHost;
+
     this._initialized = true;    
 
     this._zitiEnroller = new ZitiEnroller ({
@@ -2341,7 +2347,7 @@ class ZitiContext extends EventEmitter {
         if (isEqual(res.statusCode, 204)) {
           response = new HttpResponse(null, response_options);
         } else {
-          let body = res.pipe(new PassThrough( response_options ));
+          let body = res.pipe(new PassThrough( response_options, { zitiContext: res.socket.zitiContext } ));
           response = new HttpResponse(body, response_options);
         }
   
