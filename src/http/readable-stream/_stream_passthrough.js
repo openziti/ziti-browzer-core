@@ -39,10 +39,12 @@ class PassThrough extends Transform  {
        * which leads to errors in Orion web UI.
        */
       if (!isUndefined(chunk)) {
-        let decodedChunk = new TextDecoder().decode(chunk);
-        if (decodedChunk.indexOf(this.zitiContext.targetServiceHostAndPort) != -1) {
-          decodedChunk = decodedChunk.replaceAll(this.zitiContext.targetServiceHostAndPort, this.zitiContext.bootstrapperHost);
-          chunk = new TextEncoder().encode(decodedChunk);
+        if (!isUndefined(this.zitiContext.targetServiceHostAndPort)) { // if we have a targetServiceHostAndPort
+          let decodedChunk = new TextDecoder().decode(chunk);
+          if (decodedChunk.indexOf(this.zitiContext.targetServiceHostAndPort) != -1) {
+            decodedChunk = decodedChunk.replaceAll(this.zitiContext.targetServiceHostAndPort, this.zitiContext.bootstrapperHost);
+            chunk = new TextEncoder().encode(decodedChunk);
+          }
         }
       }
     }
