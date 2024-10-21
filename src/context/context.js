@@ -219,7 +219,11 @@ class ZitiContext extends EventEmitter {
     this.targetService = options.target;
     this.targetServiceAppData = await this.getConnectAppDataByServiceName (this.targetService.service, this.targetService.scheme);
     this.targetServiceHost = await this.getConfigHostByServiceName (this.targetService.service);
-    this.targetServiceHostAndPort = `${this.targetServiceAppData.dst_hostname}:${this.targetServiceAppData.dst_port}`;
+    if (isUndefined(this.targetServiceAppData)) {
+      this.targetServiceHostAndPort = `n/a`;
+    } else {
+      this.targetServiceHostAndPort = `${this.targetServiceAppData.dst_hostname}:${this.targetServiceAppData.dst_port}`;
+    }
     this.bootstrapperHost = options.bootstrapperHost;
 
     this._initialized = true;    
