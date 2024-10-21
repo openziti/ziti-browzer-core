@@ -1,3 +1,12 @@
+# [0.50.0](https://github.com/openziti/ziti-browzer-core/compare/v0.49.0...v0.50.0) (2024-10-21)
+
+
+### Features
+
+* handle null targetServiceAppData ([#187](https://github.com/openziti/ziti-browzer-core/issues/187)) ([0abd17b](https://github.com/openziti/ziti-browzer-core/commit/0abd17b4460cd22d6e131ebfa7fd72add7a75d25))
+
+
+
 # [0.49.0](https://github.com/openziti/ziti-browzer-core/compare/v0.48.0...v0.49.0) (2024-10-21)
 
 
