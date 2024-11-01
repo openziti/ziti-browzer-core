@@ -60,13 +60,19 @@ const defaultOptions = {
      * See {@link Options.token_type}
      *
      */
-     token_type: null,
+    token_type: null,
+
+    /**
+     * See {@link Options.id_token}
+     *
+     */
+    id_token: null,
 
     /**
      * See {@link Options.access_token}
      *
      */
-     access_token: null,
+    access_token: null,
 
     /**
      * See {@link Options.sdkType}

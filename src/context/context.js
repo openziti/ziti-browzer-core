@@ -85,6 +85,7 @@ class ZitiContext extends EventEmitter {
     this.updbUser = _options.updbUser;
     this.updbPswd = _options.updbPswd;
     this.token_type = _options.token_type;
+    this.id_token = _options.id_token;
     this.access_token = _options.access_token;
 
     this.sdkType = _options.sdkType;
@@ -286,6 +287,7 @@ class ZitiContext extends EventEmitter {
       controllerApi: this.controllerApi,
       domain: this.controllerApi,
       token_type: this.token_type,
+      id_token: this.id_token,
       access_token: this.access_token,
     });
 
@@ -798,9 +800,17 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  async doAuthenticate() {
+  async doAuthenticate(token) {
 
     let self = this;
+
+    this._zitiBrowzerEdgeClient = this.createZitiBrowzerEdgeClient ({
+      logger: this.logger,
+      controllerApi: this.controllerApi,
+      domain: this.controllerApi,
+      token_type: this.token_type,
+      access_token: token,
+    });
 
     // the 'auth' body is common between the legacy and HA auth endpoints
     let auth = { 
@@ -838,8 +848,11 @@ class ZitiContext extends EventEmitter {
     } 
     // ...otherwise, utilize Controller's "legacy"" endpoint to authenticate
     else {
-      let method = (isNull(self.access_token)) ? 'password' : 'ext-jwt';
-      let res = await self._zitiBrowzerEdgeClient.authenticate({ method: method, auth: auth }).catch((error) => {
+      let res = await self._zitiBrowzerEdgeClient.authenticate({ 
+        method: 'ext-jwt', 
+        auth: auth,
+        token: token
+      }).catch((error) => {
         self.logger.error( error );
       });
       return res;
@@ -861,16 +874,14 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
-  async getFreshAPISession() {
-  
-    this.logger.trace('ZitiContext.getFreshAPISession() entered');
+  async getFreshAPISessionWithToken(token) {
 
     let authenticated = false;
-    let retry = 5;
+    let retry = 2;
 
     do {
 
-      let res = await this.doAuthenticate();
+      let res = await this.doAuthenticate(token);
 
       if (isUndefined(res)) {
 
@@ -882,16 +893,6 @@ class ZitiContext extends EventEmitter {
       else if (!isUndefined(res.error)) {
 
         retry = 0;
-
-        var decoded_access_token = jwt_decode(this.access_token);
-
-        this.logger.error(`ZitiContext.getFreshAPISession(): user [${decoded_access_token.email}] authentication request failed`);
-
-        // Let any listeners know the given JWT is not authorized to access the network,
-        // which is most likely a condition where the Identity was not provisioned
-        this.emit(ZITI_CONSTANTS.ZITI_EVENT_INVALID_AUTH, {
-          email: decoded_access_token.email
-        });
 
       } else {
 
@@ -927,8 +928,56 @@ class ZitiContext extends EventEmitter {
 
     } while (!authenticated && retry > 0);
 
+    return authenticated;
+  }
+
+  /**
+   * 
+   */
+  async getFreshAPISession() {
+  
+    this.logger.trace('ZitiContext.getFreshAPISession() entered');
+
+    /**
+     * Try to authenticate with the access_token first
+     */
+    let authenticated = await this.getFreshAPISessionWithToken(this.access_token);
+
+    if (!authenticated) {
+
+      /**
+       * If we failed to auth with the access_token, then try to auth with the id_token
+       */
+      authenticated = await this.getFreshAPISessionWithToken(this.id_token);
+
+      if (authenticated) {  
+  
+        /**
+         * If we successfully authenticated with the id_token, emit an event to warn the
+         * user that id_token auth is deprecated.
+         */
+         var decoded_access_token = jwt_decode(this.id_token);
+         this.emit(ZITI_CONSTANTS.ZITI_EVENT_DEPRECATION_ID_TOKEN, {
+          email: decoded_access_token.email
+        });  
+      }
+    }
+
     if (!authenticated) {
       this.logger.error(`cannot authenticate`);
+
+        var decoded_access_token = jwt_decode(this.id_token);
+
+        this.logger.error(`ZitiContext.getFreshAPISession(): user [${decoded_access_token.email}] authentication request failed`);
+
+        // Let any listeners know the given JWT is not authorized to access the network,
+        // which is most likely a condition where the Identity was not provisioned
+        this.emit(ZITI_CONSTANTS.ZITI_EVENT_INVALID_AUTH, {
+          email: decoded_access_token.email
+        });
+
+        this.delay(1000);
+
     }
 
     this.logger.trace('ZitiContext.getFreshAPISession() exiting; zt-session token is: ', this._apiSession.token);
