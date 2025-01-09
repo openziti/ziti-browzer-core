@@ -722,7 +722,11 @@ class ZitiChannel {
 
     // this._zitiContext.logger.debug(`send (no wait) -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] bodyLen[${(body ? body.length : 'n/a')}] body[${(body ? body.toString() : 'n/a')}]`);
     this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> ch[${this._id}] conn[${(options.conn ? options.conn.id : 'n/a')}] socket[${options.conn ? options.conn.socket._id : 'n/a'}][${options.conn ? options.conn.socket.isNew : 'n/a'}] seq[${messageId}] contentType[${contentType}] byteLength[${(body ? body.byteLength : 'n/a')}]`);
-    this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> body[${(body ? body.toString() : 'n/a')}]`);
+    try {
+      this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> body[${(body ? body.toString() : 'n/a')}]`);
+    } catch (e) {
+      this._zitiContext.logger.debug(`ch.sendMessageNoWait() -> body.byteLength[${(body ? body.byteLength : 'n/a')}]`);
+    }
 
     this._sendMarshaled(contentType, headers, body, options, messageId);
   }
