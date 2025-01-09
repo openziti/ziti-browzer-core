@@ -1,3 +1,12 @@
+## [0.51.1](https://github.com/openziti/ziti-browzer-core/compare/v0.51.0...v0.51.1) (2025-01-09)
+
+
+### Bug Fixes
+
+* Drop of very large files into Mattermost causes exception ([#189](https://github.com/openziti/ziti-browzer-core/issues/189)) ([b5360de](https://github.com/openziti/ziti-browzer-core/commit/b5360de125a8a1477176dc3a47472494fa036d5c))
+
+
+
 # [0.51.0](https://github.com/openziti/ziti-browzer-core/compare/v0.50.0...v0.51.0) (2024-11-01)
 
 
