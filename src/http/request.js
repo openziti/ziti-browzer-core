@@ -386,7 +386,9 @@ ZitiHttpRequest.prototype.getServiceConnectAppData = function() {
 	 }
 
 	 // Automatic SSO for Isaiah
+	 try {
 	 headers.append( 'Remote-User', await this.getZitiContext().getAccessTokenEmail() );
+	 } catch (e) {}
  
 	 // if (!headers.has('Connection')) {
 	 // 	headers.set('Connection', 'keep-alive');
