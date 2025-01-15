@@ -79,7 +79,7 @@ import { isEqual, isUndefined } from 'lodash-es';
                 /**
                  * Also create the inner socket IF the service we are connecting to expects TLS traffic (i.e. web server listens on HTTPS).
                  */
-                if (isEqual(this.proxy.serviceScheme, 'https')) {
+                if (isEqual(this.proxy.serviceScheme, 'https') || isEqual(opts.serviceScheme, 'https:')) {
 
                     this.proxy.zitiContext.logger.trace(`ZitiAgent.onSocketConnect() creating ZitiInnerTLSSocket`);
 
