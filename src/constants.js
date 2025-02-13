@@ -123,6 +123,11 @@ const ZITI_CONSTANTS =
     'ZITI_HA_CONTROLLER':                   'HA_CONTROLLER',
     'ZITI_OIDC_AUTH':                       'OIDC_AUTH',
 
+    /**
+     * 
+     */
+    'ZITI_BOOTSTRAPPER_CONTROLLER_PROXY_PATH':  '/controller-oidc-proxy',
+
 };
 
   

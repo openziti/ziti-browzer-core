@@ -96,6 +96,8 @@ const defaultOptions = {
      */
      bootstrapperTargetService: 'unknown',
 
+     bootstrapperHost: 'unknown',
+
 };
 
 export {

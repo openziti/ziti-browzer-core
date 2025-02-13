@@ -22,6 +22,12 @@ import { PassThrough } from '../http/readable-stream/_stream_passthrough';
 import memoize from 'fast-memoize';
 import Cookies from 'js-cookie';
 import { Buffer } from 'buffer/';
+import {
+  calculatePKCECodeChallenge,
+  generateRandomCodeVerifier,
+  generateRandomState
+} from 'oauth4webapi';
+
 
 import { flatOptions } from '../utils/flat-options'
 import { defaultOptions } from './options'
@@ -98,6 +104,10 @@ class ZitiContext extends EventEmitter {
 
     this.bootstrapperTargetService = _options.bootstrapperTargetService;
 
+    this.bootstrapperHost = _options.bootstrapperHost;
+
+    this.proxydomain = `https://${this.bootstrapperHost}${ZITI_CONSTANTS.ZITI_BOOTSTRAPPER_CONTROLLER_PROXY_PATH}`;
+
     this._libCrypto = new LibCrypto();
     this._libCryptoInitialized = false;
 
@@ -160,6 +170,7 @@ class ZitiContext extends EventEmitter {
     })
 
     this.controllerCapabilities = [];
+    this.controllerCapabilitiesOIDCErrorEncountered = false;
     
   }
 
@@ -216,6 +227,8 @@ class ZitiContext extends EventEmitter {
       this.logger.trace(`libCrypto.initialize() bypassed (options.loadWASM is false)`);
 
     }
+
+    await this.listControllerVersion();
 
     this.targetService = options.target;
     this.targetServiceAppData = await this.getConnectAppDataByServiceName (this.targetService.service, this.targetService.scheme);
@@ -755,15 +768,78 @@ class ZitiContext extends EventEmitter {
     return result;
   }
 
+  serializeQueryParams(parameters) {
+    let str = [];
+    for (let p in parameters) {
+      if (parameters.hasOwnProperty(p)) {
+        str.push(
+          encodeURIComponent(p) + "=" + encodeURIComponent(parameters[p])
+        );
+      }
+    }
+    return str.join("&");
+  }
 
   /**
-   *  doAuthenticateWithOIDC
+   *  do_oidc_authorize
+   * 
+   *  Utilize Controller's HA OIDC endpoint to acquire an authID.  
+   *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
+   *  swagger spec doesn't include the new HA OIDC endpoint refs.
+   */
+   do_oidc_authorize( codeChallange ) {
+
+    let self = this;
+
+    let deferred = self._zitiBrowzerEdgeClient.getDeferred();
+
+    let domain = self._zitiBrowzerEdgeClient.domain;
+    domain = domain.replace(`/edge/client/v1`, `/oidc/authorize`);
+
+    const state = generateRandomState();
+
+    let body = {},
+        queryParameters = {
+          client_id:      'openziti',
+          scope:          'openid offline_access',
+          response_type:  'code',
+          redirect_uri:   `https://${self.bootstrapperHost}`,
+          code_challenge: `${codeChallange}`,
+          code_challenge_method: 'S256',
+          audience:       'openziti',
+          state:          `${state}`,
+        },
+        form = {};
+
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+
+    const queryParams = this.serializeQueryParams(queryParameters);
+    const urlWithParams = domain + (queryParams ? "?" + queryParams : "");
+
+    body = { 
+      urlWithParams: urlWithParams,
+      method: 'GET',
+      postData: null,
+      headers: headers,
+    };
+
+    self._zitiBrowzerEdgeClient.request('POST', self.proxydomain, {}, body, headers, {}, form, deferred);
+
+    return deferred.promise;
+  };
+  
+
+  /**
+   *  do_oidc_login_ext_jwt
    * 
    *  Utilize Controller's HA OIDC endpoint to authenticate.  
    *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
    *  swagger spec doesn't include the new HA OIDC endpoint refs.
    */
-  doAuthenticateWithOIDC(parameters) {
+   do_oidc_login_ext_jwt(parameters) {
 
     let self = this;
 
@@ -774,28 +850,112 @@ class ZitiContext extends EventEmitter {
     let deferred = self._zitiBrowzerEdgeClient.getDeferred();
     let domain = self._zitiBrowzerEdgeClient.domain;
 
-    domain = domain.replace(`/edge/client/v1`, `/oidc/login/ext-jwt`); // don't hit edge-api, but instead, hit Controller's Zitadel endpoint
+    domain = domain.replace(`/edge/client/v1`, `/oidc/login/ext-jwt`);
 
     let body = {},
         queryParameters = {},
-        headers = {},
         form = {};
 
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+    // Pass the bearer token we got from the IdP
     headers = self._zitiBrowzerEdgeClient.setAuthHeaders(headers);
-    headers['Accept'] = ['application/json'];
-    headers['Content-Type'] = ['application/json'];
 
-    if (parameters['auth'] !== undefined) {
-        body = parameters['auth'];
+    const queryParams = this.serializeQueryParams(queryParameters);
+    const urlWithParams = domain + (queryParams ? "?" + queryParams : "");
+
+    body = { 
+      urlWithParams: urlWithParams,
+      method: 'POST',
+      postData: parameters,
+      headers: headers,
+    };
+
+    self._zitiBrowzerEdgeClient.request('POST', self.proxydomain, {}, body, headers, {}, form, deferred);
+
+    return deferred.promise;
+
+  };
+
+  
+  /**
+   *  do_oidc_authorize_callback
+   * 
+   *  Utilize Controller's HA OIDC endpoint to authenticate.  
+   *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
+   *  swagger spec doesn't include the new HA OIDC endpoint refs.
+   */
+   do_oidc_authorize_callback(parameters) {
+
+    let self = this;
+
+    if (parameters === undefined) {
+        parameters = {};
     }
 
-    queryParameters = self._zitiBrowzerEdgeClient.mergeQueryParams(parameters, queryParameters);
+    let deferred = self._zitiBrowzerEdgeClient.getDeferred();
+    let domain = parameters.cb_url;
 
-    self._zitiBrowzerEdgeClient.request('POST', domain, parameters, body, headers, queryParameters, form, deferred);
+    let body = {},
+        form = {};
+
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+    
+    body = { 
+      urlWithParams: domain,
+      method: 'GET',
+      postData: null,
+      headers: headers,
+    };
+
+    self._zitiBrowzerEdgeClient.request('POST', self.proxydomain, {}, body, headers, {}, form, deferred);
+
+    return deferred.promise;
+
+  };
+
+  /**
+   *  do_oidc_oauth_token
+   * 
+   *  Utilize Controller's HA OIDC endpoint to acquire an apiToken.  
+   *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
+   *  swagger spec doesn't include the new HA OIDC endpoint refs.
+   */
+  do_oidc_oauth_token( parameters ) {
+
+    let self = this;
+
+    let deferred = self._zitiBrowzerEdgeClient.getDeferred();
+
+    let domain = self._zitiBrowzerEdgeClient.domain;
+    domain = domain.replace(`/edge/client/v1`, `/oidc/oauth/token`);
+
+    let body = {},
+        queryParameters = {
+          client_id:      'openziti',
+          grant_type:     'authorization_code',
+          code:           parameters.code,
+          redirect_uri:   `https://${self.bootstrapperHost}`,
+          code_verifier:  parameters.code_verifier,
+        },
+        form = {};
+
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+
+    const queryParams = this.serializeQueryParams(queryParameters);
+
+    self._zitiBrowzerEdgeClient.request('POST', domain, {}, body, headers, queryParameters, form, deferred);
 
     return deferred.promise;
   };
-
 
   /**
    * 
@@ -839,13 +999,59 @@ class ZitiContext extends EventEmitter {
   
     }
 
-    // If running in an HA network, utilize Controller's HA OIDC endpoint to authenticate...
-    if (this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_HA_CONTROLLER) && this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_OIDC_AUTH)) {
-      let res = await self.doAuthenticateWithOIDC({ auth: auth }).catch((error) => {
+    // If running in an HA network, utilize Controller's HA OIDC endpoints to authenticate...
+    if (this.isControllerHA() && !this.controllerCapabilitiesOIDCErrorEncountered) {
+
+      const codeVerifier = generateRandomCodeVerifier();
+      const codeChallange = await calculatePKCECodeChallenge(codeVerifier);
+  
+      /**
+       * STEP-1
+       * 
+       * Do a server-side proxy to the controller to obtain an 'authRequestID'
+       */
+      let res = await self.do_oidc_authorize( codeChallange ).catch((error) => {
+        this.controllerCapabilitiesOIDCErrorEncountered = true;
         self.logger.error( error );
       });
+      let url = new URLSearchParams(res.redirectUrl.split('?')[1]); 
+      const authRequestID = url.get('authRequestID');
+
+      /**
+       * STEP-2
+       * 
+       * Do a server-side proxy to the controller to obtain a 'callback URL'
+       */
+      res = await self.do_oidc_login_ext_jwt({ auth: auth, id: authRequestID }).catch((error) => {
+        this.controllerCapabilitiesOIDCErrorEncountered = true;
+        self.logger.error( error );
+      });
+
+      /**
+       * STEP-3
+       * 
+       * Do a server-side proxy to the controller to obtain a 'code_resp'
+       */
+      res = await self.do_oidc_authorize_callback({ cb_url: res.redirectUrl }).catch((error) => {
+        this.controllerCapabilitiesOIDCErrorEncountered = true;
+        self.logger.error( error );
+      });
+      url = new URLSearchParams(res.redirectUrl.split('?')[1]); 
+      const code_resp = url.get('code');
+
+      /**
+       * STEP-4
+       * 
+       * Finally, Do a direct call to the controller to obtain an 'access_token'
+       */
+      res = await self.do_oidc_oauth_token({ code: code_resp, code_verifier: codeVerifier}).catch((error) => {
+        this.controllerCapabilitiesOIDCErrorEncountered = true;
+        self.logger.error( error );
+      });
+  
       return res;
-    } 
+    }
+
     // ...otherwise, utilize Controller's "legacy"" endpoint to authenticate
     else {
       let res = await self._zitiBrowzerEdgeClient.authenticate({ 
@@ -874,6 +1080,13 @@ class ZitiContext extends EventEmitter {
   /**
    * 
    */
+  isControllerHA() {
+    return ( this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_HA_CONTROLLER) && this.controllerCapabilities.includes(ZITI_CONSTANTS.ZITI_OIDC_AUTH) );
+  }
+
+  /**
+   * 
+   */
   async getFreshAPISessionWithToken(token) {
 
     let authenticated = false;
@@ -883,40 +1096,37 @@ class ZitiContext extends EventEmitter {
 
       let res = await this.doAuthenticate(token);
 
-      if (isUndefined(res)) {
+      if (this.isControllerHA()) {
 
-        this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
-        await this.delay(1000);
-        retry--;
+        if (isUndefined(res)) {
 
-      }
-      else if (!isUndefined(res.error)) {
-
-        retry = 0;
-
-      } else {
-
-        this._apiSession = res.data;
-        if (isUndefined( this._apiSession )) {
-
-          this.logger.error('response contains no data');
           this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
           await this.delay(1000);
           retry--;
+  
+        } else if (isUndefined( res.access_token )) {
 
-        } 
-        else if (isUndefined( this._apiSession.token )) {
+            this.logger.error('response contains no access_token');
+            this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+            await this.delay(1000);
+            retry--;
 
-          this.logger.error('response contains no token');
-          this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
-          await this.delay(1000);
-          retry--;
+        } else {
+  
+          /**
+           * Update the edge client so that it has the new access_token from the Controller OIDC auth flow.
+           * All subsequent REST calls to the controller will carry that bearer token.
+           */
+          this._zitiBrowzerEdgeClient = this.createZitiBrowzerEdgeClient ({
+            logger: this.logger,
+            controllerApi: this.controllerApi,
+            domain: this.controllerApi,
+            token_type: this.token_type,
+            access_token: res.access_token,
+          });
 
-        }
-        else {
-
-          // Set the token header on behalf of all subsequent Controller API calls
-          this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
+          this._apiSession = res;
+          this._apiSession.token = res.access_token;
 
           setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
 
@@ -924,9 +1134,54 @@ class ZitiContext extends EventEmitter {
 
         }
 
+      } else {
+      
+        if (isUndefined(res)) {
+
+          this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+          await this.delay(1000);
+          retry--;
+
+        }
+        else if (!isUndefined(res.error)) {
+
+          retry = 0;
+
+        } else {
+
+          this._apiSession = res.data;
+          if (isUndefined( this._apiSession )) {
+
+            this.logger.error('response contains no data');
+            this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+            await this.delay(1000);
+            retry--;
+
+          } 
+          else if (isUndefined( this._apiSession.token )) {
+
+            this.logger.error('response contains no token');
+            this.logger.trace('ZitiContext.getFreshAPISession(): will retry after delay');
+            await this.delay(1000);
+            retry--;
+
+          }
+          else {
+
+            // Set the token header on behalf of all subsequent Controller API calls
+            this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
+
+            setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
+
+            authenticated = true;
+
+          }
+
+        }
       }
 
     } while (!authenticated && retry > 0);
+  
 
     return authenticated;
   }
@@ -994,13 +1249,29 @@ class ZitiContext extends EventEmitter {
     let token;
 
     await this._ensureAPISessionMutex.runExclusive(async () => {
-      if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
-        token = await this.getFreshAPISession().catch((error) => {
-          token = null;
-        });
+
+      if (this.isControllerHA()) {
+
+        if (isNull( this._apiSession ) ) {
+          token = await this.getFreshAPISession().catch((error) => {
+            token = null;
+          });
+        } else {
+          token = this._apiSession.access_token;
+        }
+
       } else {
-        token = this._apiSession.token;
+
+        if (isNull( this._apiSession ) || isUndefined( this._apiSession.token )) {
+          token = await this.getFreshAPISession().catch((error) => {
+            token = null;
+          });
+        } else {
+          token = this._apiSession.token;
+        }
+
       }
+
     });
   
     return token;
