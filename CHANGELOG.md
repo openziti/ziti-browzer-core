@@ -1,3 +1,12 @@
+# [0.52.0](https://github.com/openziti/ziti-browzer-core/compare/v0.51.3...v0.52.0) (2025-02-13)
+
+
+### Features
+
+* add HA OIDC auth mechanisms ([#192](https://github.com/openziti/ziti-browzer-core/issues/192)) ([f999c39](https://github.com/openziti/ziti-browzer-core/commit/f999c39a64df7c9b736a5fd521d95875a6254cfd))
+
+
+
 ## [0.51.3](https://github.com/openziti/ziti-browzer-core/compare/v0.51.2...v0.51.3) (2025-01-15)
 
 
