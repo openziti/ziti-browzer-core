@@ -34,7 +34,7 @@
     "dist"
   ],
   "devDependencies": {
-    "@babel/core": "^7.23.6",
+    "@babel/core": "^7.26.9",
     "@open-wc/karma-esm": "^4.0.0",
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-json": "^4.1.0",
