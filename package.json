@@ -43,7 +43,7 @@
     "chai": "^4.3.6",
     "del": "^6.1.1",
     "execa": "^6.1.0",
-    "gulp": "^4.0.2",
+    "gulp": "^5.0.0",
     "karma": "^6.3.20",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^3.1.1",
