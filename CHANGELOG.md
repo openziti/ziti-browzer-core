@@ -1,3 +1,12 @@
+# [0.53.0](https://github.com/openziti/ziti-browzer-core/compare/v0.52.0...v0.53.0) (2025-02-14)
+
+
+### Features
+
+* upgrade babel-traverse ([#193](https://github.com/openziti/ziti-browzer-core/issues/193)) ([3755ae2](https://github.com/openziti/ziti-browzer-core/commit/3755ae25e7c56d8d30bd2efc1e7ad53823f4f07e))
+
+
+
 # [0.52.0](https://github.com/openziti/ziti-browzer-core/compare/v0.51.3...v0.52.0) (2025-02-13)
 
 
