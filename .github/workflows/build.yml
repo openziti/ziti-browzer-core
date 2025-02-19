@@ -31,17 +31,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare Yarn 4
+        run: corepack prepare yarn@4.0.2 --activate
+
+      - name: Verify Yarn version
+        run: yarn -v
+
       - name: Set up Node.js with Corepack
         uses: actions/setup-node@v4
         with:
           node-version: 22   # Or another supported version
           cache: 'yarn'      # Caches Yarn dependencies
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Ensure Yarn 4 is installed
-        run: corepack prepare yarn@4 --activate
 
       - name: Bump semver
         if: github.ref == 'refs/heads/main'
