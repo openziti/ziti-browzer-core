@@ -1,6 +1,6 @@
 {
   "name": "@openziti/ziti-browzer-core",
-  "version": "0.52.0",
+  "version": "0.53.5",
   "type": "module",
   "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
   "scripts": {
@@ -35,7 +35,7 @@
   ],
   "devDependencies": {
     "@babel/core": "^7.26.9",
-    "@rollup/plugin-commonjs": "^22.0.0",
+    "@rollup/plugin-commonjs": "^28.0.2",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@types/node": "^20.6.3",
@@ -96,7 +96,7 @@
     "typedarray-to-buffer": "^4.0.0",
     "url": "^0.11.0",
     "util": "^0.12.4",
-    "uuid": "^8.3.2"
+    "uuid": "^11.0.5"
   },
   "packageManager": "yarn@4.0.2+sha512.4e502bea682e7d8004561f916f1da2dfbe6f718024f6aa50bf8cd86f38ea3a94a7f1bf854a9ca666dd8eafcfb8d44baaa91bf5c7876e79a7aeac952c332f0e88"
 }
