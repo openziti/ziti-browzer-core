@@ -23,17 +23,28 @@ jobs:
     
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        node-version: [16.x]
-
     env:
       BUILD_NUMBER: ${{ github.run_number }}
     
     steps:
     
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare Yarn 4
+        run: corepack prepare yarn@4.0.2 --activate
+
+      - name: Verify Yarn version
+        run: yarn -v
+
+      - name: Set up Node.js with Corepack
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22   # Or another supported version
+          cache: 'yarn'      # Caches Yarn dependencies
 
       - name: Bump semver
         if: github.ref == 'refs/heads/main'
@@ -76,9 +87,9 @@ jobs:
           echo "##[set-output name=version_number;]$(echo $(jq -r .version package.json))"
         id: extract_version_number
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '22'
       - run: yarn install --immutable
       - run: yarn run build
       # - run: yarn test

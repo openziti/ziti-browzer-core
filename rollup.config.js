@@ -2,7 +2,7 @@
 // import replace from '@rollup/plugin-replace';
 import babel from "rollup-plugin-babel";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import esformatter from 'rollup-plugin-esformatter';
+// import esformatter from 'rollup-plugin-esformatter';
 import json from '@rollup/plugin-json';
 import commonjs from '@rollup/plugin-commonjs';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
