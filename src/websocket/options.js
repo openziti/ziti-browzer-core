@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 
-import RobustWebSocket from './robust-websocket';
 
 /**
  * Default options.
