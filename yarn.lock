@@ -377,7 +377,7 @@ __metadata:
     md5.js: "npm:^1.3.5"
     mime-types: "npm:^2.1.35"
     multistream: "npm:^4.1.0"
-    oauth4webapi: "npm:^2.10.3"
+    oauth4webapi: "npm:^2.17.0"
     pako: "npm:^2.1.0"
     pkijs: "npm:^3.2.4"
     process: "npm:^0.11.10"
@@ -3550,7 +3550,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"oauth4webapi@npm:^2.10.3":
+"oauth4webapi@npm:^2.17.0":
   version: 2.17.0
   resolution: "oauth4webapi@npm:2.17.0"
   checksum: a3be4f07f3050c982c9f47a899cb34eb4ce1b2072818eab37f241c7db932cf0dac31ed90b0913eaaaebfd7b23e8bf397ecef249a11aea699efb62c7657884ba5
