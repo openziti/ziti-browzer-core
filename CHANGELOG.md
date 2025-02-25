@@ -1,3 +1,12 @@
+# [0.56.0](https://github.com/openziti/ziti-browzer-core/compare/v0.55.0...v0.56.0) (2025-02-25)
+
+
+### Features
+
+* security updates ([#201](https://github.com/openziti/ziti-browzer-core/issues/201)) ([374f579](https://github.com/openziti/ziti-browzer-core/commit/374f5799221f7293c2d4454f68f70b1b88d9d37a))
+
+
+
 # [0.55.0](https://github.com/openziti/ziti-browzer-core/compare/v0.54.0...v0.55.0) (2025-02-19)
 
 

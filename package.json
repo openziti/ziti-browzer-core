@@ -1,9 +1,9 @@
 {
   "name": "@openziti/ziti-browzer-core",
-  "version": "0.55.0",
+  "version": "0.56.0",
   "type": "module",
   "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
-  "scripts": {  
+  "scripts": {
     "rollup": "rimraf dist && rollup -c ./rollup.config.js",
     "build": "yarn rollup",
     "gulp": "gulp clean build",
