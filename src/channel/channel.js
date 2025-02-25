@@ -55,13 +55,16 @@ formatMessage.setup({
 
  
 /**
- *    ZitiChannel
+ * ZitiChannel
+ * @class
  */
 class ZitiChannel {
 
   /**
-   * 
-   */
+   * Constructor
+   * @param {Object} options - The options to initialize the channel.
+   * @this {ZitiChannel}
+   */  
   constructor(options) {
 
     let _options = flatOptions(options, defaultOptions);
@@ -140,49 +143,79 @@ class ZitiChannel {
     this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.UUID,                 'UUID');
   }
 
+  /**
+   * @this {ZitiChannel}
+   */
   get zitiContext() {
     return this._zitiContext;
   }
 
-  get id() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get id() {
     return this._id;
   }
 
-  get tlsConn() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get tlsConn() {
     return this._tlsConn;
   }
 
-  get data() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get data() {
     return this._data;
   }
 
-  get state() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get state() {
     return this._state;
   }
-  set state(state) {
+  /**
+   * @this {ZitiChannel}
+   */
+   set state(state) {
     this._state = state;
   }
 
-  getAndIncrementSequence() {
+  /**
+   * @this {ZitiChannel}
+   */
+   getAndIncrementSequence() {
     return this._msgSeq++;
   }
 
-  get edgeRouterHost() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get edgeRouterHost() {
     return this._edgeRouterHost;
   }
 
-  get helloCompletedTimestamp() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get helloCompletedTimestamp() {
     return this._helloCompletedTimestamp;
   }
 
-  get isHelloCompleted() {
+  /**
+   * @this {ZitiChannel}
+   */
+   get isHelloCompleted() {
     return Boolean(this._helloCompleted);
   }
 
   /**
-   * 
+   * @this {ZitiChannel}
    */
-  _createHelloController() {
+   _createHelloController() {
     const helloTimeout = this._helloTimeout || this._timeout;
     this._helloing = new PromiseController({
       timeout: helloTimeout,
@@ -193,6 +226,9 @@ class ZitiChannel {
   /**
    * Remain in lazy-sleepy loop until tlsConn has completed its TLS handshake.
    * 
+   */
+  /**
+   * @this {ZitiChannel}
    */
   async awaitTLSHandshakeComplete() {
     let self = this;
@@ -212,6 +248,9 @@ class ZitiChannel {
   /**
    * Do Hello handshake between this channel and associated Edge Router.
    * 
+   */
+  /**
+   * @this {ZitiChannel}
    */
   async hello() {
 
@@ -299,6 +338,9 @@ class ZitiChannel {
   /**
    * 
    */
+  /**
+   * @this {ZitiChannel}
+   */
   async connectWithRetry(conn, retries = 10, backoff = 50) {
     const self = this;
 
@@ -335,6 +377,9 @@ class ZitiChannel {
   /**
    * Connect specified Connection to associated Edge Router.
    * 
+   */
+  /**
+   * @this {ZitiChannel}
    */
   async connect(conn) {
 
@@ -414,6 +459,9 @@ class ZitiChannel {
    * Close specified Connection to associated Edge Router.
    * 
    */
+  /**
+   * @this {ZitiChannel}
+   */
   async close(conn) {
 
     const self = this;
@@ -458,6 +506,9 @@ class ZitiChannel {
   /**
    * Receives response from Edge 'Connect' message.
    * 
+   */
+  /**
+   * @this {ZitiChannel}
    */
   async _recvConnectResponse(msg, expectedConn) {
 
@@ -516,6 +567,9 @@ class ZitiChannel {
   /**
    * 
    */
+  /**
+   * @this {ZitiChannel}
+   */
   async _establish_crypto(conn, msg) {
 
     this._zitiContext.logger.debug(`ch._establish_crypto() conn[${conn.id}]`);
@@ -549,6 +603,9 @@ class ZitiChannel {
    * Receives response from Edge 'Data' message where we sent the Crypto header.
    * 
    */
+  /**
+   * @this {ZitiChannel}
+   */
   async _recvCryptoResponse(msg) {
 
     let connId = await this._messageGetConnId(msg);
@@ -580,6 +637,9 @@ class ZitiChannel {
    * 
    * @param {*} conn 
    */
+  /**
+   * @this {ZitiChannel}
+   */
   awaitConnectionCryptoEstablishComplete(conn) {
     return new Promise((resolve) => {
       (function waitForCryptoEstablishComplete() {
@@ -594,7 +654,7 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}
    */
   async _send_crypto_header(conn) {
 
@@ -646,6 +706,7 @@ class ZitiChannel {
   /**
    * Write data over specified Edge Router connection.
    *
+   * @this {ZitiChannel}   
    * @returns {Promise}
    */
   write(conn, data) {
@@ -677,6 +738,7 @@ class ZitiChannel {
   /**
    * Sends message and waits for response.
    *
+   * @this {ZitiChannel}   
    * @param {String|Number} contentType
    * @param {[Header]} headers
    * @param {*} body
@@ -710,6 +772,7 @@ class ZitiChannel {
   /**
    * Sends message and does not wait for response.
    *
+   * @this {ZitiChannel}   
    * @param {String|Number} contentType
    * @param {[Header]} headers
    * @param {*} body
@@ -734,6 +797,7 @@ class ZitiChannel {
   /**
    * Marshals message into binary wire format and sends to the Edge Router.
    *
+   * @this {ZitiChannel}   
    * @param {String|Number} contentType
    * @param {[Header]} headers
    * @param {*} body
@@ -833,6 +897,7 @@ class ZitiChannel {
   /**
    * Marshals message into binary wire format.
    *
+   * @this {ZitiChannel}   
    * @param {String|Number} contentType
    * @param {[Header]} headers
    * @param {*} body
@@ -940,6 +1005,7 @@ class ZitiChannel {
   /**
    * Receives a send event from the Websocket.
    * 
+   * @this {ZitiChannel}   
    * @param {*} data 
    */
   async _recvSend(data) {
@@ -953,6 +1019,7 @@ class ZitiChannel {
   /**
    * Receives a close event from the Websocket.
    * 
+   * @this {ZitiChannel}   
    * @param {*} data 
    */
   async _recvClose(data) {
@@ -966,6 +1033,7 @@ class ZitiChannel {
   /**
    * Receives a message from the Edge Router.
    * 
+   * @this {ZitiChannel}   
    * @param {*} data //Blob
    */
   async _recvFromWire(data) {
@@ -977,6 +1045,7 @@ class ZitiChannel {
   /**
    * Receives un-encrypted binary data from the Edge Router (which is either an entire edge protocol message, or a fragment thereof)
    * 
+   * @this {ZitiChannel}   
    * @param ArrayBuffer data 
    */
   async _recvFromWireAfterDecrypt(ch, data) {
@@ -1029,6 +1098,7 @@ class ZitiChannel {
   /**
    * Unmarshal binary from the wire into a message
    * 
+   * @this {ZitiChannel}   
    * @param {*} data 
    */
   async _tryUnmarshal(data) {
@@ -1214,7 +1284,7 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   _tryHandleResponse(conn, responseSequence, data) {
 
@@ -1232,12 +1302,15 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   _getHeaderIdName(hdrId) {
     return this._hdrIdNameMap.get(hdrId);
   }
-  _getHeaderData(hdrId, hdrData) {
+  /**
+   * @this {ZitiChannel}   
+   */
+   _getHeaderData(hdrId, hdrData) {
     let buffer = Buffer.from(hdrData);
     if (isEqual(hdrId, ZitiEdgeProtocol.header_id.ConnId)) {
       let connId = buffer.readUIntLE(0, 4);
@@ -1294,7 +1367,7 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   async _dumpHeaders(pfx, buffer) {
 
@@ -1327,7 +1400,7 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   async _findHeader(msg, headerToFind) {
 
@@ -1375,14 +1448,14 @@ class ZitiChannel {
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   async _messageGetBytesHeader(msg, headerToFind) {
     return await this._findHeader(msg, headerToFind);
   }
 
   /**
-   * 
+   * @this {ZitiChannel}   
    */
   async _messageGetConnId(msg) {
     let results = await this._findHeader(msg, ZitiEdgeProtocol.header_id.ConnId);
@@ -1395,69 +1468,106 @@ class ZitiChannel {
     return connId;
   }
 
+  /**
+   * @this {ZitiChannel}   
+   */
   getConnection(id) {
     return this._connections._getConnection(id);
   }
 
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getSocket() {
     return this._socket;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setSocket(socket) {
     this._socket = socket;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   getDataCallback() {
     return this._dataCallback;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setDataCallback(fn) {
     this._dataCallback = fn;
   }
-
-  // getEncrypted() {
-  //   return this._encrypted;
-  // }
-  // setEncrypted(encrypted) {
-  //   this._encrypted = encrypted;
-  // }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getCryptoEstablishComplete() {
     return this._cryptoEstablishComplete;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setCryptoEstablishComplete(complete) {
     this._cryptoEstablishComplete = complete;
   }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getKeypair() {
     return this._keypair;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setKeypair(keypair) {
     this._keypair = keypair;
   }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getSharedRx() {
     return this._sharedRx;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setSharedRx(sharedRx) {
     this._sharedRx = sharedRx;
   }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getSharedTx() {
     return this._sharedTx;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setSharedTx(sharedTx) {
     this._sharedTx = sharedTx;
   }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getCrypt_o() {
     return this._crypt_o;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setCrypt_o(crypt_o) {
     this._crypt_o = crypt_o;
   }
-
+  /**
+   * @this {ZitiChannel}   
+   */
   getCrypt_i() {
     return this._crypt_i;
   }
+  /**
+   * @this {ZitiChannel}   
+   */
   setCrypt_i(crypt_i) {
     this._crypt_i = crypt_i;
   }

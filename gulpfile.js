@@ -16,7 +16,6 @@ limitations under the License.
 
 import gulp from 'gulp';
 import del from 'del';
-import fse from 'fs-extra';
 import upath from 'upath';
 import {execa} from 'execa';
 import globby from 'globby';
