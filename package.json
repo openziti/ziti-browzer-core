@@ -93,7 +93,7 @@
     "typedarray-to-buffer": "^4.0.0",
     "url": "^0.11.0",
     "util": "^0.12.4",
-    "uuid": "^11.0.5"
+    "uuid": "^11.1.0"
   },
   "packageManager": "yarn@4.0.2"
 }
