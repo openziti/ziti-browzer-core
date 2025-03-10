@@ -3,8 +3,6 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import json from '@rollup/plugin-json';
 import commonjs from '@rollup/plugin-commonjs';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
-import typescript from '@rollup/plugin-typescript';
-import del from 'rollup-plugin-delete';
 import dts from 'rollup-plugin-dts';
 
 const SRC_DIR = 'src';
@@ -22,7 +20,6 @@ const plugins = [
 ];
 
 // Clean `dist/esm` before building
-const cleanPlugin = del({ targets: 'dist/esm/*' });
 
 export default [
   {

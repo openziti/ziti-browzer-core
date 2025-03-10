@@ -400,7 +400,9 @@ var debug = function debug() {};
 
 
 
-
+/** 
+ * @extends {Stream}
+ */ 
 class Readable extends Stream {
 
   constructor (options) {

@@ -58,6 +58,10 @@ class BufferList  {
     return ret;
   }
 
+  /** 
+   * @type    {Buffer} 
+   * @return  {Buffer} 
+   */ 
   concat(n) {
     if (this.length === 0) return Buffer.alloc(0);
     var ret = Buffer.allocUnsafe(n >>> 0);
@@ -129,6 +133,10 @@ class BufferList  {
   } 
   
   // Consumes a specified amount of bytes from the buffered data.
+  /** 
+   * @type    {Buffer} 
+   * @return  {Buffer} 
+   */ 
   _getBuffer(n) {
     var ret = Buffer.allocUnsafe(n);
     var p = this.head;
