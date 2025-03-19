@@ -205,6 +205,9 @@ class ZitiContext extends EventEmitter {
       access_token: this.access_token,
     });
 
+    await this.listControllerVersion();
+    await this.listExternalJwtSigners();
+
     if (options.loadWASM) {
 
       let _real_Date_now = Date.now;  // work around an Emscripten issue
@@ -228,24 +231,25 @@ class ZitiContext extends EventEmitter {
 
     }
 
-    await this.listControllerVersion();
+    if (options.doAuthenticate) {
 
-    this.targetService = options.target;
-    this.targetServiceAppData = await this.getConnectAppDataByServiceName (this.targetService.service, this.targetService.scheme);
-    this.targetServiceHost = await this.getConfigHostByServiceName (this.targetService.service);
-    this.targetServiceHostAndPort = undefined;
-    if (!isUndefined(this.targetServiceAppData)) {
-      this.targetServiceHostAndPort = `${this.targetServiceAppData.dst_hostname}:${this.targetServiceAppData.dst_port}`;
+      this.targetService = options.target;
+      this.targetServiceAppData = await this.getConnectAppDataByServiceName (this.targetService.service, this.targetService.scheme);
+      this.targetServiceHost = await this.getConfigHostByServiceName (this.targetService.service);
+      this.targetServiceHostAndPort = undefined;
+      if (!isUndefined(this.targetServiceAppData)) {
+        this.targetServiceHostAndPort = `${this.targetServiceAppData.dst_hostname}:${this.targetServiceAppData.dst_port}`;
+      }
+      this.bootstrapperHost = options.bootstrapperHost;
+
+      this._initialized = true;
+
+      this._zitiEnroller = new ZitiEnroller ({
+        logger: this.logger,
+        zitiContext: this,
+      });
+
     }
-    this.bootstrapperHost = options.bootstrapperHost;
-
-    this._initialized = true;    
-
-    this._zitiEnroller = new ZitiEnroller ({
-      logger: this.logger,
-      zitiContext: this,
-    });
-
   }
 
  /**
@@ -1538,6 +1542,49 @@ class ZitiContext extends EventEmitter {
 
   get controllerVersion () {
     return this._controllerVersion;
+  }
+
+  /**
+   * 
+   */
+  async listExternalJwtSigners() {
+    
+    let self = this;
+
+    let res = await this._zitiBrowzerEdgeClient.listExternalJwtSigners({ 
+    }).catch((error) => {
+      // Let listeners know we failed to connect to the Controller
+      self.emit(ZITI_CONSTANTS.ZITI_EVENT_CONTROLLER_CONNECTION_ERROR, {
+        controllerApi: self.controllerApi,
+      });
+      throw error;
+    });
+
+    if (!isUndefined(res.error)) {
+      this.logger.error(res.error.message);
+      throw new Error(res.error.message);
+    }
+
+    this._externalJwtSigners = res.data;
+    
+    if (isUndefined( this._externalJwtSigners ) ) {
+      throw new Error('response contains no data');
+    }
+
+    this.logger.info('externalJwtSigners acquired: ', this._externalJwtSigners);
+
+    return this._externalJwtSigners;
+  }
+  
+  /**
+   * 
+   */
+  getExternalJwtSignerScopesByClientId(clientId) {
+    let scopes = result(find(this._externalJwtSigners, function(obj) {
+      return obj.clientId === clientId;
+    }), 'scopes');
+    this.logger.trace(`getExternalJwtSignerScopesByClientId() clientId[${clientId}] has scopes[${scopes}]`);
+    return scopes;
   }
 
 
