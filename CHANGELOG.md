@@ -1,3 +1,12 @@
+# [0.61.0](https://github.com/openziti/ziti-browzer-core/compare/v0.60.0...v0.61.0) (2025-03-20)
+
+
+### Features
+
+* remove deprecation notice ([#206](https://github.com/openziti/ziti-browzer-core/issues/206)) ([27c3b67](https://github.com/openziti/ziti-browzer-core/commit/27c3b673d079e618464ec42e74a5c7e2df5e62b6))
+
+
+
 # [0.60.0](https://github.com/openziti/ziti-browzer-core/compare/v0.59.0...v0.60.0) (2025-03-19)
 
 
