@@ -1215,10 +1215,11 @@ class ZitiContext extends EventEmitter {
          * If we successfully authenticated with the id_token, emit an event to warn the
          * user that id_token auth is deprecated.
          */
-         var decoded_access_token = jwt_decode(this.id_token);
-         this.emit(ZITI_CONSTANTS.ZITI_EVENT_DEPRECATION_ID_TOKEN, {
-          email: decoded_access_token.email
-        });  
+//temporarily remove the deprecation notification        
+        //  var decoded_access_token = jwt_decode(this.id_token);
+        //  this.emit(ZITI_CONSTANTS.ZITI_EVENT_DEPRECATION_ID_TOKEN, {
+        //   email: decoded_access_token.email
+        // });  
       }
     }
 
