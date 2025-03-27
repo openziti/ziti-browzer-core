@@ -1482,13 +1482,13 @@ class ZitiContext extends EventEmitter {
 
     // Get list of active Services from Controller
     let res = await this._zitiBrowzerEdgeClient.listServices({ 
+      configTypes: 'all',
       limit: '100' //TODO add paging support
     }).catch((error) => {
       throw error;
     });
 
     // this.logger.trace('ZitiContext.fetchServices(): response:', res);
-
     if (!isUndefined(res.error)) {
       this.logger.error(res.error.message);
       throw new Error(res.error.message);
