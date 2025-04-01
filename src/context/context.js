@@ -270,6 +270,30 @@ class ZitiContext extends EventEmitter {
     });
   }
 
+ /**
+  * Remain in lazy-sleepy loop until we have the access token.
+  * 
+  * @param {*} ctx 
+  */
+ awaitAccessTokenPresent() {
+  let self = this;
+  return new Promise((resolve) => {
+    (function waitForAccessTokenPresent() {
+      let access_token;
+      if (self.isControllerHA()) {
+        access_token = self._apiSession.access_token;
+      } else {
+        access_token = self._apiSession.token;
+      }
+      if (!access_token) {
+        setTimeout(waitForAccessTokenPresent, 10);  
+      } else {
+        return resolve();
+      }
+    })();
+  });
+}
+
 
   /**
    * 
@@ -791,7 +815,7 @@ class ZitiContext extends EventEmitter {
    *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
    *  swagger spec doesn't include the new HA OIDC endpoint refs.
    */
-   do_oidc_authorize( codeChallange ) {
+   async do_oidc_authorize( codeChallange ) {
 
     let self = this;
 
@@ -843,7 +867,7 @@ class ZitiContext extends EventEmitter {
    *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
    *  swagger spec doesn't include the new HA OIDC endpoint refs.
    */
-   do_oidc_login_ext_jwt(parameters) {
+   async do_oidc_login_ext_jwt(parameters) {
 
     let self = this;
 
@@ -891,7 +915,7 @@ class ZitiContext extends EventEmitter {
    *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
    *  swagger spec doesn't include the new HA OIDC endpoint refs.
    */
-   do_oidc_authorize_callback(parameters) {
+   async do_oidc_authorize_callback(parameters) {
 
     let self = this;
 
@@ -930,7 +954,7 @@ class ZitiContext extends EventEmitter {
    *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
    *  swagger spec doesn't include the new HA OIDC endpoint refs.
    */
-  do_oidc_oauth_token( parameters ) {
+  async do_oidc_oauth_token( parameters ) {
 
     let self = this;
 
@@ -960,6 +984,43 @@ class ZitiContext extends EventEmitter {
 
     return deferred.promise;
   };
+
+  /**
+   *  do_oidc_token_refresh
+   * 
+   *  Utilize Controller's HA OIDC endpoint to acquire a refreshed apiToken.  
+   *  This code exists here, inline, instead of being in the zitiBrowzerEdgeClient, because the controller's
+   *  swagger spec doesn't include the new HA OIDC endpoint refs.
+   */
+    async do_oidc_token_refresh( ) {
+
+      let self = this;
+  
+      let deferred = self._zitiBrowzerEdgeClient.getDeferred();
+  
+      let domain = self._zitiBrowzerEdgeClient.domain;
+      domain = domain.replace(`/edge/client/v1`, `/oidc/oauth/token`);
+  
+      let body = {},
+          queryParameters = {
+            client_id:      'openziti',
+            grant_type:     'refresh_token',
+            refresh_token:  self._apiSession.refresh_token,
+          },
+          form = {};
+  
+      let headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+  
+      const queryParams = this.serializeQueryParams(queryParameters);
+  
+      self._zitiBrowzerEdgeClient.request('POST', domain, {}, body, headers, queryParameters, form, deferred);
+  
+      return deferred.promise;
+    };
+  
 
   /**
    * 
@@ -1132,10 +1193,45 @@ class ZitiContext extends EventEmitter {
           this._apiSession = res;
           this._apiSession.token = res.access_token;
 
-          setTimeout(this.apiSessionHeartbeat, this.getApiSessionHeartbeatTime(), this );
-
           authenticated = true;
 
+          //
+          async function refreshAccessToken( self ) {
+
+            self.logger.warn("access_token is about to expire. Refreshing now...");
+
+            let res = await self.do_oidc_token_refresh().catch((error) => {
+              self.controllerCapabilitiesOIDCErrorEncountered = true;
+              self.logger.error( error );
+            });
+
+            self._zitiBrowzerEdgeClient = self.createZitiBrowzerEdgeClient ({
+              logger: self.logger,
+              controllerApi: self.controllerApi,
+              domain: self.controllerApi,
+              token_type: self.token_type,
+              access_token: res.access_token,
+            });
+
+            self._apiSession = res;
+            self._apiSession.token = res.access_token;
+
+            let expirationTime = self._apiSession.expires_in - 10;          // calc the moment 10 seconds before the access token expires
+            setTimeout(refreshAccessToken, expirationTime * 1000, self);    // schedule the refresh
+  
+            /**
+             * emit an event to cause the new apiSession data to ripple out to ZBR
+             */
+            self.emit(ZITI_CONSTANTS.ZITI_EVENT_ACCESS_TOKEN_REFRESHED, {
+              token: self._apiSession.token
+            });  
+    
+            self.updateChannelsWithUpdatedToken( self._apiSession.token );
+
+          }
+
+          let expirationTime = this._apiSession.expires_in - 10;            // calc the moment 10 seconds before the access token expires
+          setTimeout(refreshAccessToken, expirationTime * 1000, this);      // schedule the refresh
         }
 
       } else {
@@ -1188,6 +1284,46 @@ class ZitiContext extends EventEmitter {
   
 
     return authenticated;
+  }
+
+  /**
+   * 
+   */
+  getCurrentAPISession() {
+    return this._apiSession;
+  }
+  /**
+   * 
+   */
+  setCurrentAPISession(apiSession) {
+
+    this._apiSession = apiSession;
+
+    let access_token;
+
+    if (this.isControllerHA()) {
+
+      access_token = this._apiSession.access_token;
+
+    } else {
+
+      access_token = this.access_token;
+
+    }
+
+    this._zitiBrowzerEdgeClient = this.createZitiBrowzerEdgeClient ({
+      logger: this.logger,
+      controllerApi: this.controllerApi,
+      domain: this.controllerApi,
+      token_type: this.token_type,
+      access_token: access_token,
+    });
+
+    if (!this.isControllerHA()) {
+      // Set the token header on behalf of all subsequent Controller API calls
+      this._zitiBrowzerEdgeClient.setApiKey(this._apiSession.token, 'zt-session', false);
+    }
+
   }
 
   /**
@@ -1440,8 +1576,11 @@ class ZitiContext extends EventEmitter {
         });
       }
 
-      // Set the token header on behalf of all subsequent Controller API calls
-      self._zitiBrowzerEdgeClient.setApiKey(self._apiSession.token, 'zt-session', false);
+      // If we are NOT in HA mode
+      if (!self.isControllerHA()) {
+        // Set the token header on behalf of all subsequent Controller API calls
+        self._zitiBrowzerEdgeClient.setApiKey(self._apiSession.token, 'zt-session', false);
+      }
 
       self.logger.trace('ZitiContext.apiSessionHeartbeat() exiting; token is: ', self._apiSession.token);
     }
@@ -2106,6 +2245,17 @@ class ZitiContext extends EventEmitter {
     return this._channels.size;
   }
  
+  /**
+   * 
+   */
+  updateChannelsWithUpdatedToken( apiSessionToken ) {
+
+    find(Array.from(this._channels), function(obj) {
+      obj[1][0].updateToken( apiSessionToken ) 
+    });
+  
+  }
+
 
  /**
   * Connect specified ZitiConnection to the nearest Edge Router.

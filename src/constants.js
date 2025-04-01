@@ -111,6 +111,7 @@ const ZITI_CONSTANTS =
     'ZITI_EVENT_WSS_ROUTER_CONNECTION_ERROR':  'WSSEnabledEdgeRouterConnectionErrorEvent',
     'ZITI_EVENT_CONTROLLER_CONNECTION_ERROR':  'ControllerConnectionErrorEvent',
     'ZITI_EVENT_DEPRECATION_ID_TOKEN':       'isTokenDeprecationEvent',
+    'ZITI_EVENT_ACCESS_TOKEN_REFRESHED':     'accessTokenRefreshedEvent',
 
     /**
      * Name of event indicating encrypted data for a nestedTLS connection has arrived and needs decryption
