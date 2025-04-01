@@ -58,6 +58,12 @@ const ZitiEdgeProtocol = {
       ContentTypeHealthEvent:         60795,
       ContentTypeTraceRoute:          60796,
       ContentTypeTraceRouteResponse:  60797,
+      ContentTypeConnInspectRequest:  60798,
+      ContentTypeConnInspectResponse: 60799,
+      ContentTypeBindSuccess:         60800,
+      ContentTypeUpdateTokenSuccess:  60801,
+      ContentTypeUpdateTokenFailure:  60802,
+      ContentTypeUpdateToken:         60803,    
 
     },
   

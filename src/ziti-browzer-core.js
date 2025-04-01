@@ -36,10 +36,6 @@ class ZitiBrowzerCore {
    */
   createZitiContext (options) {
 
-    if (this._zitiContext !== undefined) {
-      throw Error("Already have a ZitiContext; Cannot call .createZitiContext() twice on instance.");
-    }
-
     this._zitiContext = new ZitiContext(Object.assign({
       logger: options.logger,
       controllerApi: options.controllerApi,

@@ -179,9 +179,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
             // which is possibly a condition where the Service is misconfigured, and/or is not really
             // listening on HTTPS
             this._zitiContext.emit(ZITI_CONSTANTS.ZITI_EVENT_NESTED_TLS_HANDSHAKE_TIMEOUT, {
-                serviceName: this.outerSocket.zitiConnection._data.serviceName,
-                dst_hostname: this.outerSocket.zitiConnection._data.serviceConnectAppData.dst_hostname,
-                dst_port: this.outerSocket.zitiConnection._data.serviceConnectAppData.dst_port,          
+                serviceName: this.outerSocket.zitiConnection._data.serviceName
             });
 
             this._zitiContext.logger.error(`${error}`, this.getWASMFD());
