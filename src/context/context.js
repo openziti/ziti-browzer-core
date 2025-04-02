@@ -242,14 +242,14 @@ class ZitiContext extends EventEmitter {
       }
       this.bootstrapperHost = options.bootstrapperHost;
 
-      this._initialized = true;
-
-      this._zitiEnroller = new ZitiEnroller ({
-        logger: this.logger,
-        zitiContext: this,
-      });
-
     }
+
+    this._zitiEnroller = new ZitiEnroller ({
+      logger: this.logger,
+      zitiContext: this,
+    });
+
+    this._initialized = true;
   }
 
  /**
