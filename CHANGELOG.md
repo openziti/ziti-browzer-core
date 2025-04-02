@@ -1,3 +1,12 @@
+# [0.63.0](https://github.com/openziti/ziti-browzer-core/compare/v0.62.0...v0.63.0) (2025-04-02)
+
+
+### Features
+
+* correct issue fetching ephemeral cert on behalf of WebSocket intercept in ZBR ([#208](https://github.com/openziti/ziti-browzer-core/issues/208)) ([399cc75](https://github.com/openziti/ziti-browzer-core/commit/399cc7544a79f6c01b01e7158c1721f0c9b4e68b))
+
+
+
 # [0.62.0](https://github.com/openziti/ziti-browzer-core/compare/v0.61.0...v0.62.0) (2025-04-01)
 
 
