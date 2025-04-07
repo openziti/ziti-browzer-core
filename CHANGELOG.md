@@ -1,3 +1,12 @@
+# [0.64.0](https://github.com/openziti/ziti-browzer-core/compare/v0.63.0...v0.64.0) (2025-04-07)
+
+
+### Features
+
+* defensive programming for dumpHeaders UUID ([#209](https://github.com/openziti/ziti-browzer-core/issues/209)) ([7d2aaac](https://github.com/openziti/ziti-browzer-core/commit/7d2aaacb4e42482117dd576b6ef4665535277ad2))
+
+
+
 # [0.63.0](https://github.com/openziti/ziti-browzer-core/compare/v0.62.0...v0.63.0) (2025-04-02)
 
 
