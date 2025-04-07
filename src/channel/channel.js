@@ -882,7 +882,7 @@ class ZitiChannel {
       const wireData = this._marshalMessage(contentType, headers, dataToMarshal, options, messageId);
       this._zitiContext.logger.trace(`ch._sendMarshaled() -> wireDataLen[${wireData.byteLength}]`);
 
-      this._dumpHeaders(' -> ', wireData);
+      // this._dumpHeaders(' -> ', wireData);
 
       // Inject the listener if specified
       if (options.listener !== undefined) {
@@ -1133,7 +1133,7 @@ class ZitiChannel {
 
     this._zitiContext.logger.trace(`ch._tryUnmarshal() <- contentType[${contentType}] seq[${responseSequence}] hdrLen[${headersLength}] bodyLen[${bodyLength}]`);
 
-    this._dumpHeaders(' <- ', buffer);
+    // this._dumpHeaders(' <- ', buffer);
     var bodyView = new Uint8Array(buffer, 20 + headersLength);
 
     if (contentType == ZitiEdgeProtocol.content_type.ContentTypeUpdateTokenSuccess) {
@@ -1360,7 +1360,12 @@ class ZitiChannel {
       return callerId;
     }
     else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.UUID)) {
-      let uuid = uuidStringify(buffer);
+      let uuid;
+      try {
+        uuid = uuidStringify(buffer);
+      } catch (e) {
+        uuid = 'na';
+      }
       return uuid;
     }
     else if (isEqual(hdrId, ZitiEdgeProtocol.header_id.Flags)) {
