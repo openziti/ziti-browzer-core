@@ -41,7 +41,7 @@
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/node": "^22.13.5",
     "chai": "^4.3.6",
-    "del": "^6.1.1",
+    "del": "^8.0.0",
     "execa": "^6.1.0",
     "gulp": "^5.0.0",
     "rimraf": "^6.0.1",
