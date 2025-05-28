@@ -1,6 +1,6 @@
 {
   "name": "@openziti/ziti-browzer-core",
-  "version": "0.64.0",
+  "version": "0.65.0",
   "type": "module",
   "description": "Core componentry for the Ziti browZer ecosystem (used internally by ziti-browzer-runtime and ziti-sdk-browzer)",
   "scripts": {
@@ -55,7 +55,7 @@
     "upath": "^2.0.1"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.24.0",
+    "@openziti/libcrypto-js": "0.24.0",
     "@openziti/ziti-browzer-edge-client": "^0.7.0",
     "asn1js": "^3.0.5",
     "assert": "^2.0.0",
