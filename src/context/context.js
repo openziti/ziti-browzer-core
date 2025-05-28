@@ -21,6 +21,7 @@ limitations under the License.
 import { PassThrough } from '../http/readable-stream/_stream_passthrough';
 import memoize from 'fast-memoize';
 import Cookies from 'js-cookie';
+import sodium  from 'libsodium-wrappers';
 import { Buffer } from 'buffer/';
 import {
   calculatePKCECodeChallenge,
@@ -251,6 +252,63 @@ class ZitiContext extends EventEmitter {
 
     this._initialized = true;
   }
+
+  /**
+   * 
+   */
+  async sdk_initialize_loadWASM(options) {
+
+    let _real_Date_now = Date.now;  // work around an Emscripten issue
+
+    if (!options.jspi) {
+      this.logger.trace(`libCrypto.initialize_NO_JSPI starting`);
+      await this._libCrypto.initialize_NO_JSPI();
+      this.logger.trace(`libCrypto.initialize_NO_JSPI completed; WASM is now available`);
+    }
+    else {
+      this.logger.trace(`libCrypto.initialize_JSPI starting`);
+      await this._libCrypto.initialize_JSPI();
+      this.logger.trace(`libCrypto.initialize_JSPI completed; WASM is now available`);
+    }
+
+    Date.now = _real_Date_now;      // work around an Emscripten issue
+
+    Window._zitiContext = this;
+
+  }
+
+  /**
+   * 
+   * @param {*} access_token 
+   */
+  setAccessToken( access_token ) {
+    this.access_token = access_token;
+    this.token_type = 'Bearer';
+    return true;
+  }
+
+  createEnroller() {
+    this._zitiEnroller = new ZitiEnroller ({
+      logger: this.logger,
+      zitiContext: this,
+    });
+    this._initialized = true;
+  }
+
+  async printEphemeralCert() {
+    await this._zitiEnroller.printEphemeralCert();
+  }
+
+  async generateKeyPair() {
+  
+    await sodium.ready;
+    
+    let keypair = sodium.crypto_kx_keypair();
+
+    return keypair;
+  }
+  
+
 
  /**
   * Remain in lazy-sleepy loop until context is initialized.
@@ -1448,9 +1506,14 @@ class ZitiContext extends EventEmitter {
       let certPEMArray = splitPemChain(this._certPEM);
       this._certPEMLeaf = certPEMArray[0];
       this._certPEMIntermediatesArray = certPEMArray.slice(1);
-      return true;
+
+      this.logger.trace('ZitiContext.enroll(): enroll succeeded');
+
+    } else {
+      this.logger.trace('ZitiContext.enroll(): enroll bypassed - using previously-existing Cert');
     }
 
+    return true;
   }
 
   /**
@@ -1641,6 +1704,7 @@ class ZitiContext extends EventEmitter {
     }
     // this.logger.trace('List of available Services acquired: [%o]', this._services);
     
+    return this._services;
   }
 
 
@@ -2769,7 +2833,8 @@ class ZitiContext extends EventEmitter {
        */
       let parsedURL = new URL(url);
       if (isEqual(parsedURL.pathname, '/')) {
-        parsedURL.pathname = opts.servicePath;
+        // parsedURL.pathname = (opts.servicePath | '/');
+        parsedURL.pathname = (opts.servicePath || '/').replace(/^\/?/, '/');
         url = parsedURL.toString();
       }
 

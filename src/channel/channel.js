@@ -374,6 +374,17 @@ class ZitiChannel {
     }
   }
 
+  
+  async generateKeyPair() {
+
+    await sodium.ready;
+    
+    let keypair = sodium.crypto_kx_keypair();
+
+    return keypair;
+  }
+
+
   /**
    * Connect specified Connection to associated Edge Router.
    * 

@@ -55,7 +55,7 @@
     "upath": "^2.0.1"
   },
   "dependencies": {
-    "@openziti/libcrypto-js": "^0.24.0",
+    "@openziti/libcrypto-js": "0.24.0",
     "@openziti/ziti-browzer-edge-client": "^0.7.0",
     "asn1js": "^3.0.5",
     "assert": "^2.0.0",

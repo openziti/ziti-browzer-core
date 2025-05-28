@@ -85,11 +85,13 @@ import { isUndefined, isNull } from 'lodash-es';
   async generateCSR(wasmInstance) {
 
     let pKey = await this._zitiContext.get_pKey();
+    this.logger.trace('ZitiEnroller.generateCSR(): zitiContext.get_pKey returned: ', pKey);
 
     this._csr = this._zitiContext.createCertificateSigningRequest(wasmInstance, {
       key: pKey,
     })
     
+    this.logger.trace('ZitiEnroller.generateCSR(): zitiContext.createCertificateSigningRequest returned: ', this._csr);
   }
 
 
@@ -153,6 +155,23 @@ import { isUndefined, isNull } from 'lodash-es';
     this._certExpiryTime = expiryTime;
 
     return true;
+  }
+
+  async printEphemeralCert() {     
+    if (isUndefined(this._cert)) {
+      this.logger.warn('printEphemeralCert(): no cert has been acquired yet - nothing to print');
+      return;
+    }
+    this.logger.trace('printEphemeralCert(): cert [%o]', this._cert); 
+    let flatcert = this._cert.replace(/\\n/g, '\n');
+    let certificate;
+    try {
+      certificate = await convertPemToCertificate( flatcert );
+      printCertificate( certificate, this.logger );
+    } catch (err) {
+      this.logger.error(err);
+      this.logger.error('zitiBrowzerEdgeClient.createCurrentApiSessionCertificate returned cert [%o] which convertPemToCertificate cannot process', this._cert);
+    }
   }
   
   /**

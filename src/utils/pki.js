@@ -130,14 +130,9 @@ let convertPemToCertificate = async (pem) => {
  *
  * @param {string} pem
  */  
-let printCertificate = (certificate) => {
-    console.log(certificate);
-    console.log('Certificate Serial Number');
-    console.log('Certificate Issuance');
-    console.log(certificate.notBefore.value.toString());
-    console.log('Certificate Expiry');
-    console.log(certificate.notAfter.value.toString());  
-    console.log(certificate.issuer);
+let printCertificate = (certificate, logger) => {
+    logger.debug('Certificate Issuance: ', certificate.notBefore.value.toString());
+    logger.debug('Certificate Expiry: ', certificate.notAfter.value.toString());
 }
 
 
