@@ -1,3 +1,12 @@
+# [0.66.0](https://github.com/openziti/ziti-browzer-core/compare/v0.65.0...v0.66.0) (2025-06-30)
+
+
+### Features
+
+* adjustments for ziti-sdk-browser ([#211](https://github.com/openziti/ziti-browzer-core/issues/211)) ([372570d](https://github.com/openziti/ziti-browzer-core/commit/372570d8d9703b11ef092912bf98713e5c4f7193))
+
+
+
 # [0.65.0](https://github.com/openziti/ziti-browzer-core/compare/v0.64.2...v0.65.0) (2025-05-28)
 
 
