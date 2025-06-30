@@ -141,6 +141,44 @@ class ZitiChannel {
     this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceSourceRequestId, 'TraceSourceRequestId');
     this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.TraceError,           'TraceError');
     this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.UUID,                 'UUID');
+
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ListenerId,           'ListenerId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ConnType,             'ConnType');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.SupportsInspect,      'SupportsInspect');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.SupportsBindSuccess,  'SupportsBindSuccess');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.ConnectionMarker,     'ConnectionMarker');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.CircuitId,            'CircuitId');
+    this._hdrIdNameMap.set(ZitiEdgeProtocol.header_id.StickinessToken,      'StickinessToken');
+
+    this._sodiumReady = false;
+
+    this._contentTypeNameMap = new Map();
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.HelloType,   'HelloType');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.PingType,   'PingType');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ResultType,   'ResultType');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.LatencyType,   'LatencyType');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Connect,   'Connect');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.StateConnected,   'StateConnected');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.StateClosed,   'StateClosed');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Data,   'Data');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Dial,   'Dial');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.DialSuccess,   'DialSuccess');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.DialFailed,   'DialFailed');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Bind,   'Bind');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Unbind,   'Unbind');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.StateSessionEnded,   'StateSessionEnded');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.Probe,   'Probe');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.UpdateBind,   'UpdateBind');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeHealthEvent,   'ContentTypeHealthEvent');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeTraceRoute,   'ContentTypeTraceRoute');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeTraceRouteResponse,   'ContentTypeTraceRouteResponse');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeConnInspectRequest,   'ContentTypeConnInspectRequest');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeConnInspectResponse,   'ContentTypeConnInspectResponse');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeBindSuccess,   'ContentTypeBindSuccess');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeUpdateTokenSuccess,   'ContentTypeUpdateTokenSuccess');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeUpdateTokenFailure,   'ContentTypeUpdateTokenFailure');
+    this._contentTypeNameMap.set(ZitiEdgeProtocol.content_type.ContentTypeUpdateToken,   'ContentTypeUpdateToken');
+
   }
 
   /**
@@ -670,7 +708,6 @@ class ZitiChannel {
   async _send_crypto_header(conn) {
 
     const self = this;
-    return new Promise( async (resolve, reject) => {
 
       let results = sodium.crypto_secretstream_xchacha20poly1305_init_push( conn.sharedTx );
 
@@ -709,9 +746,6 @@ class ZitiChannel {
       // self._zitiContext.logger.debug(`_send_crypto_header() calling _recvCryptoResponse() for conn[${conn.id}]`);
       await self._recvCryptoResponse(msg.data, conn);
 
-      resolve();
-
-    });
   }
 
   /**
@@ -786,7 +820,7 @@ class ZitiChannel {
 
     this._zitiContext.logger.debug(`ch.sendMessage() -> conn[${(conn ? conn.id : 'n/a')}] seq[${messageId}] contentType[${contentType}] body[${(body ? body.toString() : 'n/a')}]`);
 
-    return messagesQueue.create(messageId, () => {
+    return messagesQueue.create(conn, messageId, () => {
       this._sendMarshaled(contentType, headers, body, options, messageId);
     }, timeout);
   }
@@ -1142,7 +1176,7 @@ class ZitiChannel {
     let bodyLengthView = new Int32Array(buffer, 16, 1);
     let bodyLength = bodyLengthView[0];
 
-    this._zitiContext.logger.trace(`ch._tryUnmarshal() <- contentType[${contentType}] seq[${responseSequence}] hdrLen[${headersLength}] bodyLen[${bodyLength}]`);
+    this._zitiContext.logger.trace(`ch._tryUnmarshal() <- contentType[${contentType}][${this._getContentTypeName(contentType)}] seq[${responseSequence}] hdrLen[${headersLength}] bodyLen[${bodyLength}]`);
 
     // this._dumpHeaders(' <- ', buffer);
     var bodyView = new Uint8Array(buffer, 20 + headersLength);
@@ -1318,10 +1352,12 @@ class ZitiChannel {
     let messagesQueue = this._messages;
     if (!isUndefined(conn)) {
       messagesQueue = conn.messages;
+    } else {
+      conn = -1;
     }
     this._zitiContext.logger.trace(`_tryHandleResponse() conn[${(conn ? conn.id : 'n/a')}] seq[${responseSequence}]`);
     if (!isNull(responseSequence)) {
-      messagesQueue.resolve(responseSequence, data);
+      messagesQueue.resolve(conn, data);
     } else {
       debugger
     }
@@ -1332,6 +1368,9 @@ class ZitiChannel {
    */
   _getHeaderIdName(hdrId) {
     return this._hdrIdNameMap.get(hdrId);
+  }
+  _getContentTypeName(ctId) {
+    return this._contentTypeNameMap.get(ctId);
   }
   /**
    * @this {ZitiChannel}   
