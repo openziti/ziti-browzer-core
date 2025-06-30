@@ -102,6 +102,13 @@ const ZitiEdgeProtocol = {
       TraceHopId:               1018,
       TraceSourceRequestId:     1019,
       TraceError:               1020,
+      ListenerId:               1021,
+      ConnType:                 1022,
+      SupportsInspect:          1023,
+      SupportsBindSuccess:      1024,
+      ConnectionMarker:         1025,
+      CircuitId:                1026,
+      StickinessToken:          1027,
     
     },
 
