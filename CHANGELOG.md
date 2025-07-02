@@ -1,3 +1,12 @@
+# [0.67.0](https://github.com/openziti/ziti-browzer-core/compare/v0.66.0...v0.67.0) (2025-07-02)
+
+
+### Features
+
+* fire ZITI_EVENT_NO_SERVICE in more circumstances ([#212](https://github.com/openziti/ziti-browzer-core/issues/212)) ([ee4578f](https://github.com/openziti/ziti-browzer-core/commit/ee4578f6801c438d06a2667ce2a67f832dfbfce8))
+
+
+
 # [0.66.0](https://github.com/openziti/ziti-browzer-core/compare/v0.65.0...v0.66.0) (2025-06-30)
 
 
