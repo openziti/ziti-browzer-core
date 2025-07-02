@@ -66,6 +66,7 @@ import ElapsedTime from 'elapsed-time';
 // const EXPIRE_WINDOW = 28.0 // TEMP, for debugging
 const EXPIRE_WINDOW = 2.0
 
+let nativePromise = null;
 
 /**
  *    ZitiContext
@@ -2112,6 +2113,33 @@ class ZitiContext extends EventEmitter {
     return conn;
   };
 
+  _getNativePromise() {
+
+    if (!isNull(nativePromise)) {
+      return nativePromise;
+    }
+
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        nativePromise = iframe.contentWindow.Promise;
+        document.body.removeChild(iframe);
+        return nativePromise;
+      } catch (err) {
+        console.warn('Iframe failed, falling back to global Promise');
+      }
+    }
+
+    if (typeof globalThis !== 'undefined') {
+      nativePromise = globalThis.Promise;
+      return nativePromise;
+    }
+
+    throw new Error('Unable to locate native Promise in this environment.');
+    
+  }
 
   /**
    * Dial the `service`.
@@ -2127,19 +2155,34 @@ class ZitiContext extends EventEmitter {
 
     this.logger.debug(`dial() conn[${conn.id}] service[${service}]`);
 
-    if (isEqual( this.services.size, 0 )) {
-      await this.fetchServices();
-    }
+      if (isEqual( this.services.size, 0 )) {
+        await this.fetchServices();
+      }
 
-    let service_id = this.getServiceIdByName(service);
-    
-    conn.encrypted = this.getServiceEncryptionRequiredByName(service);
+      let service_id = this.getServiceIdByName(service);
+      if (isUndefined(service_id)) {
+        let serviceList = [];            
+        let foundService = find(this._services, function(service) {
+          serviceList.push(service.name);
+          return isEqual(service.name, service);  
+        });
+        this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
+          serviceName: service,
+          serviceList: serviceList
+        });
+        return reject(`Ziti Service [${service}] not found`);
+      }
+  
+      conn.encrypted = this.getServiceEncryptionRequiredByName(service);
 
-    let network_session = await this.getNetworkSessionByServiceId(service_id);
+      let network_session = await this.getNetworkSessionByServiceId(service_id);
+      if (isUndefined(network_session)) { 
+        return reject(`Network Session to Ziti Service [${service}] cannot be established`);
+      }
 
-    await this.connect(conn, network_session);
+      await this.connect(conn, network_session);
 
-    this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
+      this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
 
   };
 
@@ -2826,7 +2869,9 @@ class ZitiContext extends EventEmitter {
 
     let ret;
 
-    let fetchPromise = new Promise( async (resolve, reject) => {
+    let np = this._getNativePromise();
+
+    let fetchPromise = new np( async (resolve, reject) => {
 
       /**
        * ------------ Now Routing over Ziti -----------------
