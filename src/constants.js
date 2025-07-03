@@ -102,6 +102,7 @@ const ZITI_CONSTANTS =
     'ZITI_EVENT_INVALID_AUTH':              'invalidAuthEvent',
     'ZITI_EVENT_NO_SERVICE':                'noServiceEvent',
     'ZITI_EVENT_NO_CONFIG_FOR_SERVICE':     'noConfigForServiceEvent',
+    'ZITI_EVENT_NO_CONFIG_FOR_HOSTNAME':    'noConfigForHostnameEvent',
     'ZITI_EVENT_SESSION_CREATION_ERROR':    'sessionCreationErrorEvent',
     'ZITI_EVENT_NO_WSS_ROUTERS':            'noWSSEnabledEdgeRoutersEvent',
     'ZITI_EVENT_IDP_AUTH_HEALTH':           'idpAuthHealthEvent',
