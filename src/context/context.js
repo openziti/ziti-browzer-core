@@ -1891,6 +1891,35 @@ class ZitiContext extends EventEmitter {
   }
 
   /**
+   * 
+   */
+  async getServiceNameByConfigHost (hostname) {
+    if (isEqual( this._services.size, 0 )) {
+      await this.fetchServices();
+    }
+    let foundService = find(this._services, function(service) {
+      if (service.config['intercept.v1']) {
+        let configHost = service.config['intercept.v1'].addresses[0];
+        if (isEqual(configHost, hostname)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (foundService) {
+      return foundService.name;
+    }
+
+    // Let any listeners know there are no configs associated with the given hostname,
+    // which is most likely a condition of a misconfigured network
+    this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_CONFIG_FOR_HOSTNAME, {
+      hostName: hostname
+    });
+
+    return undefined;
+  }
+
+  /**
    *  If scheme is 'https' then look for port 443. If 443 not found, 
    *    use portRange.low
    * 
@@ -2155,34 +2184,39 @@ class ZitiContext extends EventEmitter {
 
     this.logger.debug(`dial() conn[${conn.id}] service[${service}]`);
 
-      if (isEqual( this.services.size, 0 )) {
-        await this.fetchServices();
-      }
+    if (isEqual( this.services.size, 0 )) {
+      await this.fetchServices();
+    }
 
-      let service_id = this.getServiceIdByName(service);
-      if (isUndefined(service_id)) {
-        let serviceList = [];            
-        let foundService = find(this._services, function(service) {
-          serviceList.push(service.name);
-          return isEqual(service.name, service);  
-        });
-        this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
-          serviceName: service,
-          serviceList: serviceList
-        });
-        return reject(`Ziti Service [${service}] not found`);
-      }
-  
-      conn.encrypted = this.getServiceEncryptionRequiredByName(service);
+    let service_id = this.getServiceIdByName(service);
+    if (isUndefined(service_id)) {
+      let serviceList = [];            
+      let foundService = find(this._services, function(service) {
+        serviceList.push(service.name);
+        return isEqual(service.name, service);  
+      });
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
+        serviceName: service,
+        serviceList: serviceList
+      });
+      throw new Error(`Ziti Service [${service}] not found`);
+    }
 
-      let network_session = await this.getNetworkSessionByServiceId(service_id);
-      if (isUndefined(network_session)) { 
-        return reject(`Network Session to Ziti Service [${service}] cannot be established`);
-      }
+    conn.encrypted = this.getServiceEncryptionRequiredByName(service);
 
-      await this.connect(conn, network_session);
+    let network_session = await this.getNetworkSessionByServiceId(service_id);
+    if (isUndefined(network_session)) {
+      // Let any listeners know there is most likely a condition of a misconfigured network
+      this.emit(ZITI_CONSTANTS.ZITI_EVENT_SESSION_CREATION_ERROR, {
+          error: `Network Session to Ziti Service [${service}] cannot be established`
+      });
 
-      this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
+      throw new Error(`Network Session to Ziti Service [${service}] cannot be established`);
+    }
+
+    await this.connect(conn, network_session);
+
+    this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
 
   };
 
@@ -2884,6 +2918,12 @@ class ZitiContext extends EventEmitter {
       }
 
       self.logger.debug(`httpFetch starting url[${url}]`);
+
+      if (isUndefined(opts.serviceName)) {
+        opts.serviceName = await self.getServiceNameByConfigHost(parsedURL.hostname).catch(( error ) => {
+          throw new Error( error );
+        });
+      }
 
       // build HTTP request object
       let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
