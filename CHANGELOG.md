@@ -1,3 +1,12 @@
+# [0.68.0](https://github.com/openziti/ziti-browzer-core/compare/v0.67.0...v0.68.0) (2025-07-03)
+
+
+### Features
+
+* add ZITI_EVENT_NO_CONFIG_FOR_HOSTNAME emissions ([#213](https://github.com/openziti/ziti-browzer-core/issues/213)) ([629cd92](https://github.com/openziti/ziti-browzer-core/commit/629cd92289b097a17966099996199ab305d08a41))
+
+
+
 # [0.67.0](https://github.com/openziti/ziti-browzer-core/compare/v0.66.0...v0.67.0) (2025-07-02)
 
 
