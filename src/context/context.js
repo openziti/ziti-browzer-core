@@ -2925,9 +2925,19 @@ class ZitiContext extends EventEmitter {
         });
       }
 
+      let request;
+      let options;
+
       // build HTTP request object
-      let request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
-      let options = await request.getRequestOptions();
+      try {
+        request = new ZitiHttpRequest(opts.serviceName, url, opts, this);
+        options = await request.getRequestOptions();
+      } catch (e) {
+        self.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
+          serviceName: 'undefined',
+        });
+        return reject(e.message);
+      }
 
       options.headers.set('Host', await this.getConfigHostByServiceName (opts.serviceName));
 
