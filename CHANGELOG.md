@@ -1,3 +1,12 @@
+# [0.69.0](https://github.com/openziti/ziti-browzer-core/compare/v0.68.0...v0.69.0) (2025-07-15)
+
+
+### Features
+
+* reject httpFetch Promise if serviceName is null ([#214](https://github.com/openziti/ziti-browzer-core/issues/214)) ([2aa08f0](https://github.com/openziti/ziti-browzer-core/commit/2aa08f09823d50134875a5d13ec3fd31974d866d))
+
+
+
 # [0.68.0](https://github.com/openziti/ziti-browzer-core/compare/v0.67.0...v0.68.0) (2025-07-03)
 
 
