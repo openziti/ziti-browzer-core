@@ -1,3 +1,12 @@
+# [0.70.0](https://github.com/openziti/ziti-browzer-core/compare/v0.69.0...v0.70.0) (2025-07-17)
+
+
+### Features
+
+* close some async exception gaps that lead to unhandled Promise failures ([#215](https://github.com/openziti/ziti-browzer-core/issues/215)) ([85cc948](https://github.com/openziti/ziti-browzer-core/commit/85cc948094cef0f6c5a436963c4db2b34e37934f))
+
+
+
 # [0.69.0](https://github.com/openziti/ziti-browzer-core/compare/v0.68.0...v0.69.0) (2025-07-15)
 
 
