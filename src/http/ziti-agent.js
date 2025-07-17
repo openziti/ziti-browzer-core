@@ -104,14 +104,14 @@ import { isEqual, isUndefined } from 'lodash-es';
             this.socket.isNew = opts.isNew;
             opts.zitiContext.logger.trace(`ZitiAgent.createConnection() socket[${this.socket._id}] created`);
             this.socket.on('connect', onSocketConnect);
-            this.socket.connect(opts);
+            await this.socket.connect(opts);
 
         } else {
 
             opts.zitiContext.logger.trace(`ZitiAgent.createConnection() socket[${this.socket._id}] reused`);
             this.socket.isNew = opts.isNew;
             this.socket.req = opts.req;
-            this.socket.connect(opts);
+            await this.socket.connect(opts);
             // this.socket.on('connect', onSocketConnect);
             // this.socket.emit('connect', this.socket.zitiConnection);
 

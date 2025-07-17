@@ -193,7 +193,7 @@ class ZitiAgentPool extends EventEmitter {
     this.emit('remove', zitiAgent)
   }
 
-  connect(req, reqOptions, cb) {
+  async connect(req, reqOptions, cb) {
 
     this.logger.trace(`ZitiAgentPool.connect() poolLength[${this._zitiAgents.length}] idleLength[${this._idle.length}] pendingQueue[${this._pendingQueue.length}] max[${this.options.max}]`)
 
@@ -241,12 +241,12 @@ class ZitiAgentPool extends EventEmitter {
       return result
     }
 
-    this.newZitiAgent(new PendingItem(response.callback, req, reqOptions))
+    await this.newZitiAgent(new PendingItem(response.callback, req, reqOptions))
 
     return result
   }
 
-  newZitiAgent(pendingItem) {
+  async newZitiAgent(pendingItem) {
     let zitiAgentOptions = Object.assign({}, this.options, pendingItem.opts)
     const zitiAgent = new this.ZitiAgent(zitiAgentOptions)
     this._zitiAgents.push(zitiAgent)
@@ -284,7 +284,7 @@ class ZitiAgentPool extends EventEmitter {
 
     zitiAgent.inUse = true;
 
-    zitiAgent.createConnection(info, (err, socket) => {
+    await zitiAgent.createConnection(info, (err, socket) => {
         if (tid) {
             clearTimeout(tid)
         }
