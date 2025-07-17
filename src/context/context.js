@@ -2178,46 +2178,63 @@ class ZitiContext extends EventEmitter {
    */
   async dial( conn, service ) {
 
-    throwIf(isUndefined(conn), 'connection not specified');
-    throwIf(isUndefined(service), 'service not specified');
-    throwIf(!isEqual(this, conn.zitiContext), 'connection has different context');
+    let np = this._getNativePromise();
 
-    this.logger.debug(`dial() conn[${conn.id}] service[${service}]`);
+    let dialPromise = new np( async (resolve, reject) => {
 
-    if (isEqual( this.services.size, 0 )) {
-      await this.fetchServices();
-    }
+      try {
 
-    let service_id = this.getServiceIdByName(service);
-    if (isUndefined(service_id)) {
-      let serviceList = [];            
-      let foundService = find(this._services, function(service) {
-        serviceList.push(service.name);
-        return isEqual(service.name, service);  
-      });
-      this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
-        serviceName: service,
-        serviceList: serviceList
-      });
-      throw new Error(`Ziti Service [${service}] not found`);
-    }
+        throwIf(isUndefined(conn), 'connection not specified');
+        throwIf(isUndefined(service), 'service not specified');
+        throwIf(!isEqual(this, conn.zitiContext), 'connection has different context');
 
-    conn.encrypted = this.getServiceEncryptionRequiredByName(service);
+        this.logger.debug(`dial() conn[${conn.id}] service[${service}]`);
 
-    let network_session = await this.getNetworkSessionByServiceId(service_id);
-    if (isUndefined(network_session)) {
-      // Let any listeners know there is most likely a condition of a misconfigured network
-      this.emit(ZITI_CONSTANTS.ZITI_EVENT_SESSION_CREATION_ERROR, {
-          error: `Network Session to Ziti Service [${service}] cannot be established`
-      });
+        if (isEqual( this.services.size, 0 )) {
+          await this.fetchServices();
+        }
 
-      throw new Error(`Network Session to Ziti Service [${service}] cannot be established`);
-    }
+        let service_id = this.getServiceIdByName(service);
+        if (isUndefined(service_id)) {
+          let serviceList = [];            
+          let foundService = find(this._services, function(service) {
+            serviceList.push(service.name);
+            return isEqual(service.name, service);  
+          });
+          this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
+            serviceName: service,
+            serviceList: serviceList
+          });
+          throw new Error(`Ziti Service [${service}] not found`);
+        }
 
-    await this.connect(conn, network_session);
+        conn.encrypted = this.getServiceEncryptionRequiredByName(service);
 
-    this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
+        let network_session = await this.getNetworkSessionByServiceId(service_id);
+        if (isUndefined(network_session)) {
+          // Let any listeners know there is most likely a condition of a misconfigured network
+          this.emit(ZITI_CONSTANTS.ZITI_EVENT_SESSION_CREATION_ERROR, {
+              error: `Network Session to Ziti Service [${service}] cannot be established`
+          });
 
+          throw new Error(`Network Session to Ziti Service [${service}] cannot be established`);
+        }
+
+        await this.connect(conn, network_session);
+
+        this.logger.debug(`dial() conn[${conn.id}] service[${service}] encryptionRequired[${conn.encrypted}] is now complete`);
+
+        return resolve();
+
+      } catch (e) {
+        this.emit(ZITI_CONSTANTS.ZITI_EVENT_NO_SERVICE, {
+          serviceName: 'undefined',
+        });
+        return reject(e.message);
+      }
+    })
+
+    return dialPromise;
   };
 
   getEdgeRouterURL(edgeRouter) {
@@ -2948,12 +2965,12 @@ class ZitiContext extends EventEmitter {
         if (options.method === 'GET') {
     
           req = http.get(options);
-          req.agent = await this.getZitiAgentPool().connect(req, options);
+          req.agent = await this._agentPool.connect(req, options);
     
         } else {
 
           req = http.request(options);
-          req.agent = await this.getZitiAgentPool().connect(req, options);
+          req.agent = await this._agentPool.connect(req, options);
 
           if (options.body) {
             if (options.body instanceof Promise) {
@@ -3001,8 +3018,7 @@ class ZitiContext extends EventEmitter {
         }
       }
       catch (error) {
-        let errResponse = new Response(new Blob(), { status: 400, statusText: `ZBR Error: ${error}` });
-        resolve(errResponse);  
+        return reject(error);
       }
 
       req.on('error', err => {
