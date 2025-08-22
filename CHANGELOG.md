@@ -1,3 +1,12 @@
+# [0.71.0](https://github.com/openziti/ziti-browzer-core/compare/v0.70.2...v0.71.0) (2025-08-22)
+
+
+### Features
+
+* bump to latest sha.js ([#222](https://github.com/openziti/ziti-browzer-core/issues/222)) ([c510b5d](https://github.com/openziti/ziti-browzer-core/commit/c510b5dd9c183defd9a5e78d6cfcfe9e63f72934))
+
+
+
 ## [0.70.2](https://github.com/openziti/ziti-browzer-core/compare/v0.70.1...v0.70.2) (2025-08-22)
 
 
