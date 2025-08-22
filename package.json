@@ -86,7 +86,7 @@
     "promise.prototype.finally": "^3.1.8",
     "randombytes": "^2.1.0",
     "ripemd160": "^2.0.2",
-    "sha.js": "^2.4.11",
+    "sha.js": "^2.4.12",
     "stream": "^0.0.2",
     "stream-browserify": "^3.0.0",
     "string_decoder": "^1.3.0",
