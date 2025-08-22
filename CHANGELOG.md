@@ -1,3 +1,7 @@
+## [0.70.2](https://github.com/openziti/ziti-browzer-core/compare/v0.70.1...v0.70.2) (2025-08-22)
+
+
+
 ## [0.70.1](https://github.com/openziti/ziti-browzer-core/compare/v0.70.0...v0.70.1) (2025-08-22)
 
 
