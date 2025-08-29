@@ -24,12 +24,18 @@ class PassThrough extends Transform  {
       }
     }
     this.zitiContext = zitiOptions.zitiContext;
+    this.textDecoder = new TextDecoder("utf-8");
   }
 
   _transform(chunk, encoding, cb) {
     if (this.isGzip) {
       this.inflator.push(chunk);
       chunk = this.inflator.result;
+
+      if (!isUndefined(chunk)) {
+        let textChunk = this.textDecoder.decode(new Uint8Array(chunk))
+        this.zitiContext.logger.info(`gzip inflate chunk[${textChunk}`);
+      }
 
       /**
        * This logic was added on behalf of Solarwinds Orion, which embeds the host:port of the protected web server in some 
