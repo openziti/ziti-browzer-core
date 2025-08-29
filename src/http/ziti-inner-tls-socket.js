@@ -280,7 +280,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
     async tls_write(wireData) {
         this._zitiContext.logger.trace(`ZitiInnerTLSSocket.tls_write[${this.wasmFD}] unencrypted data is ready to be sent to the ER  ---> [%o]`, wireData);
         var textDecoder = new TextDecoder("utf-8");
-        this._zitiContext.logger.trace(`ZitiInnerTLSSocket.tls_write[${this.wasmFD}] body[${(wireData ? textDecoder.decode(wireData) : 'n/a')}]`);
+        this._zitiContext.logger.info(`ZitiInnerTLSSocket.tls_write[${this.wasmFD}] body[${(wireData ? textDecoder.decode(wireData) : 'n/a')}]`);
         this._zitiContext.tls_write(this._wasmInstance, this._SSL, wireData);
     }
 
@@ -425,7 +425,7 @@ class ZitiInnerTLSSocket extends EventEmitter {
         let decryptedData = await self._zitiContext.tls_read(self._wasmInstance, self._SSL); // TLS-decrypt some data from the queue
 
         self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] clear data from the outer socket is ready  <--- len[${decryptedData.byteLength}]`);
-        self._zitiContext.logger.trace(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] emitting "data" from outer socket  <--- [${String.fromCharCode.apply(null, new Uint8Array(decryptedData))}]`);
+        self._zitiContext.logger.info(`ZitiInnerTLSSocket.processDataDecryption() fd[${self.wasmFD}] emitting "data" from outer socket  <--- [${String.fromCharCode.apply(null, new Uint8Array(decryptedData))}]`);
         self.emit('data', decryptedData.buffer);
 
         // If there is still some pending encrypted data

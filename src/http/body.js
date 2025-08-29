@@ -244,6 +244,27 @@ HttpBody.mixIn = function(proto) {
 	}
 }
 
+function isStringifiedJSON(str) {
+  if (typeof str !== "string") return false;
+
+  try {
+    const parsed = JSON.parse(str);
+
+    // JSON can technically be numbers, booleans, null, etc.
+    // If you only want objects/arrays, add an extra check:
+    if (typeof parsed === "object" && parsed !== null) {
+      return true;
+    }
+
+    // If you also accept primitives (like "123", "true"), return true here:
+    // return true;
+
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
 
 /**
  * Performs the operation "extract a `Content-Type` value from |object|" as
@@ -259,8 +280,13 @@ HttpBody.prototype.extractContentType = function(body) {
 		// body is null
 		return null;
 	} else if (typeof body === 'string') {
-		// body is string
-		return 'text/plain;charset=UTF-8';
+		if (isStringifiedJSON(body)) {
+			// body is JSON
+			return 'application/json';
+		} else {
+			// body is string
+			return 'text/plain;charset=UTF-8';
+		}
 	} else if (isURLSearchParams(body)) {
 		// body is a URLSearchParams
 		return 'application/x-www-form-urlencoded;charset=UTF-8';
