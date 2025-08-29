@@ -1,3 +1,12 @@
+# [0.72.0](https://github.com/openziti/ziti-browzer-core/compare/v0.71.0...v0.72.0) (2025-08-29)
+
+
+### Features
+
+* detect when body string is actually JSON ([#226](https://github.com/openziti/ziti-browzer-core/issues/226)) ([f6db859](https://github.com/openziti/ziti-browzer-core/commit/f6db859a512047b0016735d3d399d45df676e9e2))
+
+
+
 # [0.71.0](https://github.com/openziti/ziti-browzer-core/compare/v0.70.2...v0.71.0) (2025-08-22)
 
 
