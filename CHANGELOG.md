@@ -1,3 +1,12 @@
+# [0.73.0](https://github.com/openziti/ziti-browzer-core/compare/v0.72.0...v0.73.0) (2025-12-05)
+
+
+### Features
+
+* use DETERMINISTIC=0 (fix Date.now() debacle) ([#242](https://github.com/openziti/ziti-browzer-core/issues/242)) ([ae59022](https://github.com/openziti/ziti-browzer-core/commit/ae590225b6422b572596083bc31cbed4427fae94))
+
+
+
 # [0.72.0](https://github.com/openziti/ziti-browzer-core/compare/v0.71.0...v0.72.0) (2025-08-29)
 
 
