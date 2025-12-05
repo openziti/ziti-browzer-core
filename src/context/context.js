@@ -212,7 +212,7 @@ class ZitiContext extends EventEmitter {
 
     if (options.loadWASM) {
 
-      let _real_Date_now = Date.now;  // work around an Emscripten issue
+      // let _real_Date_now = Date.now;  // work around an Emscripten issue
 
       if (!options.jspi) {
         this.logger.trace(`libCrypto.initialize_NO_JSPI starting`);
@@ -225,7 +225,7 @@ class ZitiContext extends EventEmitter {
         this.logger.trace(`libCrypto.initialize_JSPI completed; WASM is now available`);
       }
 
-      Date.now = _real_Date_now;      // work around an Emscripten issue
+      // Date.now = _real_Date_now;      // work around an Emscripten issue
 
     } else {
 

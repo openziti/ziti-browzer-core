@@ -330,13 +330,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openziti/libcrypto-js@npm:0.24.0":
-  version: 0.24.0
-  resolution: "@openziti/libcrypto-js@npm:0.24.0"
+"@openziti/libcrypto-js@npm:^0.26.0":
+  version: 0.26.0
+  resolution: "@openziti/libcrypto-js@npm:0.26.0"
   dependencies:
     "@types/emscripten": "npm:^1.39.6"
     "@wasmer/wasi": "npm:^1.0.2"
-  checksum: c4ab92bc5996f467c59e383009710853219886f07163e651bde5e01292564f353c7d9153995051c38081e058a99166211d78737ad1e80e9e287fea9f6cbdb922
+  checksum: 41befb3c44d71677ed815a39b3849c855d87b091a1a24a6e00f88ad2bb9c582de729ec2c8797b9870d90c4925079b25603774815c3c48df1ba3ed20dddc9a48c
   languageName: node
   linkType: hard
 
@@ -345,7 +345,7 @@ __metadata:
   resolution: "@openziti/ziti-browzer-core@workspace:."
   dependencies:
     "@babel/core": "npm:^7.26.9"
-    "@openziti/libcrypto-js": "npm:0.24.0"
+    "@openziti/libcrypto-js": "npm:^0.26.0"
     "@openziti/ziti-browzer-edge-client": "npm:^0.7.0"
     "@rollup/plugin-commonjs": "npm:^28.0.2"
     "@rollup/plugin-json": "npm:^4.1.0"
